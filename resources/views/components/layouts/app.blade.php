@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ isset($title) ? $title.' - '.config('app.name') : config('app.name') }}</title>
+    <title>{{ isset($title) ? $title . ' - ' . config('app.name') : config('app.name') }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body class="min-h-screen font-sans antialiased bg-base-200">
 
     {{-- NAVBAR mobile only --}}
@@ -25,38 +27,85 @@
     {{-- MAIN --}}
     <x-main>
         {{-- SIDEBAR --}}
-        <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
-
-            {{-- BRAND --}}
-            <x-app-brand class="px-5 pt-4" />
-
+        <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-200">
+            @php
+                $role = App\Enums\RolesEnum::Class;
+                $user = auth()->user();
+            @endphp
             {{-- MENU --}}
             <x-menu activate-by-route>
+                <a href="{{ route('admin.index') }}" wire:navigate class="mb-3">
+                    <div class="pt-3 hidden-when-collapsed ">
+                        <div class="flex justify-center items-center cursor-pointer">
+                            <img src="{{ asset('default/logo.svg') }}" alt="Logo" class="light-logo"
+                                style="height: 120px">
+                        </div>
+                    </div>
 
-                {{-- User --}}
-                @if($user = auth()->user())
-                    <x-menu-separator />
+                    <div class="display-when-collapsed hidden mt-4 lg:mb-6 h-[25px]">
+                        <img src="{{ asset('default/logo.svg') }}" alt="Logo" class="light-logo"
+                            style="height: 120px">
+                    </div>
+                </a>
 
-                    <x-list-item :item="$user" value="name" sub-value="email" no-separator no-hover class="-mx-2 !-my-2 rounded">
-                        <x-slot:actions>
-                            <x-button icon="o-power" class="btn-circle btn-ghost btn-xs" tooltip-left="logoff" no-wire-navigate link="/logout" />
-                        </x-slot:actions>
-                    </x-list-item>
-
-                    <x-menu-separator />
-                @endif
-
-                <x-menu-item title="Hello" icon="o-sparkles" link="/" />
-                
-                <x-menu-sub title="Settings" icon="o-cog-6-tooth">
-                    <x-menu-item title="Wifi" icon="o-wifi" link="####" />
-                    <x-menu-item title="Archives" icon="o-archive-box" link="####" />
-                </x-menu-sub>
+                <x-menu-item title="Dashboard" icon="o-home" link="{{ route('admin.index') }}" />
             </x-menu>
         </x-slot:sidebar>
 
         {{-- The `$slot` goes here --}}
         <x-slot:content>
+            <div class="flex justify-end items-center gap-3 mb-3">
+                <x-theme-toggle class="w-12 h-12 btn-sm btn-ghost" lightTheme="light" darkTheme="dark" responsive />
+                <div class="gap-1.5">
+                    <div class="tooltip tooltip-bottom" data-tip="Toggle Theme">
+                    </div>
+                    @auth
+                        <div class="dropdown dropdown-bottom dropdown-end">
+                            <label tabindex="0" class="btn btn-ghost rounded-btn px-1.5 hover:bg-base-content/20">
+                                <div class="flex items-center gap-2">
+                                    <div aria-label="Avatar photo" class="avatar placeholder">
+                                        @if ($user->image)
+                                            <div class="w-8 h-8 rounded bg-base-content/10">
+                                                <img src="{{ asset($user->image) }}" alt="{{ $user->name }}">
+                                            </div>
+                                        @else
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-primary text-primary-content !flex justify-center items-center">
+                                                <span>
+                                                    {{ substr($user->name, 0, 1) }}
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="flex flex-col items-start">
+                                        <p class="text-sm/none">
+                                            {{ $user->name }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </label>
+                            <ul tabindex="0"
+                                class="z-50 p-2 mt-4 shadow dropdown-content menu bg-base-100 rounded-box w-52"
+                                role="menu">
+                                <li>
+                                    <a href="{{ route('admin.profile') }}" wire:navigate>
+                                        My Profile
+                                    </a>
+                                </li>
+                                <hr class="my-1 -mx-2 border-base-content/10" />
+                                <li>
+                                    <form action="{{ route('admin.logout') }}" method="POST"
+                                        onsubmit="return confirm('Are you sure you want to log out?')">
+                                        @csrf
+                                        <button class="text-error">Logout</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    @endauth
+                </div>
+            </div>
+
             {{ $slot }}
         </x-slot:content>
     </x-main>
@@ -64,4 +113,5 @@
     {{--  TOAST area --}}
     <x-toast />
 </body>
+
 </html>
