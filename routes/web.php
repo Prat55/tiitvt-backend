@@ -20,3 +20,15 @@ Route::middleware(['admin.auth'])->group(function () {
 });
 
 require __DIR__ . '/auth.php';
+
+// Certificate verification route (public)
+Route::get('/certificate/verify/{token}', function ($token) {
+    $certificateService = app(\App\Services\CertificateService::class);
+    $certificate = $certificateService->verifyCertificate($token);
+
+    if (!$certificate) {
+        abort(404, 'Certificate not found or has been revoked.');
+    }
+
+    return view('certificates.verify', compact('certificate'));
+})->name('certificate.verify');

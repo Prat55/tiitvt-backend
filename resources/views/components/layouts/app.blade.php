@@ -29,7 +29,7 @@
         {{-- SIDEBAR --}}
         <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-200">
             @php
-                $role = App\Enums\RolesEnum::Class;
+                $role = App\Enums\RolesEnum::class;
                 $user = auth()->user();
             @endphp
             {{-- MENU --}}

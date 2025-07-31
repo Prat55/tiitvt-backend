@@ -14,7 +14,7 @@ class UserWithRoleSeeder extends Seeder
      */
     public function run(): void
     {
-        $admin_role = Role::create(['name' => RolesEnum::ADMIN->value]);
+        $admin_role = Role::firstOrCreate(['name' => RolesEnum::Admin->value]);
         $admin_user =  User::factory()->create([
             'name' => 'Admin',
             'email' => 'admin@mail.com',
@@ -22,7 +22,7 @@ class UserWithRoleSeeder extends Seeder
         ]);
         $admin_user->assignRole($admin_role);
 
-        $center_role = Role::create(['name' => RolesEnum::CENTER->value]);
+        $center_role = Role::firstOrCreate(['name' => RolesEnum::Center->value]);
         $center_user =  User::factory()->create([
             'name' => 'Center',
             'email' => 'center@mail.com',
@@ -30,7 +30,7 @@ class UserWithRoleSeeder extends Seeder
         ]);
         $center_user->assignRole($center_role);
 
-        $student_role = Role::create(['name' => RolesEnum::STUDENT->value]);
+        $student_role = Role::firstOrCreate(['name' => RolesEnum::Student->value]);
         $student_user =  User::factory()->create([
             'name' => 'Student',
             'email' => 'student@mail.com',
