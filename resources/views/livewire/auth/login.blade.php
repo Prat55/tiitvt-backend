@@ -29,7 +29,6 @@ new class extends Component {
     {
         $credentials = $this->validate();
 
-        // Determine if login is via email or username
         if (auth()->attempt($credentials)) {
             request()->session()->regenerate();
 
@@ -49,8 +48,8 @@ new class extends Component {
         </h3>
         <div class="mx-auto mt-10 md:w-96">
             <x-form wire:submit="login" no-seperator>
-                <x-input label="E-mail" wire:model.live="email" icon="o-envelope" />
-                <x-password label="Password" icon="fas.lock" wire:model.live="password" right />
+                <x-input label="E-mail" wire:model="email" icon="o-envelope" />
+                <x-password label="Password" icon="fas.lock" wire:model="password" right />
 
                 <div class="flex items-center justify-end">
                     <a href="{{ route('password.request') }}">Forgot Password</a>

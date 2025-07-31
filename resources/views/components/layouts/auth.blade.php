@@ -10,7 +10,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="">
+<body class="bg-base-300">
     <div>
         <div class="grid min-h-screen grid-cols-1 overflow-auto">
             <div class="col-span-12 lg:col-span-6">
@@ -19,12 +19,11 @@
                         <x-theme-toggle class="w-12 h-12 btn-sm btn-ghost" lightTheme="light" darkTheme="dark" />
                     </div>
                 </div>
-                <div class="flex items-center justify-center h-full">
-
-                    <div class="" style="width: 450px">
-                        <a href="/">
-                            <div class="w-full flex justify-center">
-                                <img src="{{ asset('default/logo.svg') }}" alt="Logo" class="light-logo"
+                <div class="flex items-center justify-center h-[90vh] select-none">
+                    <div class="w-[450px] bg-base-200 py-10 px-4 rounded-lg">
+                        <a href="{{ url('/') }}">
+                            <div class="w-full flex justify-center rounded-full overflow-hidden">
+                                <img src="{{ asset('default/tiitvt_logo.png') }}" alt="Logo" class="light-logo"
                                     style="height: 120px">
                             </div>
                         </a>

@@ -37,14 +37,14 @@
                 <a href="{{ route('admin.index') }}" wire:navigate class="mb-3">
                     <div class="pt-3 hidden-when-collapsed ">
                         <div class="flex justify-center items-center cursor-pointer">
-                            <img src="{{ asset('default/logo.svg') }}" alt="Logo" class="light-logo"
-                                style="height: 120px">
+                            <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo" class="light-logo"
+                                style="height: 100px">
                         </div>
                     </div>
 
-                    <div class="display-when-collapsed hidden mt-4 lg:mb-6 h-[25px]">
-                        <img src="{{ asset('default/logo.svg') }}" alt="Logo" class="light-logo"
-                            style="height: 120px">
+                    <div class="display-when-collapsed hidden my-3 h-[25px] mx-3">
+                        <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo" class="light-logo"
+                            style="height: 100%">
                     </div>
                 </a>
 
@@ -54,7 +54,7 @@
 
         {{-- The `$slot` goes here --}}
         <x-slot:content>
-            <div class="flex justify-end items-center gap-3 mb-3">
+            <div class="flex justify-end items-center gap-3 mb-5">
                 <x-theme-toggle class="w-12 h-12 btn-sm btn-ghost" lightTheme="light" darkTheme="dark" responsive />
                 <div class="gap-1.5">
                     <div class="tooltip tooltip-bottom" data-tip="Toggle Theme">

@@ -7,8 +7,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Volt::route('/', 'admin.index')->name('admin.index');
-
 Route::middleware(['admin.auth'])->group(function () {
     Route::redirect('/admin', '/dashboard');
     Route::redirect('/admin/dashboard', '/dashboard');

@@ -5,16 +5,16 @@ namespace App\Enums;
 
 enum RolesEnum: string
 {
-    case ADMIN = 'admin';
-    case CENTER = 'center';
-    case STUDENT = 'student';
+    case Admin = 'admin';
+    case Center = 'center';
+    case Student = 'student';
 
     public function label(): string
     {
         return match ($this) {
-            self::ADMIN => 'Admin',
-            self::CENTER => 'Center',
-            self::STUDENT => 'Student',
+            self::Admin => 'Admin',
+            self::Center => 'Center',
+            self::Student => 'Student',
         };
     }
 }

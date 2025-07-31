@@ -19,16 +19,10 @@ class AdminAuthMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            // Store the intended URL in the session
             session()->put('url.intended', url()->current());
-            // Redirect to custom login page if not authenticated
             return redirect()->route('login');
         }
-        $user = User::find(Auth::id());
-        if (!$user->hasRole(RolesEnum::CENTER->value)) {
-            return $next($request);
-        }
 
-        abort(403);
+        return $next($request);
     }
 }
