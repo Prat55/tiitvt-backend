@@ -27,7 +27,7 @@
     {{-- MAIN --}}
     <x-main>
         {{-- SIDEBAR --}}
-        <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-200">
+        <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100">
             @php
                 $role = App\Enums\RolesEnum::class;
                 $user = auth()->user();
@@ -49,11 +49,13 @@
                 </a>
 
                 <x-menu-item title="Dashboard" icon="o-home" link="{{ route('admin.index') }}" />
+                <x-menu-item title="Centers" icon="fas.building" link="{{ route('admin.center.index') }}" />
+                <x-menu-item title="Students" icon="fas.users" link="{{ route('admin.student.index') }}" />
             </x-menu>
         </x-slot:sidebar>
 
         {{-- The `$slot` goes here --}}
-        <x-slot:content>
+        <x-slot:content class="bg-base-300">
             <div class="flex justify-end items-center gap-3 mb-5">
                 <x-theme-toggle class="w-12 h-12 btn-sm btn-ghost" lightTheme="light" darkTheme="dark" responsive />
                 <div class="gap-1.5">

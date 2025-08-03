@@ -16,6 +16,15 @@ class Center extends Model
         'name',
         'phone',
         'address',
+        'state',
+        'country',
+        'institute_logo',
+        'front_office_photo',
+        'back_office_photo',
+        'email',
+        'owner_name',
+        'aadhar',
+        'pan',
         'status',
     ];
 
@@ -45,5 +54,42 @@ class Center extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /**
+     * Generate a unique center ID with incrementing format (CTR0001, CTR0002, etc.)
+     *
+     * @return string
+     */
+    public static function generateUniqueCenterId(): string
+    {
+        // Get the last center ID from the database
+        $lastCenter = self::orderBy('id', 'desc')->first();
+
+        if (!$lastCenter) {
+            // If no centers exist, start with CTR0001
+            return 'CTR0001';
+        }
+
+        // Extract the numeric part from the last center ID
+        $lastId = $lastCenter->id;
+        $nextNumber = $lastId + 1;
+
+        // Format the ID with leading zeros (4 digits)
+        return 'CTR' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Boot method to automatically set center_id when creating a new center
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($center) {
+            if (empty($center->uid)) {
+                $center->uid = self::generateUniqueCenterId();
+            }
+        });
     }
 }

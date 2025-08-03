@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -22,6 +23,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'image',
+        'status',
         'password',
     ];
 
@@ -49,11 +53,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the centers for the user.
+     * Get the center for the user.
      */
-    public function centers(): HasMany
+    public function center(): HasOne
     {
-        return $this->hasMany(Center::class);
+        return $this->hasOne(Center::class);
     }
 
     /**

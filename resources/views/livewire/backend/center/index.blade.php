@@ -19,13 +19,13 @@ new class extends Component {
     // boot
     public function boot(): void
     {
-        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'image', 'label' => 'Image', 'class' => 'w-1'], ['key' => 'name', 'label' => 'Name']];
+        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'institute_logo', 'label' => 'Image', 'class' => 'w-1'], ['key' => 'name', 'label' => 'Center Name', 'class' => 'w-48'], ['key' => 'phone', 'label' => 'Phone', 'class' => 'w-32'], ['key' => 'email', 'label' => 'Email', 'class' => 'w-48'], ['key' => 'owner_name', 'label' => 'Owner', 'class' => 'w-32'], ['key' => 'location', 'label' => 'Location', 'class' => 'w-40']];
     }
 
     public function rendering(View $view): void
     {
         $view->centers = Center::orderBy(...array_values($this->sortBy))
-            ->where('name', 'like', "%$this->search%")
+            ->whereAny(['name', 'phone', 'email', 'owner_name', 'state', 'country'], 'like', "%$this->search%")
             ->paginate(20);
         $view->title('All Centers');
     }
@@ -52,36 +52,83 @@ new class extends Component {
             </div>
         </div>
         <div class="flex gap-3">
-            <x-input placeholder="Search ..." icon="o-magnifying-glass" wire:model.live.debounce="search" />
+            <x-input placeholder="Search centers, phone, email, owner..." icon="o-magnifying-glass"
+                wire:model.live.debounce="search" />
             <x-button label="Add Center" icon="o-plus" class="btn-primary inline-flex" responsive
                 link="{{ route('admin.center.create') }}" />
         </div>
     </div>
     <hr class="mb-5">
     <x-table :headers="$headers" :rows="$centers" with-pagination :sort-by="$sortBy">
-        @scope('cell_name', $client)
-            <span class="badge badge-xs {{ $client->is_published === 1 ? 'badge-success' : 'badge-error' }}">
-            </span>
-            {{ $center->name }}
+        @scope('cell_name', $center)
+            <div class="flex items-center gap-2">
+                <span class="badge badge-xs {{ $center->status === 'active' ? 'badge-success' : 'badge-error' }}">
+                    {{ $center->status === 'active' ? 'Active' : 'Inactive' }}
+                </span>
+                <span class="font-medium">{{ $center->name }}</span>
+            </div>
         @endscope
-        @scope('cell_image', $center)
-            @if ($center->image)
+        @scope('cell_institute_logo', $center)
+            @if ($center->institute_logo)
                 <div class="avatar select-none">
-                    <div class="w-8 rounded-md">
-                        <img src="{{ $center->image }}" alt="{{ $center->name }}" />
+                    <div class="w-12 rounded-md">
+                        <img src="{{ asset('storage/' . $center->institute_logo) }}" alt="{{ $center->name }}" />
                     </div>
                 </div>
             @else
                 <div class="select-none avatar avatar-placeholder">
-                    <div class="w-10 rounded-md bg-neutral text-neutral-content">
-                        <span class="text-lg">{{ substr($center->name, 0, 1) }}</span>
+                    <div class="w-8 rounded-md bg-neutral text-neutral-content">
+                        <span class="text-xs">{{ substr($center->name, 0, 1) }}</span>
                     </div>
                 </div>
             @endif
         @endscope
+        @scope('cell_phone', $center)
+            @if ($center->phone)
+                <span class="text-sm">{{ $center->phone }}</span>
+            @else
+                <span class="text-xs text-gray-400">-</span>
+            @endif
+        @endscope
+        @scope('cell_email', $center)
+            @if ($center->email)
+                <span class="text-sm">{{ $center->email }}</span>
+            @else
+                <span class="text-xs text-gray-400">-</span>
+            @endif
+        @endscope
+        @scope('cell_owner_name', $center)
+            @if ($center->owner_name)
+                <span class="text-sm font-medium">{{ $center->owner_name }}</span>
+            @else
+                <span class="text-xs text-gray-400">-</span>
+            @endif
+        @endscope
+        @scope('cell_location', $center)
+            @if ($center->state || $center->country)
+                <div class="text-xs">
+                    @if ($center->state)
+                        <div>{{ $center->state }}</div>
+                    @endif
+                    @if ($center->country)
+                        <div class="text-gray-500">{{ $center->country }}</div>
+                    @endif
+                </div>
+            @else
+                <span class="text-xs text-gray-400">-</span>
+            @endif
+        @endscope
+        @scope('cell_status', $center)
+            <span class="badge badge-xs {{ $center->status === 'active' ? 'badge-success' : 'badge-error' }}">
+                {{ $center->status === 'active' ? 'Active' : 'Inactive' }}
+            </span>
+        @endscope
         @scope('actions', $center)
-            <div class="flex">
-                <x-button icon="o-pencil" link="{{ route('admin.center.edit', $center->id) }}" class="btn-xs" />
+            <div class="flex gap-1">
+                <x-button icon="o-eye" link="{{ route('admin.center.show', $center->uid) }}" class="btn-xs btn-ghost"
+                    title="View Details" />
+                <x-button icon="o-pencil" link="{{ route('admin.center.edit', $center->uid) }}" class="btn-xs btn-ghost"
+                    title="Edit Center" />
             </div>
         @endscope
         <x-slot:empty>
