@@ -212,10 +212,10 @@ new class extends Component {
                 </ul>
             </div>
         </div>
-        <div class="flex gap-3">
-            <x-button label="Reset Form" icon="o-arrow-path" class="btn-outline" wire:click="resetForm" />
+        <div class="flex gap-3 justify-end sm:w-auto w-full">
+            <x-button label="Reset Form" icon="o-arrow-path" class="btn-outline" wire:click="resetForm" responsive />
             <x-button label="Back to Centers" icon="o-arrow-left" class="btn-primary btn-outline"
-                link="{{ route('admin.center.index') }}" />
+                link="{{ route('admin.center.index') }}" responsive />
         </div>
     </div>
 

@@ -28,6 +28,7 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('students')->name('student.')->group(function () {
                 Volt::route('/', 'backend.student.index')->name('index');
                 Volt::route('/create', 'backend.student.create')->name('create');
+                Volt::route('/{student}/show', 'backend.student.show')->name('show');
                 Volt::route('/{student}/edit', 'backend.student.edit')->name('edit');
                 Volt::route('/{student}/delete', 'backend.student.delete')->name('delete');
             });

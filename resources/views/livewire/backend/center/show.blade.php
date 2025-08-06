@@ -55,7 +55,7 @@ new class extends Component {
                 Center Details
             </h1>
             <div class="breadcrumbs text-sm">
-                <ul class="flex">
+                <ul class="flex sm:flex-nowrap flex-wrap">
                     <li>
                         <a href="{{ route('admin.index') }}" wire:navigate>
                             Dashboard
@@ -67,15 +67,19 @@ new class extends Component {
                         </a>
                     </li>
                     <li>
-                        {{ $center->name }}
+                        <span>
+                            {{ $center->name }}
+                            {{-- {{ Str::limit($center->name, 10) }} --}}
+                        </span>
                     </li>
                 </ul>
             </div>
         </div>
-        <div class="flex gap-3">
+
+        <div class="flex gap-3 justify-end sm:w-auto w-full">
             <x-button label="Edit Center" icon="o-pencil" class="btn-primary inline-flex" responsive
                 link="{{ route('admin.center.edit', $center->uid) }}" />
-            <x-button label="Back to Centers" icon="o-arrow-left" class="btn-ghost inline-flex" responsive
+            <x-button label="Back to Centers" icon="o-arrow-left" class="btn-primary inline-flex btn-outline" responsive
                 link="{{ route('admin.center.index') }}" />
         </div>
     </div>
@@ -267,15 +271,16 @@ new class extends Component {
     <!-- Students Table Section -->
     <x-card>
         <x-slot:title>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between md:flex-nowrap flex-wrap">
                 <div class="flex items-center gap-2">
                     <x-icon name="o-academic-cap" class="w-5 h-5" />
                     Attached Students
                 </div>
-                <div class="flex gap-3">
+
+                <div class="flex gap-3 md:w-auto w-full md:mt-0 mt-2">
                     <x-input placeholder="Search students..." icon="o-magnifying-glass"
-                        wire:model.live.debounce="search" class="w-64" />
-                    <x-button label="Add Student" icon="o-plus" class="btn-primary btn-sm" />
+                        wire:model.live.debounce="search" responsive />
+                    <x-button label="Add Student" icon="o-plus" class="btn-primary" responsive />
                 </div>
             </div>
         </x-slot:title>
