@@ -1,14 +1,13 @@
 <?php
 
-use App\Models\Student;
-use App\Models\Center;
-use App\Models\Course;
 use Mary\Traits\Toast;
+use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\{Layout, Title};
+use App\Models\{Course, Center, Student};
 
 new class extends Component {
     use WithFileUploads, Toast;
@@ -71,31 +70,30 @@ new class extends Component {
     // Status
     public string $status = 'active';
 
+    public $dateConfig = ['altFormat' => 'd/m/Y'];
+
     // Validation rules
     protected function rules(): array
     {
         return [
             'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'last_name' => 'nullable|string|max:100',
             'fathers_name' => 'required|string|max:100',
             'surname' => 'nullable|string|max:100',
             'address' => 'nullable|array',
-            'address.street' => 'nullable|string|max:255',
-            'address.city' => 'nullable|string|max:100',
-            'address.state' => 'nullable|string|max:100',
-            'address.pincode' => 'nullable|string|max:10',
-            'address.country' => 'nullable|string|max:100',
+            'address.street' => 'required|string|max:190',
+            'address.city' => 'required|string|max:100',
+            'address.state' => 'required|string|max:100',
+            'address.pincode' => 'required|string|max:10',
+            'address.country' => 'required|string|max:100',
             'telephone_no' => 'nullable|string|max:20',
             'email' => 'required|email|max:180|unique:students,email',
             'mobile' => 'nullable|string|max:15',
-            'date_of_birth' => 'nullable|date',
-            'age' => 'nullable|integer|min:0|max:150',
-            'qualification' => 'nullable|string|max:500',
+            'date_of_birth' => 'required|date',
+            'age' => 'required|integer|min:0|max:150',
+            'qualification' => 'required|string|max:500',
             'additional_qualification' => 'nullable|string|max:500',
             'reference' => 'nullable|string|max:100',
-            'course_taken' => 'nullable|string|max:100',
-            'batch_time' => 'nullable|string|max:100',
+            'batch_time' => 'required|string|max:100',
             'scheme_given' => 'nullable|string|max:500',
             'course_fees' => 'required|numeric|min:0',
             'down_payment' => 'nullable|numeric|min:0',
@@ -124,6 +122,21 @@ new class extends Component {
             'course_fees.required' => 'Course fees is required.',
             'center_id.required' => 'Please select a center.',
             'course_id.required' => 'Please select a course.',
+            'address.street.required' => 'Street field is required',
+            'address.city.required' => 'City field is required',
+            'address.state.required' => 'State field is required',
+            'address.pincode.required' => 'Pincode field is required',
+            'address.country.required' => 'Contry field is required',
+            'address.street.required' => 'Street field is required',
+            'address.city.required' => 'City field is required',
+            'address.state.required' => 'State field is required',
+            'address.pincode.required' => 'Pincode field is required',
+            'address.country.required' => 'Contry field is required',
+            'address.street.max' => 'Street may not be greater than 190 characters.',
+            'address.city.max' => 'City may not be greater than 100 characters.',
+            'address.state.max' => 'State may not be greater than 100 characters.',
+            'address.pincode.max' => 'Pincode may not be greater than 10 characters.',
+            'address.country.max' => 'Country may not be greater than 100 characters.',
         ];
     }
 
@@ -135,8 +148,6 @@ new class extends Component {
         try {
             $data = [
                 'first_name' => $this->first_name,
-                'middle_name' => $this->middle_name,
-                'last_name' => $this->last_name,
                 'fathers_name' => $this->fathers_name,
                 'surname' => $this->surname,
                 'address' => $this->address,
@@ -148,7 +159,6 @@ new class extends Component {
                 'qualification' => $this->qualification,
                 'additional_qualification' => $this->additional_qualification,
                 'reference' => $this->reference,
-                'course_taken' => $this->course_taken,
                 'batch_time' => $this->batch_time,
                 'scheme_given' => $this->scheme_given,
                 'course_fees' => $this->course_fees,
@@ -232,7 +242,7 @@ new class extends Component {
         $this->updatedCourseFees();
     }
 
-    public function rendering()
+    public function rendering(View $view)
     {
         // Auto-generate TIITVT registration number if empty
         if (empty($this->tiitvt_reg_no)) {
@@ -243,9 +253,22 @@ new class extends Component {
         if (empty($this->enrollment_date)) {
             $this->enrollment_date = now()->format('Y-m-d');
         }
+
+        $view->centers = Center::active()
+            ->latest()
+            ->get(['id', 'name']);
+
+        $view->courses = Course::active()
+            ->latest()
+            ->get(['id', 'name']);
     }
 }; ?>
-
+@section('cdn')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/robsontenorio/mary@0.44.2/libs/currency/currency.js">
+    </script>
+@endsection
 <div>
     <!-- Header -->
     <div class="flex justify-between items-start lg:items-center flex-col lg:flex-row mt-3 mb-5 gap-2">
@@ -271,16 +294,14 @@ new class extends Component {
                 </ul>
             </div>
         </div>
+
         <div class="flex gap-3">
             <x-button label="Reset Form" icon="o-arrow-path" class="btn-outline" wire:click="resetForm" responsive />
             <x-button label="Back to Students" icon="o-arrow-left" class="btn-primary btn-outline"
                 link="{{ route('admin.student.index') }}" responsive />
         </div>
     </div>
-
     <hr class="mb-5">
-
-    <!-- Form -->
     <x-card shadow>
         <form wire:submit="save" class="space-y-6">
             <!-- Basic Information -->
@@ -293,12 +314,6 @@ new class extends Component {
                     icon="o-identification" readonly />
 
                 <x-input label="First Name" wire:model="first_name" placeholder="Enter first name" icon="o-user" />
-
-                <x-input label="Middle Name" wire:model="middle_name" placeholder="Enter middle name (optional)"
-                    icon="o-user" />
-
-                <x-input label="Last Name" wire:model="last_name" placeholder="Enter last name (optional)"
-                    icon="o-user" />
 
                 <x-input label="Father's Name" wire:model="fathers_name" placeholder="Enter father's name"
                     icon="o-user" />
@@ -338,7 +353,8 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Personal Information</h3>
                 </div>
 
-                <x-input label="Date of Birth" wire:model="date_of_birth" type="date" icon="o-calendar" />
+                <x-datepicker label="Date of Birth" wire:model.live="date_of_birth" icon="o-calendar"
+                    :config="$dateConfig" />
 
                 <x-input label="Age" wire:model="age" type="number" placeholder="Auto-calculated" icon="o-user"
                     readonly />
@@ -366,25 +382,14 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
                 </div>
 
-                <x-select label="Center" wire:model="center_id" placeholder="Select center"
-                    icon="o-building-office">
-                    @foreach (\App\Models\Center::active()->get() as $center)
-                        <option value="{{ $center->id }}">{{ $center->name }}</option>
-                    @endforeach
-                </x-select>
+                <x-choices-offline label="Center" wire:model="center_id" placeholder="Select center"
+                    icon="o-building-office" :options="$centers" single searchable clearable />
 
-                <x-select label="Course" wire:model="course_id" placeholder="Select course" icon="o-academic-cap">
-                    @foreach (\App\Models\Course::active()->get() as $course)
-                        <option value="{{ $course->id }}">{{ $course->name }} - ₹{{ number_format($course->fee, 2) }}
-                        </option>
-                    @endforeach
-                </x-select>
+                <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
+                    icon="o-academic-cap" :options="$courses" single searchable clearable />
 
-                <x-input label="Course Taken" wire:model="course_taken" placeholder="Enter course taken (optional)"
-                    icon="o-book-open" />
-
-                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)"
-                    icon="o-clock" />
+                <x-input type="time" label="Batch Time" wire:model="batch_time"
+                    placeholder="Enter batch time (optional)" />
 
                 <x-textarea label="Scheme Given" wire:model="scheme_given"
                     placeholder="Enter scheme details (optional)" icon="o-document-text" rows="3" />
@@ -396,22 +401,23 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Fees Information</h3>
                 </div>
 
-                <x-input label="Course Fees" wire:model="course_fees" type="number" step="0.01"
-                    placeholder="Enter course fees" icon="o-currency-rupee" />
+                <x-input label="Course Fees" wire:model.live="course_fees" step="0.01"
+                    placeholder="Enter course fees" icon="o-currency-rupee" money />
 
-                <x-input label="Down Payment" wire:model="down_payment" type="number" step="0.01"
-                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" />
+                <x-input label="Down Payment" wire:model.live="down_payment" step="0.01"
+                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" money />
 
-                <x-input label="Number of Installments" wire:model="no_of_installments" type="number"
-                    placeholder="Enter number of installments (optional)" icon="o-calculator" />
+                <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"
+                    placeholder="Enter number of installments (optional)" icon="o-calculator" min="0" />
 
-                <x-input label="Installment Date" wire:model="installment_date" type="date"
-                    placeholder="Select installment date (optional)" icon="o-calendar" />
+                <x-datepicker label="Installment Date (optional)" wire:model="installment_date" icon="o-calendar"
+                    :config="$dateConfig" />
 
-                <x-input label="Installment Amount" wire:model="installment_amount" type="number" step="0.01"
-                    placeholder="Auto-calculated" icon="o-currency-rupee" readonly />
+                <x-input label="Installment Amount" wire:model="installment_amount" step="0.01"
+                    placeholder="Auto-calculated" icon="o-currency-rupee" readonly money />
 
-                <x-input label="Enrollment Date" wire:model="enrollment_date" type="date" icon="o-calendar" />
+                <x-datepicker label="Enrollment Date" wire:model="enrollment_date" icon="o-calendar"
+                    :config="$dateConfig" />
 
                 <x-input label="Incharge Name" wire:model="incharge_name"
                     placeholder="Enter incharge name (optional)" icon="o-user" />
@@ -421,32 +427,22 @@ new class extends Component {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <h3 class="text-lg font-semibold text-primary">Student Image</h3>
-                    <div class="space-y-2">
-                        <label class="label">
-                            <span class="label-text font-medium">Student Image (Optional)</span>
-                        </label>
+                    <div class="space-y-2 mt-3">
                         <x-file wire:model="student_image" accept="image/*" placeholder="Upload student image"
-                            icon="o-photo">
-                            <div
-                                class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                                <span class="text-gray-500 text-sm">Image</span>
-                                
-                            </div>
+                            icon="o-photo" hint="Max 2MB">
+                            <img src="https://placehold.co/300x300?text=Image" alt="Student Image"
+                                class="w-32 h-32 object-cover rounded-lg">
                         </x-file>
                     </div>
                 </div>
+
                 <div>
                     <h3 class="text-lg font-semibold text-primary">Student Signature</h3>
-                    <div class="space-y-2">
-                        <label class="label">
-                            <span class="label-text font-medium">Student Signature Image (Optional)</span>
-                        </label>
+                    <div class="space-y-2 mt-3">
                         <x-file wire:model="student_signature_image" accept="image/*"
-                            placeholder="Upload student signature" icon="o-photo">
-                            <div
-                                class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                                <span class="text-gray-500 text-sm">Signature</span>
-                            </div>
+                            placeholder="Upload student signature" icon="o-photo" hint="Max 2MB">
+                            <img src="https://placehold.co/300x300?text=Signature" alt="Signature"
+                                class="w-32 h-32 object-cover rounded-lg">
                         </x-file>
                     </div>
                 </div>
@@ -458,10 +454,7 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Status</h3>
                 </div>
 
-                <x-select label="Status" wire:model="status" icon="o-check-circle">
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </x-select>
+                <x-select label="Status" wire:model="status" icon="o-check-circle" :options="[['id' => 'active', 'name' => 'Active'], ['id' => 'inactive', 'name' => 'Inactive']]" />
             </div>
 
             <!-- Form Actions -->

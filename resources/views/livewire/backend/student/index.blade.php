@@ -1,12 +1,12 @@
 <?php
 
-use Livewire\Volt\Component;
-use Livewire\Attributes\{Layout};
 use App\Models\Student;
-use Livewire\WithPagination;
 use Illuminate\View\View;
+use Livewire\Volt\Component;
+use Livewire\WithPagination;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\{Layout};
 
 new class extends Component {
     use WithPagination;
