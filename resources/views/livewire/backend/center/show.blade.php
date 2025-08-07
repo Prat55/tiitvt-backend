@@ -7,16 +7,19 @@ use Illuminate\View\View;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Attributes\{Layout};
 
 new class extends Component {
     use WithPagination, Toast;
+
     #[Title('Center Details')]
     public $center;
-    public $studentHeaders;
+    public $headers;
+
     #[Url]
     public string $search = '';
-    public $sortBy = ['column' => 'name', 'direction' => 'asc'];
+    public $sortBy = ['column' => 'first_name', 'direction' => 'asc'];
 
     public function mount($uid)
     {
@@ -30,7 +33,7 @@ new class extends Component {
 
     public function boot(): void
     {
-        $this->studentHeaders = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'phone', 'label' => 'Phone', 'class' => 'w-32'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40'], ['key' => 'fee', 'label' => 'Fee', 'class' => 'w-24'], ['key' => 'join_date', 'label' => 'Join Date', 'class' => 'w-32'], ['key' => 'status', 'label' => 'Status', 'class' => 'w-24']];
+        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32'], ['key' => 'email', 'label' => 'Email', 'class' => 'w-48'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40'], ['key' => 'course_fees', 'label' => 'Fees', 'class' => 'w-24'], ['key' => 'enrollment_date', 'label' => 'Enrolled', 'class' => 'w-32'], ['key' => 'status', 'label' => 'Status', 'class' => 'w-20']];
     }
 
     public function rendering(View $view): void
@@ -39,8 +42,11 @@ new class extends Component {
             ->students()
             ->with('course')
             ->orderBy(...array_values($this->sortBy))
-            ->whereAny(['first_name', 'last_name', 'phone'], 'like', "%$this->search%")
-            ->paginate(15);
+            ->whereAny(['tiitvt_reg_no', 'first_name', 'fathers_name', 'mobile', 'email', 'telephone_no'], 'like', "%$this->search%")
+            ->orWhereHas('course', function ($query) {
+                $query->where('name', 'like', "%$this->search%");
+            })
+            ->paginate(20);
 
         $view->title('Center Details - ' . $this->center->name);
     }
@@ -67,10 +73,7 @@ new class extends Component {
                         </a>
                     </li>
                     <li>
-                        <span>
-                            {{ $center->name }}
-                            {{-- {{ Str::limit($center->name, 10) }} --}}
-                        </span>
+                        <span>{{ $center->name }}</span>
                     </li>
                 </ul>
             </div>
@@ -129,54 +132,49 @@ new class extends Component {
                     </div>
                 </x-slot:title>
 
-                <div class="flex gap-3">
-                    <div class="space-y-3">
-                        @if ($center->phone)
-                            <div class="flex items-center gap-2">
-                                <x-icon name="o-phone" class="w-4 h-4 text-gray-500" />
-                                <span class="text-sm">{{ $center->phone }}</span>
-                            </div>
-                        @endif
+                <div class="space-y-3">
+                    @if ($center->phone)
+                        <div class="flex items-center gap-2">
+                            <x-icon name="o-phone" class="w-4 h-4 text-gray-500" />
+                            <span class="text-sm">{{ $center->phone }}</span>
+                        </div>
+                    @endif
 
-                        @if ($center->email)
-                            <div class="flex items-center gap-2">
-                                <x-icon name="o-envelope" class="w-4 h-4 text-gray-500" />
-                                <span class="text-sm">{{ $center->email }}</span>
-                            </div>
-                        @endif
+                    @if ($center->email)
+                        <div class="flex items-center gap-2">
+                            <x-icon name="o-envelope" class="w-4 h-4 text-gray-500" />
+                            <span class="text-sm">{{ $center->email }}</span>
+                        </div>
+                    @endif
 
-                        @if ($center->owner_name)
-                            <div class="flex items-center gap-2">
-                                <x-icon name="o-user" class="w-4 h-4 text-gray-500" />
-                                <span class="text-sm"><strong>Owner:</strong> {{ $center->owner_name }}</span>
-                            </div>
-                        @endif
+                    @if ($center->owner_name)
+                        <div class="flex items-center gap-2">
+                            <x-icon name="o-user" class="w-4 h-4 text-gray-500" />
+                            <span class="text-sm"><strong>Owner:</strong> {{ $center->owner_name }}</span>
+                        </div>
+                    @endif
 
-                        @if ($center->address)
-                            <div class="flex items-start gap-2">
-                                <x-icon name="o-map-pin" class="w-4 h-4 text-gray-500 mt-0.5" />
-                                <span class="text-sm">{{ $center->address }}</span>
-                            </div>
-                        @endif
+                    @if ($center->address)
+                        <div class="flex items-start gap-2">
+                            <x-icon name="o-map-pin" class="w-4 h-4 text-gray-500 mt-0.5" />
+                            <span class="text-sm">{{ $center->address }}</span>
+                        </div>
+                    @endif
 
-                        @if ($center->state || $center->country)
-                            <div class="flex items-center gap-2">
-                                <x-icon name="o-globe-alt" class="w-4 h-4 text-gray-500" />
-                                <span class="text-sm">
-                                    @if ($center->state && $center->country)
-                                        {{ $center->state }}, {{ $center->country }}
-                                    @elseif ($center->state)
-                                        {{ $center->state }}
-                                    @else
-                                        {{ $center->country }}
-                                    @endif
-                                </span>
-                            </div>
-                        @endif
-                    </div>
-                    <div>
-
-                    </div>
+                    @if ($center->state || $center->country)
+                        <div class="flex items-center gap-2">
+                            <x-icon name="o-globe-alt" class="w-4 h-4 text-gray-500" />
+                            <span class="text-sm">
+                                @if ($center->state && $center->country)
+                                    {{ $center->state }}, {{ $center->country }}
+                                @elseif ($center->state)
+                                    {{ $center->state }}
+                                @else
+                                    {{ $center->country }}
+                                @endif
+                            </span>
+                        </div>
+                    @endif
                 </div>
             </x-card>
         </div>
@@ -190,7 +188,7 @@ new class extends Component {
                 </div>
             </x-slot:title>
 
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="stat">
                     <div class="stat-title">Total Students</div>
                     <div class="stat-value text-primary">{{ $center->students()->count() }}</div>
@@ -205,7 +203,7 @@ new class extends Component {
                 <div class="stat">
                     <div class="stat-title">Total Revenue</div>
                     <div class="stat-value text-info">
-                        ₹{{ number_format($center->students()->sum('fee'), 2) }}
+                        ₹{{ number_format($center->students()->sum('course_fees'), 2) }}
                     </div>
                 </div>
             </div>
@@ -257,14 +255,6 @@ new class extends Component {
                     </div>
                 @endif
             </div>
-
-            @if (!$center->front_office_photo && !$center->back_office_photo)
-                <div class="text-center py-12">
-                    <x-icon name="o-photo" class="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h4 class="text-lg font-semibold text-gray-600 mb-2">No Office Photos Available</h4>
-                    <p class="text-gray-500">Office photos will be displayed here once uploaded</p>
-                </div>
-            @endif
         </x-card>
     @endif
 
@@ -278,26 +268,44 @@ new class extends Component {
                 </div>
 
                 <div class="flex gap-3 md:w-auto w-full md:mt-0 mt-2">
-                    <x-input placeholder="Search students..." icon="o-magnifying-glass"
+                    <x-input placeholder="Search students, registration no, phone, email..." icon="o-magnifying-glass"
                         wire:model.live.debounce="search" responsive />
-                    <x-button label="Add Student" icon="o-plus" class="btn-primary" responsive />
+                    <x-button label="Add Student" icon="o-plus" class="btn-primary" responsive
+                        link="{{ route('admin.student.create') }}" />
                 </div>
             </div>
         </x-slot:title>
 
-        <x-table :headers="$studentHeaders" :rows="$students" with-pagination :sort-by="$sortBy">
-            @scope('cell_name', $student)
+        <x-table :headers="$headers" :rows="$students" with-pagination :sort-by="$sortBy">
+            @scope('cell_tiitvt_reg_no', $student)
+                <span class="font-mono text-sm font-medium">{{ $student->tiitvt_reg_no }}</span>
+            @endscope
+
+            @scope('cell_full_name', $student)
                 <div class="flex items-center gap-2">
                     <span class="badge badge-xs {{ $student->status === 'active' ? 'badge-success' : 'badge-error' }}">
                         {{ $student->status === 'active' ? 'Active' : 'Inactive' }}
                     </span>
-                    <span class="font-medium">{{ $student->name }}</span>
+                    <div>
+                        <div class="font-medium">{{ $student->full_name }}</div>
+                        @if ($student->fathers_name)
+                            <div class="text-xs text-gray-500">{{ $student->fathers_name }}</div>
+                        @endif
+                    </div>
                 </div>
             @endscope
 
-            @scope('cell_phone', $student)
-                @if ($student->phone)
-                    <span class="text-sm">{{ $student->phone }}</span>
+            @scope('cell_mobile', $student)
+                @if ($student->mobile)
+                    <span class="text-sm">{{ $student->mobile }}</span>
+                @else
+                    <span class="text-xs text-gray-400">-</span>
+                @endif
+            @endscope
+
+            @scope('cell_email', $student)
+                @if ($student->email)
+                    <span class="text-sm">{{ $student->email }}</span>
                 @else
                     <span class="text-xs text-gray-400">-</span>
                 @endif
@@ -311,17 +319,17 @@ new class extends Component {
                 @endif
             @endscope
 
-            @scope('cell_fee', $student)
-                @if ($student->fee)
-                    <span class="text-sm font-medium">₹{{ number_format($student->fee, 2) }}</span>
+            @scope('cell_course_fees', $student)
+                @if ($student->course_fees)
+                    <span class="text-sm font-medium">₹{{ number_format($student->course_fees, 2) }}</span>
                 @else
                     <span class="text-xs text-gray-400">-</span>
                 @endif
             @endscope
 
-            @scope('cell_join_date', $student)
-                @if ($student->join_date)
-                    <span class="text-sm">{{ $student->join_date->format('M d, Y') }}</span>
+            @scope('cell_enrollment_date', $student)
+                @if ($student->enrollment_date)
+                    <span class="text-sm">{{ $student->enrollment_date->format('M d, Y') }}</span>
                 @else
                     <span class="text-xs text-gray-400">-</span>
                 @endif
@@ -335,8 +343,10 @@ new class extends Component {
 
             @scope('actions', $student)
                 <div class="flex gap-1">
-                    <x-button icon="o-eye" class="btn-xs btn-ghost" title="View Details" />
-                    <x-button icon="o-pencil" class="btn-xs btn-ghost" title="Edit Student" />
+                    <x-button icon="o-eye" link="{{ route('admin.student.show', $student->id) }}"
+                        class="btn-xs btn-ghost" title="View Details" />
+                    <x-button icon="o-pencil" link="{{ route('admin.student.edit', $student->id) }}"
+                        class="btn-xs btn-ghost" title="Edit Student" />
                 </div>
             @endscope
 

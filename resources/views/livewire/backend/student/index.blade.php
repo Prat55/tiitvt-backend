@@ -27,7 +27,7 @@ new class extends Component {
     {
         $view->students = Student::with(['center', 'course'])
             ->orderBy(...array_values($this->sortBy))
-            ->whereAny(['tiitvt_reg_no', 'first_name', 'middle_name', 'last_name', 'fathers_name', 'mobile', 'email', 'telephone_no'], 'like', "%$this->search%")
+            ->whereAny(['tiitvt_reg_no', 'first_name', 'fathers_name', 'mobile', 'email', 'telephone_no'], 'like', "%$this->search%")
             ->orWhereHas('center', function ($query) {
                 $query->where('name', 'like', "%$this->search%");
             })

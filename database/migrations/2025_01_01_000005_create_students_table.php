@@ -54,9 +54,6 @@ return new class extends Migration
             $table->text('student_signature_image')->nullable();
             $table->string('incharge_name')->nullable();
 
-            // Status
-            $table->enum('status', ['active', 'inactive'])->default('active');
-
             $table->timestamps();
         });
     }

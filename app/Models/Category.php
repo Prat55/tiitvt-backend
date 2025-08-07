@@ -12,28 +12,26 @@ class Category extends Model
 
     protected $fillable = [
         'name',
+        'slug',
+        'image',
         'description',
-        'status',
+        'is_active',
     ];
 
     protected $casts = [
-        'status' => 'string',
+        'is_active' => 'boolean',
     ];
 
-    /**
-     * Get the subcategories for the category.
-     */
-    public function subcategories(): HasMany
+    protected static function booted()
     {
-        return $this->hasMany(Subcategory::class);
+        static::deleting(function ($category) {
+            $category->courses()->delete();
+        });
     }
 
-    /**
-     * Get the courses for the category.
-     */
     public function courses(): HasMany
     {
-        return $this->hasMany(Course::class);
+        return $this->hasMany(CourseCategory::class);
     }
 
     /**
@@ -41,6 +39,6 @@ class Category extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('is_active', true);
     }
 }

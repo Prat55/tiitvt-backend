@@ -67,9 +67,6 @@ new class extends Component {
     public $student_signature_image;
     public $student_image;
 
-    // Status
-    public string $status = 'active';
-
     public $dateConfig = ['altFormat' => 'd/m/Y'];
 
     // Validation rules
@@ -106,7 +103,6 @@ new class extends Component {
             'course_id' => 'required|exists:courses,id',
             'student_signature_image' => 'nullable|image|max:2048',
             'student_image' => 'nullable|image|max:2048',
-            'status' => 'required|in:active,inactive',
         ];
     }
 
@@ -170,7 +166,6 @@ new class extends Component {
                 'incharge_name' => $this->incharge_name,
                 'center_id' => $this->center_id,
                 'course_id' => $this->course_id,
-                'status' => $this->status,
             ];
 
             if ($this->student_signature_image) {
@@ -201,7 +196,6 @@ new class extends Component {
             'pincode' => '',
             'country' => '',
         ];
-        $this->status = 'active';
         $this->success('Form reset successfully!', position: 'toast-bottom');
     }
 
@@ -446,15 +440,6 @@ new class extends Component {
                         </x-file>
                     </div>
                 </div>
-            </div>
-
-            <!-- Status -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="md:col-span-2">
-                    <h3 class="text-lg font-semibold text-primary">Status</h3>
-                </div>
-
-                <x-select label="Status" wire:model="status" icon="o-check-circle" :options="[['id' => 'active', 'name' => 'Active'], ['id' => 'inactive', 'name' => 'Inactive']]" />
             </div>
 
             <!-- Form Actions -->

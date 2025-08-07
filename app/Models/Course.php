@@ -12,25 +12,25 @@ class Course extends Model
     use HasFactory;
 
     protected $fillable = [
-        'category_id',
         'name',
         'description',
         'duration',
-        'fee',
-        'status',
+        'mrp',
+        'price',
+        'is_active',
     ];
 
     protected $casts = [
-        'fee' => 'decimal:2',
-        'status' => 'string',
+        'mrp' => 'decimal:2',
+        'price' => 'decimal:2',
     ];
 
     /**
      * Get the category that owns the course.
      */
-    public function category(): BelongsTo
+    public function categories(): HasMany
     {
-        return $this->belongsTo(Category::class);
+        return $this->hasMany(CourseCategory::class);
     }
 
     /**
@@ -62,6 +62,6 @@ class Course extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('is_active', true);
     }
 }

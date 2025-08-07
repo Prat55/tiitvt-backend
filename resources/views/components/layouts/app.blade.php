@@ -50,8 +50,9 @@
                 </a>
 
                 <x-menu-item title="Dashboard" icon="o-home" link="{{ route('admin.index') }}" />
-                <x-menu-item title="Centers" icon="fas.building" link="{{ route('admin.center.index') }}" />
-                <x-menu-item title="Students" icon="fas.users" link="{{ route('admin.student.index') }}" />
+                <x-menu-item title="Center" icon="fas.building" link="{{ route('admin.center.index') }}" />
+                <x-menu-item title="Student" icon="fas.users" link="{{ route('admin.student.index') }}" />
+                <x-menu-item title="Category" icon="fas.tags" link="{{ route('admin.category.index') }}" />
             </x-menu>
         </x-slot:sidebar>
 

@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('image')->nullable();
             $table->longText('description')->nullable();
             $table->string('duration')->nullable(); // e.g., "3 months", "6 weeks"
-            $table->decimal('fee', 10, 2);
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->decimal('mrp', 10, 2)->nullable();
+            $table->decimal('price', 10, 2)->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

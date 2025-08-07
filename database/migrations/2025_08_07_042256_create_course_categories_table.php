@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Category;
+use App\Models\Course;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,13 +13,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
+        Schema::create('course_categories', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->string('image')->nullable();
-            $table->text('description')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->foreignIdFor(Category::class);
+            $table->foreignIdFor(Course::class);
             $table->timestamps();
         });
     }
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('course_categories');
     }
 };
