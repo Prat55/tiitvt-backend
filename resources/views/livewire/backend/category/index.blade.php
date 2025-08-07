@@ -7,10 +7,12 @@ use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Title;
+use Illuminate\Support\Facades\Storage;
 use Livewire\{WithFileUploads, WithPagination};
 
 new class extends Component {
     use WithPagination, Toast, WithFileUploads;
+
     #[Title('All Categories')]
     public $headers;
     #[Url]
@@ -18,19 +20,19 @@ new class extends Component {
     public $sortBy = ['column' => 'name', 'direction' => 'asc'];
     public $categoryId;
     public $name,
-        $slug,
         $image,
+        $oldImage,
         $description,
         $is_active = true;
     public $editMode = false;
-    public $showModal = false;
+    public $showCategoryModal = false;
     public $cropConfig = [
         'aspectRatio' => 1,
     ];
 
     public function boot(): void
     {
-        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'name', 'label' => 'Category Name', 'class' => 'w-48'], ['key' => 'slug', 'label' => 'Slug', 'class' => 'w-32'], ['key' => 'is_active', 'label' => 'Status', 'class' => 'w-20'], ['key' => 'actions', 'label' => 'Actions', 'class' => 'w-32']];
+        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'image', 'label' => 'Image', 'class' => 'w-1'], ['key' => 'name', 'label' => 'Category Name'], ['key' => 'is_active', 'label' => 'Status', 'class' => 'w-1'], ['key' => 'created_at', 'label' => 'Created At', 'class' => 'w-1'], ['key' => 'updated_at', 'label' => 'Last Updated', 'class' => 'w-1']];
     }
 
     public function rendering(View $view): void
@@ -43,18 +45,18 @@ new class extends Component {
 
     public function resetForm()
     {
-        $this->name = $this->slug = $this->image = $this->description = '';
+        $this->name = $this->slug = $this->image = $this->description = $oldImage = '';
         $this->is_active = true;
         $this->editMode = false;
         $this->categoryId = null;
-        $this->showModal = false;
+        $this->showCategoryModal = false;
     }
 
     public function openCreateModal()
     {
         $this->resetForm();
         $this->editMode = false;
-        $this->showModal = true;
+        $this->showCategoryModal = true;
     }
 
     public function openEditModal($id)
@@ -62,61 +64,60 @@ new class extends Component {
         $category = Category::findOrFail($id);
         $this->categoryId = $category->id;
         $this->name = $category->name;
-        $this->slug = $category->slug;
-        $this->image = $category->image;
+        $this->oldImage = $category->image;
         $this->description = $category->description;
         $this->is_active = $category->is_active;
         $this->editMode = true;
-        $this->showModal = true;
+        $this->showCategoryModal = true;
     }
 
     public function createCategory()
     {
         $this->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:100|unique:categories,name',
         ]);
 
-        try {
-            if ($this->image) {
-                $this->image = $this->image->store('category', 'public');
-                $this->image = Storage::url($this->image);
-            }
-
-            Category::create([
-                'name' => $this->name,
-                'slug' => Str::slug($this->name),
-                'image' => $this->image,
-                'description' => $this->description,
-                'is_active' => $this->is_active,
-            ]);
-            $this->resetForm();
-            $this->success('Category created successfully!', position: 'toast-bottom');
-        } catch (\Exception $e) {
-            $this->error('Failed to create category. Please try again.', position: 'toast-bottom');
+        $category = new Category();
+        $category->name = $this->name;
+        $category->slug = Str::slug($this->name);
+        $category->description = $this->description;
+        $category->is_active = $this->is_active;
+        if ($this->image) {
+            $path = $this->image->store('category', 'public');
+            $this->image = '/storage/' . $path;
+            $category->image = $this->image;
         }
+        $category->save();
+
+        $this->resetForm();
+        $this->success('Category created successfully!', position: 'toast-bottom');
     }
 
     public function updateCategory()
     {
         $this->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:categories,slug,' . $this->categoryId,
+            'name' => 'required|string|max:100|unique:categories,name,' . $this->categoryId,
         ]);
 
-        try {
-            $category = Category::findOrFail($this->categoryId);
-            $category->update([
-                'name' => $this->name,
-                'slug' => Str::slug($this->name),
-                'image' => $this->image,
-                'description' => $this->description,
-                'is_active' => $this->is_active,
-            ]);
-            $this->resetForm();
-            $this->success('Category updated successfully!', position: 'toast-bottom');
-        } catch (\Exception $e) {
-            $this->error('Failed to update category. Please try again.', position: 'toast-bottom');
+        $category = Category::findOrFail($this->categoryId);
+        $category->name = $this->name;
+        $category->slug = Str::slug($this->name);
+        $category->description = $this->description;
+        $category->is_active = $this->is_active;
+        if ($this->image) {
+            if ($category->image) {
+                $imagePath = str_replace('/storage/', '', $category->image);
+                Storage::disk('public')->delete($imagePath);
+            }
+
+            $path = $this->image->store('category', 'public');
+            $this->image = '/storage/' . $path;
+            $category->image = $this->image;
         }
+        $category->save();
+
+        $this->resetForm();
+        $this->success('Category updated successfully!', position: 'toast-bottom');
     }
 
     public function deleteCategory($id)
@@ -155,23 +156,40 @@ new class extends Component {
     <hr class="mb-5">
 
     <x-table :headers="$headers" :rows="$categories" with-pagination :sort-by="$sortBy">
+        @scope('cell_image', $category)
+            @if ($category->image)
+                <div class="avatar select-none">
+                    <div class="w-12 rounded-md">
+                        <img src="{{ asset($category->image) }}" alt="{{ $category->name }}" />
+                    </div>
+                </div>
+            @else
+                <div class="select-none avatar avatar-placeholder">
+                    <div class="w-8 rounded-md bg-neutral text-neutral-content">
+                        <span class="text-xs">{{ substr($category->name, 0, 1) }}</span>
+                    </div>
+                </div>
+            @endif
+        @endscope
         @scope('cell_name', $category)
             <span class="font-medium">{{ $category->name }}</span>
         @endscope
-        @scope('cell_slug', $category)
-            <span class="text-xs">{{ $category->slug }}</span>
-        @endscope
         @scope('cell_is_active', $category)
-            <span class="badge badge-xs {{ $category->is_active ? 'badge-success' : 'badge-error' }}">
-                {{ $category->is_active ? 'Active' : 'Inactive' }}
-            </span>
+            <x-badge value="{{ $category->is_active ? 'Active' : 'Inactive' }}"
+                class="badge {{ $category->is_active ? 'badge-success' : 'badge-error' }}" />
+        @endscope
+        @scope('cell_created_at', $category)
+            {{ $category->created_at->format('d M Y') }}
+        @endscope
+        @scope('cell_updated_at', $category)
+            {{ $category->updated_at->format('d M Y') }}
         @endscope
         @scope('actions', $category)
             <div class="flex gap-1">
-                <x-button icon="o-pencil" class="btn-ghost btn-xs" wire:click="openEditModal({{ $category->id }})"
+                <x-button icon="o-pencil" class="btn-primary btn-outline" wire:click="openEditModal({{ $category->id }})"
                     title="Edit" />
-                <x-button icon="o-trash" class="btn-ghost btn-xs" wire:click="deleteCategory({{ $category->id }})"
-                    title="Delete" onclick="return confirm('Are you sure you want to delete this category?')" />
+                <x-button icon="o-trash" class="btn-error btn-outline" wire:click="deleteCategory({{ $category->id }})"
+                    title="Delete" wire:confirm="Are you sure you want to delete this category?" />
             </div>
         @endscope
         <x-slot:empty>
@@ -180,15 +198,16 @@ new class extends Component {
     </x-table>
 
     <!-- Category Modal -->
-    <x-modal wire:model="showModal" title="{{ $editMode ? 'Edit Category' : 'Create Category' }}" class="backdrop-blur"
-        separator>
-        <form wire:submit.prevent="{{ $editMode ? 'updateCategory' : 'createCategory' }}">
+    <x-modal wire:model="showCategoryModal" title="{{ $editMode ? 'Edit Category' : 'Create Category' }}"
+        class="backdrop-blur" separator>
+        <x-form wire:submit.prevent="{{ $editMode ? 'updateCategory' : 'createCategory' }}">
             <div class="space-y-4">
-                <x-input label="Category Name" wire:model.defer="name" placeholder="Enter category name" required />
+                <x-input label="Category Name" wire:model.defer="name" placeholder="Enter category name" />
 
                 <x-file label="Image URL" wire:model.defer="image" placeholder="Enter image URL (optional)"
                     crop-after-change :crop-config="$cropConfig">
-                    <img src="https://placehold.co/300" alt="Category Image" class="w-16 h-16 object-cover rounded-md">
+                    <img src="{{ $oldImage ? asset($oldImage) : 'https://placehold.co/300' }}" alt="Category Image"
+                        class="w-16 h-16 object-cover rounded-md">
                 </x-file>
 
                 <x-textarea label="Description" wire:model.defer="description"
@@ -198,9 +217,10 @@ new class extends Component {
             </div>
 
             <x-slot:actions>
-                <x-button label="Cancel" @click="$wire.showModal = false" />
-                <x-button label="{{ $editMode ? 'Update' : 'Create' }}" class="btn-primary" type="submit" />
+                <x-button label="Cancel" @click="$wire.showCategoryModal = false" />
+                <x-button label="{{ $editMode ? 'Update' : 'Create' }}" class="btn-primary" type="submit"
+                    spinner="{{ $editMode ? 'updateCategory' : 'createCategory' }}" />
             </x-slot:actions>
-        </form>
+        </x-form>
     </x-modal>
 </div>

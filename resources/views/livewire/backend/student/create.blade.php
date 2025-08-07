@@ -408,7 +408,7 @@ new class extends Component {
                     :config="$dateConfig" />
 
                 <x-input label="Installment Amount" wire:model="installment_amount" step="0.01"
-                    placeholder="Auto-calculated" icon="o-currency-rupee" readonly money />
+                    icon="o-currency-rupee" money />
 
                 <x-datepicker label="Enrollment Date" wire:model="enrollment_date" icon="o-calendar"
                     :config="$dateConfig" />
