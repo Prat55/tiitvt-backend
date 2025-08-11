@@ -22,8 +22,6 @@ new class extends Component {
 
     public string $tiitvt_reg_no = '';
     public string $first_name = '';
-    public string $middle_name = '';
-    public string $last_name = '';
     public string $fathers_name = '';
     public string $surname = '';
     public $config = [

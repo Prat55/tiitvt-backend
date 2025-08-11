@@ -20,8 +20,6 @@ new class extends Component {
     // Basic Information
     public string $tiitvt_reg_no = '';
     public string $first_name = '';
-    public ?string $middle_name = '';
-    public ?string $last_name = '';
     public string $fathers_name = '';
     public ?string $surname = '';
 
@@ -92,8 +90,6 @@ new class extends Component {
     {
         $this->tiitvt_reg_no = $this->student->tiitvt_reg_no ?? '';
         $this->first_name = $this->student->first_name ?? '';
-        $this->middle_name = $this->student->middle_name ?? '';
-        $this->last_name = $this->student->last_name ?? '';
         $this->fathers_name = $this->student->fathers_name ?? '';
         $this->surname = $this->student->surname ?? '';
 
@@ -130,8 +126,6 @@ new class extends Component {
 
         $this->center_id = $this->student->center_id ?? 0;
         $this->course_id = $this->student->course_id ?? 0;
-
-        $this->status = $this->student->status ?? 'active';
     }
 
     // Helper method to format currency
@@ -192,8 +186,6 @@ new class extends Component {
         return [
             'tiitvt_reg_no' => 'required|string|max:50|unique:students,tiitvt_reg_no,' . $this->student->id,
             'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'last_name' => 'nullable|string|max:100',
             'fathers_name' => 'required|string|max:100',
             'surname' => 'nullable|string|max:100',
             'address' => 'nullable|array',
@@ -223,7 +215,6 @@ new class extends Component {
             'course_id' => 'required|exists:courses,id',
             'student_signature_image' => 'nullable|image|max:2048',
             'student_image' => 'nullable|image|max:2048',
-            'status' => 'required|in:active,inactive',
         ];
     }
 
@@ -266,8 +257,6 @@ new class extends Component {
         try {
             $data = [
                 'first_name' => $this->first_name,
-                'middle_name' => $this->middle_name,
-                'last_name' => $this->last_name,
                 'fathers_name' => $this->fathers_name,
                 'surname' => $this->surname,
                 'address' => $this->address,
@@ -290,7 +279,6 @@ new class extends Component {
                 'incharge_name' => $this->incharge_name,
                 'center_id' => $this->center_id,
                 'course_id' => $this->course_id,
-                'status' => $this->status,
             ];
 
             if ($this->student_signature_image) {
@@ -464,12 +452,6 @@ new class extends Component {
                     placeholder="Enter registration number" icon="o-identification" readonly />
 
                 <x-input label="First Name" wire:model="first_name" placeholder="Enter first name" icon="o-user" />
-
-                <x-input label="Middle Name" wire:model="middle_name" placeholder="Enter middle name (optional)"
-                    icon="o-user" />
-
-                <x-input label="Last Name" wire:model="last_name" placeholder="Enter last name (optional)"
-                    icon="o-user" />
 
                 <x-input label="Father's Name" wire:model="fathers_name" placeholder="Enter father's name"
                     icon="o-user" />

@@ -38,6 +38,7 @@ return new class extends Migration
             $table->string('reference')->nullable();
 
             // Course and Batch Information
+            $table->string('course_taken')->nullable();
             $table->string('batch_time')->nullable();
             $table->text('scheme_given')->nullable();
 

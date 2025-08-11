@@ -27,6 +27,7 @@ class Student extends Model
         'qualification',
         'additional_qualification',
         'reference',
+        'course_taken',
         'batch_time',
         'scheme_given',
         'course_fees',
@@ -37,7 +38,6 @@ class Student extends Model
         'student_image',
         'student_signature_image',
         'incharge_name',
-        'status',
     ];
 
     protected $casts = [
@@ -47,7 +47,10 @@ class Student extends Model
         'installment_date' => 'date',
         'course_fees' => 'decimal:2',
         'down_payment' => 'decimal:2',
-        'status' => 'string',
+        'age' => 'integer',
+        'no_of_installments' => 'integer',
+        'center_id' => 'integer',
+        'course_id' => 'integer',
     ];
 
     protected static function boot()
@@ -114,40 +117,53 @@ class Student extends Model
     public function getFullNameAttribute(): string
     {
         $name = $this->first_name;
-        if ($this->middle_name) {
-            $name .= ' ' . $this->middle_name;
+        if ($this->fathers_name) {
+            $name .= ' ' . $this->fathers_name;
         }
-        if ($this->last_name) {
-            $name .= ' ' . $this->last_name;
+        if ($this->surname) {
+            $name .= ' ' . $this->surname;
         }
         return $name;
     }
 
-    /**
-     * Scope to get only active students.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
-
     public static function generateUniqueTiitvtRegNo($centerId): string
     {
-        $lastStudentInCenter = self::where('center_id', $centerId)
-            ->latest()
-            ->first();
+        $maxAttempts = 10;
+        $attempt = 0;
 
-        if (!$lastStudentInCenter) {
-            $studentNumber = 1;
-        } else {
-            $lastRegNo = $lastStudentInCenter->tiitvt_reg_no;
-            if (preg_match('/\/(\d+)$/', $lastRegNo, $matches)) {
-                $studentNumber = (int)$matches[1] + 1;
+        do {
+            $attempt++;
+
+            // Get the last student in this center
+            $lastStudentInCenter = self::where('center_id', $centerId)
+                ->latest()
+                ->first();
+
+            if (!$lastStudentInCenter) {
+                $studentNumber = 1;
             } else {
-                $studentNumber = $lastStudentInCenter->id + 1;
+                $lastRegNo = $lastStudentInCenter->tiitvt_reg_no;
+                if (preg_match('/\/(\d+)$/', $lastRegNo, $matches)) {
+                    $studentNumber = (int)$matches[1] + 1;
+                } else {
+                    $studentNumber = $lastStudentInCenter->id + 1;
+                }
             }
-        }
 
-        return "TIITVT/ATC/{$centerId}/{$studentNumber}";
+            $proposedRegNo = "TIITVT/ATC/{$centerId}/{$studentNumber}";
+
+            // Check if this registration number already exists
+            if (!self::where('tiitvt_reg_no', $proposedRegNo)->exists()) {
+                return $proposedRegNo;
+            }
+
+            // If it exists, increment the student number and try again
+            $studentNumber++;
+        } while ($attempt < $maxAttempts);
+
+        // If we still can't find a unique number after max attempts,
+        // add a timestamp suffix to ensure uniqueness
+        $timestamp = now()->format('His');
+        return "TIITVT/ATC/{$centerId}/{$studentNumber}_{$timestamp}";
     }
 }
