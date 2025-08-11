@@ -33,7 +33,6 @@ class Student extends Model
         'down_payment',
         'no_of_installments',
         'installment_date',
-        'installment_amount',
         'enrollment_date',
         'student_image',
         'student_signature_image',
@@ -48,7 +47,6 @@ class Student extends Model
         'installment_date' => 'date',
         'course_fees' => 'decimal:2',
         'down_payment' => 'decimal:2',
-        'installment_amount' => 'decimal:2',
         'status' => 'string',
     ];
 
@@ -57,7 +55,7 @@ class Student extends Model
         parent::boot();
         static::creating(function ($student) {
             if (empty($student->tiitvt_reg_no)) {
-                $student->tiitvt_reg_no = self::generateUniqueTiitvtRegNo();
+                $student->tiitvt_reg_no = self::generateUniqueTiitvtRegNo($student->center_id);
             }
         });
     }
@@ -103,6 +101,14 @@ class Student extends Model
     }
 
     /**
+     * Get the installments for the student.
+     */
+    public function installments(): HasMany
+    {
+        return $this->hasMany(Installment::class);
+    }
+
+    /**
      * Get the full name of the student.
      */
     public function getFullNameAttribute(): string
@@ -125,26 +131,23 @@ class Student extends Model
         return $query->where('status', 'active');
     }
 
-    /**
-     * Generate a unique TIITVT registration number with incrementing format (TIITVT001, TIITVT002, etc.)
-     *
-     * @return string
-     */
-    public static function generateUniqueTiitvtRegNo(): string
+    public static function generateUniqueTiitvtRegNo($centerId): string
     {
-        // Get the last student from the database
-        $lastStudent = self::orderBy('id', 'desc')->first();
+        $lastStudentInCenter = self::where('center_id', $centerId)
+            ->latest()
+            ->first();
 
-        if (!$lastStudent) {
-            // If no students exist, start with TIITVT001
-            return 'TIITVT001';
+        if (!$lastStudentInCenter) {
+            $studentNumber = 1;
+        } else {
+            $lastRegNo = $lastStudentInCenter->tiitvt_reg_no;
+            if (preg_match('/\/(\d+)$/', $lastRegNo, $matches)) {
+                $studentNumber = (int)$matches[1] + 1;
+            } else {
+                $studentNumber = $lastStudentInCenter->id + 1;
+            }
         }
 
-        // Extract the numeric part from the last student ID
-        $lastId = $lastStudent->id;
-        $nextNumber = $lastId + 1;
-
-        // Format the registration number with leading zeros (3 digits)
-        return 'TIITVT' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        return "TIITVT/ATC/{$centerId}/{$studentNumber}";
     }
 }

@@ -20,10 +20,10 @@ new class extends Component {
     // Basic Information
     public string $tiitvt_reg_no = '';
     public string $first_name = '';
-    public string $middle_name = '';
-    public string $last_name = '';
+    public ?string $middle_name = '';
+    public ?string $last_name = '';
     public string $fathers_name = '';
-    public string $surname = '';
+    public ?string $surname = '';
 
     // Contact Information
     public array $address = [
@@ -33,34 +33,38 @@ new class extends Component {
         'pincode' => '',
         'country' => '',
     ];
-    public string $telephone_no = '';
+    public ?string $telephone_no = '';
     public string $email = '';
-    public string $mobile = '';
+    public ?string $mobile = '';
 
     // Personal Information
-    public string $date_of_birth = '';
-    public int $age = 0;
+    public ?string $date_of_birth = '';
+    public ?int $age = 0;
 
     // Academic Information
-    public string $qualification = '';
-    public string $additional_qualification = '';
-    public string $reference = '';
+    public ?string $qualification = '';
+    public ?string $additional_qualification = '';
+    public ?string $reference = '';
 
     // Course and Batch Information
-    public string $course_taken = '';
-    public string $batch_time = '';
-    public string $scheme_given = '';
+    public ?string $course_taken = '';
+    public ?string $batch_time = '';
+    public ?string $scheme_given = '';
 
     // Fees Information
     public float $course_fees = 0;
-    public float $down_payment = 0;
-    public int $no_of_installments = 0;
-    public string $installment_date = '';
-    public float $installment_amount = 0;
+    public ?float $down_payment = 0;
+    public ?int $no_of_installments = 0;
+    public ?string $installment_date = '';
+
+    // Calculated fields for display
+    public float $remaining_amount = 0;
+    public float $total_payable = 0;
+    public array $installment_breakdown = [];
 
     // Additional Fields
-    public string $enrollment_date = '';
-    public string $incharge_name = '';
+    public ?string $enrollment_date = '';
+    public ?string $incharge_name = '';
 
     // Relationships
     public int $center_id = 0;
@@ -68,23 +72,29 @@ new class extends Component {
 
     // File uploads
     public $student_signature_image;
+    public $student_image;
 
-    // Status
-    public string $status = 'active';
+    // Config for file uploads
+    public $config = [
+        'aspectRatio' => 1,
+    ];
+
+    public $dateConfig = ['altFormat' => 'd/m/Y'];
 
     public function mount(Student $student)
     {
         $this->student = $student;
         $this->loadStudentData();
+        $this->calculateInstallments();
     }
 
     private function loadStudentData()
     {
-        $this->tiitvt_reg_no = $this->student->tiitvt_reg_no;
-        $this->first_name = $this->student->first_name;
+        $this->tiitvt_reg_no = $this->student->tiitvt_reg_no ?? '';
+        $this->first_name = $this->student->first_name ?? '';
         $this->middle_name = $this->student->middle_name ?? '';
         $this->last_name = $this->student->last_name ?? '';
-        $this->fathers_name = $this->student->fathers_name;
+        $this->fathers_name = $this->student->fathers_name ?? '';
         $this->surname = $this->student->surname ?? '';
 
         $this->address = $this->student->address ?? [
@@ -96,7 +106,7 @@ new class extends Component {
         ];
 
         $this->telephone_no = $this->student->telephone_no ?? '';
-        $this->email = $this->student->email;
+        $this->email = $this->student->email ?? '';
         $this->mobile = $this->student->mobile ?? '';
 
         $this->date_of_birth = $this->student->date_of_birth ? $this->student->date_of_birth->format('Y-m-d') : '';
@@ -110,19 +120,70 @@ new class extends Component {
         $this->batch_time = $this->student->batch_time ?? '';
         $this->scheme_given = $this->student->scheme_given ?? '';
 
-        $this->course_fees = $this->student->course_fees;
+        $this->course_fees = $this->student->course_fees ?? 0;
         $this->down_payment = $this->student->down_payment ?? 0;
         $this->no_of_installments = $this->student->no_of_installments ?? 0;
         $this->installment_date = $this->student->installment_date ? $this->student->installment_date->format('Y-m-d') : '';
-        $this->installment_amount = $this->student->installment_amount ?? 0;
 
         $this->enrollment_date = $this->student->enrollment_date ? $this->student->enrollment_date->format('Y-m-d') : '';
         $this->incharge_name = $this->student->incharge_name ?? '';
 
-        $this->center_id = $this->student->center_id;
-        $this->course_id = $this->student->course_id;
+        $this->center_id = $this->student->center_id ?? 0;
+        $this->course_id = $this->student->course_id ?? 0;
 
-        $this->status = $this->student->status;
+        $this->status = $this->student->status ?? 'active';
+    }
+
+    // Helper method to format currency
+    public function formatCurrency($amount): string
+    {
+        return '₹' . number_format($amount, 2);
+    }
+
+    // Calculate installments
+    public function calculateInstallments(): void
+    {
+        $this->remaining_amount = 0;
+        $this->total_payable = $this->course_fees ?? 0;
+        $this->installment_breakdown = [];
+
+        if (($this->course_fees ?? 0) > 0) {
+            if (($this->down_payment ?? 0) > ($this->course_fees ?? 0)) {
+                $this->down_payment = $this->course_fees;
+            }
+
+            // Calculate remaining amount after down payment
+            $this->remaining_amount = ($this->course_fees ?? 0) - ($this->down_payment ?? 0);
+
+            // Generate installment breakdown if number of installments is specified
+            if (($this->no_of_installments ?? 0) > 0 && $this->remaining_amount > 0) {
+                $installmentAmount = round($this->remaining_amount / ($this->no_of_installments ?? 1), 2);
+
+                // Generate installment breakdown
+                $this->installment_breakdown = [];
+                $remainingForLastInstallment = $this->remaining_amount;
+
+                for ($i = 1; $i <= ($this->no_of_installments ?? 0); $i++) {
+                    if ($i == ($this->no_of_installments ?? 0)) {
+                        // Last installment gets the remaining amount to avoid rounding errors
+                        $amount = round($remainingForLastInstallment, 2);
+                    } else {
+                        $amount = $installmentAmount;
+                        $remainingForLastInstallment -= $amount;
+                    }
+
+                    $this->installment_breakdown[] = [
+                        'installment_no' => $i,
+                        'amount' => $amount,
+                        'due_date' => $this->installment_date
+                            ? \Carbon\Carbon::parse($this->installment_date)
+                                ->addMonths($i - 1)
+                                ->format('d/m/Y')
+                            : 'TBD',
+                    ];
+                }
+            }
+        }
     }
 
     // Validation rules
@@ -153,15 +214,15 @@ new class extends Component {
             'batch_time' => 'nullable|string|max:100',
             'scheme_given' => 'nullable|string|max:500',
             'course_fees' => 'required|numeric|min:0',
-            'down_payment' => 'nullable|numeric|min:0',
+            'down_payment' => 'nullable|numeric|min:0|lte:course_fees',
             'no_of_installments' => 'nullable|integer|min:0',
             'installment_date' => 'nullable|date',
-            'installment_amount' => 'nullable|numeric|min:0',
             'enrollment_date' => 'nullable|date',
             'incharge_name' => 'nullable|string|max:100',
             'center_id' => 'required|exists:centers,id',
             'course_id' => 'required|exists:courses,id',
             'student_signature_image' => 'nullable|image|max:2048',
+            'student_image' => 'nullable|image|max:2048',
             'status' => 'required|in:active,inactive',
         ];
     }
@@ -178,6 +239,7 @@ new class extends Component {
             'email.unique' => 'This email already exists.',
             'email.email' => 'Please enter a valid email address.',
             'course_fees.required' => 'Course fees is required.',
+            'down_payment.lte' => 'Down payment cannot exceed course fees.',
             'center_id.required' => 'Please select a center.',
             'course_id.required' => 'Please select a course.',
         ];
@@ -186,6 +248,19 @@ new class extends Component {
     // Update student
     public function save(): void
     {
+        // Additional validation for fees
+        if (($this->course_fees ?? 0) > 0) {
+            if (($this->down_payment ?? 0) > ($this->course_fees ?? 0)) {
+                $this->error('Down payment cannot exceed course fees.', position: 'toast-bottom');
+                return;
+            }
+
+            if (($this->no_of_installments ?? 0) > 0 && $this->remaining_amount <= 0) {
+                $this->error('Cannot create installments when remaining amount is zero or negative.', position: 'toast-bottom');
+                return;
+            }
+        }
+
         $this->validate();
 
         try {
@@ -211,7 +286,6 @@ new class extends Component {
                 'down_payment' => $this->down_payment ?: null,
                 'no_of_installments' => $this->no_of_installments ?: null,
                 'installment_date' => $this->installment_date ?: null,
-                'installment_amount' => $this->installment_amount ?: null,
                 'enrollment_date' => $this->enrollment_date ?: null,
                 'incharge_name' => $this->incharge_name,
                 'center_id' => $this->center_id,
@@ -227,6 +301,14 @@ new class extends Component {
                 $data['student_signature_image'] = $this->student_signature_image->store('students/signatures', 'public');
             }
 
+            if ($this->student_image) {
+                // Delete old image if exists
+                if ($this->student->student_image) {
+                    Storage::disk('public')->delete($this->student->student_image);
+                }
+                $data['student_image'] = $this->student_image->store('students/images', 'public');
+            }
+
             $this->student->update($data);
 
             $this->success('Student updated successfully!', position: 'toast-bottom');
@@ -234,6 +316,13 @@ new class extends Component {
         } catch (\Exception $e) {
             $this->error('Failed to update student. Please try again.', position: 'toast-bottom');
         }
+    }
+
+    // Remove uploaded file
+    public function removeFile($property): void
+    {
+        $this->$property = null;
+        $this->success('File removed successfully!', position: 'toast-bottom');
     }
 
     // Calculate age from date of birth
@@ -245,27 +334,82 @@ new class extends Component {
         }
     }
 
-    // Calculate installment amount
+    // Calculate installments when fees change
     public function updatedCourseFees(): void
     {
-        if ($this->course_fees && $this->down_payment) {
-            $remaining = $this->course_fees - $this->down_payment;
-            if ($this->no_of_installments > 0) {
-                $this->installment_amount = $remaining / $this->no_of_installments;
-            }
+        // Clear related fields if course fees is 0 or empty
+        if (($this->course_fees ?? 0) <= 0) {
+            $this->down_payment = 0;
+            $this->no_of_installments = 0;
+            $this->installment_breakdown = [];
+            $this->remaining_amount = 0;
+            $this->total_payable = 0;
+        } else {
+            // Recalculate installments if course fees is valid
+            $this->calculateInstallments();
         }
     }
 
     public function updatedDownPayment(): void
     {
-        $this->updatedCourseFees();
+        // Ensure down payment doesn't exceed course fees
+        if (($this->down_payment ?? 0) > ($this->course_fees ?? 0)) {
+            $this->down_payment = $this->course_fees;
+        }
+
+        // Clear installments if down payment equals course fees
+        if (($this->down_payment ?? 0) == ($this->course_fees ?? 0)) {
+            $this->no_of_installments = 0;
+            $this->installment_breakdown = [];
+            $this->remaining_amount = 0;
+        }
+
+        $this->calculateInstallments();
     }
 
     public function updatedNoOfInstallments(): void
     {
-        $this->updatedCourseFees();
+        // Ensure number of installments is reasonable
+        if (($this->no_of_installments ?? 0) > 24) {
+            $this->no_of_installments = 24;
+        }
+
+        // Clear breakdown if no installments
+        if (($this->no_of_installments ?? 0) <= 0) {
+            $this->installment_breakdown = [];
+            $this->remaining_amount = ($this->course_fees ?? 0) - ($this->down_payment ?? 0);
+        } else {
+            // Calculate installments if number is valid
+            $this->calculateInstallments();
+        }
+    }
+
+    public function updatedInstallmentDate(): void
+    {
+        $this->calculateInstallments();
+    }
+
+    public function rendering(\Illuminate\View\View $view)
+    {
+        $view->centers = Center::active()
+            ->latest()
+            ->get(['id', 'name']);
+
+        $view->courses = Course::active()
+            ->latest()
+            ->get(['id', 'name']);
     }
 }; ?>
+
+@section('cdn')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/robsontenorio/mary@0.44.2/libs/currency/currency.js">
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+@endsection
 
 <div>
     <!-- Header -->
@@ -311,7 +455,7 @@ new class extends Component {
     <x-card shadow>
         <form wire:submit="save" class="space-y-6">
             <!-- Basic Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Basic Information</h3>
                 </div>
@@ -334,7 +478,7 @@ new class extends Component {
             </div>
 
             <!-- Contact Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Contact Information</h3>
                 </div>
@@ -345,7 +489,7 @@ new class extends Component {
                 <x-input label="Mobile Number" wire:model="mobile" placeholder="Enter mobile number" icon="o-phone" />
 
                 <x-input label="Telephone Number" wire:model="telephone_no"
-                    placeholder="Enter telephone number (optional)" icon="o-phone" />
+                    placeholder="Enter telephone number (optional)" icon="fas.tty" />
 
                 <x-input label="Street Address" wire:model="address.street" placeholder="Enter street address"
                     icon="o-map-pin" />
@@ -360,19 +504,20 @@ new class extends Component {
             </div>
 
             <!-- Personal Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Personal Information</h3>
                 </div>
 
-                <x-input label="Date of Birth" wire:model="date_of_birth" type="date" icon="o-calendar" />
+                <x-datepicker label="Date of Birth" wire:model.live="date_of_birth" icon="o-calendar"
+                    :config="$dateConfig" />
 
                 <x-input label="Age" wire:model="age" type="number" placeholder="Auto-calculated" icon="o-user"
                     readonly />
             </div>
 
             <!-- Academic Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Academic Information</h3>
                 </div>
@@ -388,101 +533,146 @@ new class extends Component {
             </div>
 
             <!-- Course and Batch Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
                 </div>
 
-                <x-select label="Center" wire:model="center_id" placeholder="Select center"
-                    icon="o-building-office">
-                    @foreach (\App\Models\Center::active()->get() as $center)
-                        <option value="{{ $center->id }}">{{ $center->name }}</option>
-                    @endforeach
-                </x-select>
+                <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
+                    icon="o-building-office" :options="$centers" single searchable clearable />
 
-                <x-select label="Course" wire:model="course_id" placeholder="Select course" icon="o-academic-cap">
-                    @foreach (\App\Models\Course::active()->get() as $course)
-                        <option value="{{ $course->id }}">{{ $course->name }} -
-                            ₹{{ number_format($course->fee, 2) }}</option>
-                    @endforeach
-                </x-select>
+                <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
+                    icon="o-academic-cap" :options="$courses" single searchable clearable />
 
                 <x-input label="Course Taken" wire:model="course_taken" placeholder="Enter course taken (optional)"
                     icon="o-book-open" />
 
-                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)"
-                    icon="o-clock" />
+                <x-input type="time" label="Batch Time" wire:model="batch_time"
+                    placeholder="Enter batch time (optional)" />
 
                 <x-textarea label="Scheme Given" wire:model="scheme_given"
                     placeholder="Enter scheme details (optional)" icon="o-document-text" rows="3" />
             </div>
 
             <!-- Fees Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Fees Information</h3>
+                    <x-alert title="How it works:" icon="o-exclamation-triangle" class="alert-info mt-3 text-white"
+                        description="Enter the course fees, optional down payment, and number of installments. The system will automatically calculate the remaining amount and divide it equally among installments. The last installment may vary slightly to account for rounding."
+                        dismissible />
                 </div>
 
-                <x-input label="Course Fees" wire:model="course_fees" type="number" step="0.01"
-                    placeholder="Enter course fees" icon="o-currency-rupee" />
+                <x-input label="Course Fees" wire:model.live="course_fees" step="0.01"
+                    placeholder="Enter course fees" icon="o-currency-rupee" money />
 
-                <x-input label="Down Payment" wire:model="down_payment" type="number" step="0.01"
-                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" />
+                <x-input label="Down Payment" wire:model.live="down_payment" step="0.01"
+                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" money
+                    hint="Cannot exceed course fees" />
 
-                <x-input label="Number of Installments" wire:model="no_of_installments" type="number"
-                    placeholder="Enter number of installments (optional)" icon="o-calculator" />
+                <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"
+                    placeholder="Enter number of installments (optional)" icon="o-calculator" min="0"
+                    hint="Leave empty if no installments" />
 
-                <x-input label="Installment Date" wire:model="installment_date" type="date"
-                    placeholder="Select installment date (optional)" icon="o-calendar" />
+                <x-datepicker label="Installment Date (optional)" wire:model.live="installment_date"
+                    icon="o-calendar" :config="$dateConfig" />
 
-                <x-input label="Installment Amount" wire:model="installment_amount" type="number" step="0.01"
-                    placeholder="Auto-calculated" icon="o-currency-rupee" readonly />
-
-                <x-input label="Enrollment Date" wire:model="enrollment_date" type="date" icon="o-calendar" />
+                <x-datepicker label="Enrollment Date" wire:model="enrollment_date" icon="o-calendar"
+                    :config="$dateConfig" />
 
                 <x-input label="Incharge Name" wire:model="incharge_name"
                     placeholder="Enter incharge name (optional)" icon="o-user" />
             </div>
 
-            <!-- Student Signature -->
+            <!-- Fees Summary -->
+            @if (($course_fees ?? 0) > 0)
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-primary mb-4">Fees Summary</h3>
+
+                        <div class="bg-base-200 rounded-lg p-4 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium">Total Course Fees:</span>
+                                <span class="font-bold text-lg">{{ $this->formatCurrency($total_payable ?? 0) }}</span>
+                            </div>
+
+                            @if (($down_payment ?? 0) > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="font-medium">Down Payment:</span>
+                                    <span
+                                        class="font-bold text-success">-{{ $this->formatCurrency($down_payment ?? 0) }}</span>
+                                </div>
+                            @endif
+
+                            <div class="flex justify-between items-center border-t pt-3">
+                                <span class="font-medium">Remaining Amount:</span>
+                                <span
+                                    class="font-bold text-lg text-primary">{{ $this->formatCurrency($remaining_amount ?? 0) }}</span>
+                            </div>
+
+                            @if (($no_of_installments ?? 0) > 0 && count($installment_breakdown ?? []) > 0)
+                                <div class="mt-4">
+                                    <h4 class="font-semibold text-base mb-3">Installment Breakdown
+                                        ({{ $no_of_installments ?? 0 }} installments)</h4>
+
+                                    <!-- Display calculated installment amount -->
+                                    <div class="bg-base-100 rounded-lg p-3 border mb-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium">Monthly Installment Amount:</span>
+                                            <span
+                                                class="font-bold text-lg text-primary">{{ $this->formatCurrency($installment_breakdown[0]['amount'] ?? 0) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        @foreach ($installment_breakdown as $installment)
+                                            <div class="bg-base-100 rounded-lg p-3 border">
+                                                <div class="text-sm text-gray-600">Installment
+                                                    {{ $installment['installment_no'] }}</div>
+                                                <div class="font-bold text-lg">
+                                                    {{ $this->formatCurrency($installment['amount']) }}</div>
+                                                <div class="text-xs text-gray-500">Due: {{ $installment['due_date'] }}
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="mt-3 text-xs bg-base-100 p-2 rounded-md">
+                                        <x-alert title="Note:" icon="o-exclamation-triangle"
+                                            description="Installment amounts are calculated by dividing the
+                                        remaining amount (after down payment) by the number of installments. The last
+                                        installment may vary slightly to account for rounding." />
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Student Signature & Image -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="md:col-span-2">
+                <div>
+                    <h3 class="text-lg font-semibold text-primary">Student Image</h3>
+                    <div class="space-y-2 mt-3">
+                        <x-file wire:model="student_image" accept="image/*" placeholder="Upload student image"
+                            icon="o-photo" hint="Max 2MB" crop-after-change :crop-config="$config">
+                            <img src="https://placehold.co/300x300?text=Image" alt="Student Image"
+                                class="w-32 h-32 object-cover rounded-lg">
+                        </x-file>
+                    </div>
+                </div>
+
+                <div>
                     <h3 class="text-lg font-semibold text-primary">Student Signature</h3>
+                    <div class="space-y-2 mt-3">
+                        <x-file wire:model="student_signature_image" accept="image/*"
+                            placeholder="Upload student signature" icon="o-photo" hint="Max 2MB" crop-after-change
+                            :crop-config="$config">
+                            <img src="https://placehold.co/300x300?text=Signature" alt="Signature"
+                                class="w-32 h-32 object-cover rounded-lg">
+                        </x-file>
+                    </div>
                 </div>
-
-                <div class="space-y-2">
-                    <label class="label">
-                        <span class="label-text font-medium">Student Signature Image (Optional)</span>
-                    </label>
-
-                    @if ($student->student_signature_image)
-                        <div class="mb-4">
-                            <label class="text-sm font-medium text-gray-600 mb-2 block">Current Signature</label>
-                            <img src="{{ asset('storage/' . $student->student_signature_image) }}"
-                                alt="Current Signature" class="max-w-xs h-auto border rounded-lg">
-                        </div>
-                    @endif
-
-                    <x-file wire:model="student_signature_image" accept="image/*"
-                        placeholder="Upload new signature (optional)" icon="o-photo">
-                        <div
-                            class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                            <span class="text-gray-500 text-sm">New Signature</span>
-                        </div>
-                    </x-file>
-                </div>
-            </div>
-
-            <!-- Status -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="md:col-span-2">
-                    <h3 class="text-lg font-semibold text-primary">Status</h3>
-                </div>
-
-                <x-select label="Status" wire:model="status" icon="o-check-circle">
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </x-select>
             </div>
 
             <!-- Form Actions -->

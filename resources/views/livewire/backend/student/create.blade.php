@@ -11,16 +11,24 @@ use App\Models\{Course, Center, Student};
 
 new class extends Component {
     use WithFileUploads, Toast;
-
-    // Form properties
-    // Basic Information
     #[Title('Student Admission')]
+    public function mount(): void
+    {
+        // Initialize with default values and calculate installments if needed
+        if ($this->course_fees > 0) {
+            $this->calculateInstallments();
+        }
+    }
+
     public string $tiitvt_reg_no = '';
     public string $first_name = '';
     public string $middle_name = '';
     public string $last_name = '';
     public string $fathers_name = '';
     public string $surname = '';
+    public $config = [
+        'aspectRatio' => 1,
+    ];
 
     // Contact Information
     public array $address = [
@@ -53,7 +61,37 @@ new class extends Component {
     public float $down_payment = 0;
     public int $no_of_installments = 0;
     public string $installment_date = '';
-    public float $installment_amount = 0;
+
+    // Calculated fields for display
+    public float $remaining_amount = 0;
+    public float $total_payable = 0;
+    public array $installment_breakdown = [];
+
+    // Computed properties for validation
+    public function getFeesValidationErrors(): array
+    {
+        $errors = [];
+
+        if ($this->down_payment > $this->course_fees) {
+            $errors[] = 'Down payment cannot exceed course fees';
+        }
+
+        if ($this->no_of_installments > 24) {
+            $errors[] = 'Maximum 24 installments allowed';
+        }
+
+        if ($this->no_of_installments > 0 && $this->remaining_amount <= 0) {
+            $errors[] = 'Cannot create installments when remaining amount is zero or negative';
+        }
+
+        return $errors;
+    }
+
+    // Helper method to format currency
+    public function formatCurrency($amount): string
+    {
+        return '₹' . number_format($amount, 2);
+    }
 
     // Additional Fields
     public string $enrollment_date = '';
@@ -93,10 +131,9 @@ new class extends Component {
             'batch_time' => 'required|string|max:100',
             'scheme_given' => 'nullable|string|max:500',
             'course_fees' => 'required|numeric|min:0',
-            'down_payment' => 'nullable|numeric|min:0',
+            'down_payment' => 'nullable|numeric|min:0|lte:course_fees',
             'no_of_installments' => 'nullable|integer|min:0',
             'installment_date' => 'nullable|date',
-            'installment_amount' => 'nullable|numeric|min:0',
             'enrollment_date' => 'nullable|date',
             'incharge_name' => 'nullable|string|max:100',
             'center_id' => 'required|exists:centers,id',
@@ -116,6 +153,7 @@ new class extends Component {
             'email.unique' => 'This email already exists.',
             'email.email' => 'Please enter a valid email address.',
             'course_fees.required' => 'Course fees is required.',
+            'down_payment.lte' => 'Down payment cannot exceed course fees.',
             'center_id.required' => 'Please select a center.',
             'course_id.required' => 'Please select a course.',
             'address.street.required' => 'Street field is required',
@@ -139,6 +177,19 @@ new class extends Component {
     // Save student
     public function save(): void
     {
+        // Additional validation for fees
+        if ($this->course_fees > 0) {
+            if ($this->down_payment > $this->course_fees) {
+                $this->error('Down payment cannot exceed course fees.', position: 'toast-bottom');
+                return;
+            }
+
+            if ($this->no_of_installments > 0 && $this->remaining_amount <= 0) {
+                $this->error('Cannot create installments when remaining amount is zero or negative.', position: 'toast-bottom');
+                return;
+            }
+        }
+
         $this->validate();
 
         try {
@@ -161,7 +212,6 @@ new class extends Component {
                 'down_payment' => $this->down_payment ?: null,
                 'no_of_installments' => $this->no_of_installments ?: null,
                 'installment_date' => $this->installment_date ?: null,
-                'installment_amount' => $this->installment_amount ?: null,
                 'enrollment_date' => $this->enrollment_date ?: null,
                 'incharge_name' => $this->incharge_name,
                 'center_id' => $this->center_id,
@@ -175,7 +225,12 @@ new class extends Component {
                 $data['student_image'] = $this->student_image->store('students/images', 'public');
             }
 
-            Student::create($data);
+            $student = Student::create($data);
+
+            // Create installments if specified
+            if ($this->no_of_installments > 0 && $this->remaining_amount > 0 && $this->installment_date) {
+                $this->createInstallments($student);
+            }
 
             $this->success('Student admitted successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.student.index'));
@@ -196,6 +251,9 @@ new class extends Component {
             'pincode' => '',
             'country' => '',
         ];
+        $this->remaining_amount = 0;
+        $this->total_payable = 0;
+        $this->installment_breakdown = [];
         $this->success('Form reset successfully!', position: 'toast-bottom');
     }
 
@@ -215,38 +273,146 @@ new class extends Component {
         }
     }
 
-    // Calculate installment amount
+    public function calculateInstallments(): void
+    {
+        $this->remaining_amount = 0;
+        $this->total_payable = $this->course_fees;
+        $this->installment_breakdown = [];
+
+        if ($this->course_fees > 0) {
+            if ($this->down_payment > $this->course_fees) {
+                $this->down_payment = $this->course_fees;
+            }
+
+            // Calculate remaining amount after down payment
+            $this->remaining_amount = $this->course_fees - ($this->down_payment ?? 0);
+
+            // Generate installment breakdown if number of installments is specified
+            if ($this->no_of_installments > 0 && $this->remaining_amount > 0) {
+                $installmentAmount = round($this->remaining_amount / $this->no_of_installments, 2);
+
+                // Generate installment breakdown
+                $this->installment_breakdown = [];
+                $remainingForLastInstallment = $this->remaining_amount;
+
+                for ($i = 1; $i <= $this->no_of_installments; $i++) {
+                    if ($i == $this->no_of_installments) {
+                        // Last installment gets the remaining amount to avoid rounding errors
+                        $amount = round($remainingForLastInstallment, 2);
+                    } else {
+                        $amount = $installmentAmount;
+                        $remainingForLastInstallment -= $amount;
+                    }
+
+                    $this->installment_breakdown[] = [
+                        'installment_no' => $i,
+                        'amount' => $amount,
+                        'due_date' => $this->installment_date
+                            ? \Carbon\Carbon::parse($this->installment_date)
+                                ->addMonths($i - 1)
+                                ->format('d/m/Y')
+                            : 'TBD',
+                    ];
+                }
+            }
+        }
+    }
+
+    // Create installments in database
+    public function createInstallments($student): void
+    {
+        if (empty($this->installment_breakdown)) {
+            return;
+        }
+
+        foreach ($this->installment_breakdown as $installment) {
+            $dueDate = \Carbon\Carbon::parse($this->installment_date)->addMonths($installment['installment_no'] - 1);
+
+            \App\Models\Installment::create([
+                'student_id' => $student->id,
+                'installment_no' => $installment['installment_no'],
+                'amount' => $installment['amount'],
+                'due_date' => $dueDate,
+                'status' => 'pending',
+            ]);
+        }
+    }
+
     public function updatedCourseFees(): void
     {
-        if ($this->course_fees && $this->down_payment) {
-            $remaining = $this->course_fees - $this->down_payment;
-            if ($this->no_of_installments > 0) {
-                $this->installment_amount = $remaining / $this->no_of_installments;
-            }
+        // Clear related fields if course fees is 0 or empty
+        if ($this->course_fees <= 0) {
+            $this->down_payment = 0;
+            $this->no_of_installments = 0;
+            $this->installment_breakdown = [];
+            $this->remaining_amount = 0;
+            $this->total_payable = 0;
+        } else {
+            // Recalculate installments if course fees is valid
+            $this->calculateInstallments();
         }
     }
 
     public function updatedDownPayment(): void
     {
-        $this->updatedCourseFees();
+        // Ensure down payment doesn't exceed course fees
+        if ($this->down_payment > $this->course_fees) {
+            $this->down_payment = $this->course_fees;
+        }
+
+        // Clear installments if down payment equals course fees
+        if ($this->down_payment == $this->course_fees) {
+            $this->no_of_installments = 0;
+            $this->installment_breakdown = [];
+            $this->remaining_amount = 0;
+        }
+
+        $this->calculateInstallments();
     }
 
     public function updatedNoOfInstallments(): void
     {
-        $this->updatedCourseFees();
+        // Ensure number of installments is reasonable
+        if ($this->no_of_installments > 24) {
+            $this->no_of_installments = 24;
+        }
+
+        // Clear breakdown if no installments
+        if ($this->no_of_installments <= 0) {
+            $this->installment_breakdown = [];
+            $this->remaining_amount = $this->course_fees - ($this->down_payment ?? 0);
+        } else {
+            // Calculate installments if number is valid
+            $this->calculateInstallments();
+        }
+    }
+
+    public function updatedInstallmentDate(): void
+    {
+        $this->calculateInstallments();
+    }
+
+    public function updatedCenterId(): void
+    {
+        if ($this->center_id) {
+            $this->tiitvt_reg_no = Student::generateUniqueTiitvtRegNo($this->center_id);
+        }
     }
 
     public function rendering(View $view)
     {
         // Auto-generate TIITVT registration number if empty
         if (empty($this->tiitvt_reg_no)) {
-            $this->tiitvt_reg_no = Student::generateUniqueTiitvtRegNo();
+            $this->tiitvt_reg_no = Student::generateUniqueTiitvtRegNo($this->center_id);
         }
 
         // Set enrollment date to today if empty
         if (empty($this->enrollment_date)) {
             $this->enrollment_date = now()->format('Y-m-d');
         }
+
+        // Don't recalculate installments here as it's handled in mount() and updated* methods
+        // This prevents conflicts with the initial calculation
 
         $view->centers = Center::active()
             ->latest()
@@ -262,6 +428,9 @@ new class extends Component {
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/robsontenorio/mary@0.44.2/libs/currency/currency.js">
     </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
 @endsection
 <div>
     <!-- Header -->
@@ -299,7 +468,7 @@ new class extends Component {
     <x-card shadow>
         <form wire:submit="save" class="space-y-6">
             <!-- Basic Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Basic Information</h3>
                 </div>
@@ -316,7 +485,7 @@ new class extends Component {
             </div>
 
             <!-- Contact Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Contact Information</h3>
                 </div>
@@ -327,7 +496,7 @@ new class extends Component {
                 <x-input label="Mobile Number" wire:model="mobile" placeholder="Enter mobile number" icon="o-phone" />
 
                 <x-input label="Telephone Number" wire:model="telephone_no"
-                    placeholder="Enter telephone number (optional)" icon="o-phone" />
+                    placeholder="Enter telephone number (optional)" icon="fas.tty" />
 
                 <x-input label="Street Address" wire:model="address.street" placeholder="Enter street address"
                     icon="o-map-pin" />
@@ -342,7 +511,7 @@ new class extends Component {
             </div>
 
             <!-- Personal Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Personal Information</h3>
                 </div>
@@ -355,7 +524,7 @@ new class extends Component {
             </div>
 
             <!-- Academic Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Academic Information</h3>
                 </div>
@@ -371,12 +540,12 @@ new class extends Component {
             </div>
 
             <!-- Course and Batch Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
                 </div>
 
-                <x-choices-offline label="Center" wire:model="center_id" placeholder="Select center"
+                <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
                     icon="o-building-office" :options="$centers" single searchable clearable />
 
                 <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
@@ -390,25 +559,28 @@ new class extends Component {
             </div>
 
             <!-- Fees Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Fees Information</h3>
+                    <x-alert title="How it works:" icon="o-exclamation-triangle" class="alert-info mt-3 text-white"
+                        description="Enter the course fees, optional down payment, and number of installments. The system will automatically calculate the remaining amount and divide it equally among installments. The last installment may vary slightly to account for rounding."
+                        dismissible />
+
                 </div>
 
-                <x-input label="Course Fees" wire:model.live="course_fees" step="0.01"
-                    placeholder="Enter course fees" icon="o-currency-rupee" money />
+                <x-input label="Course Fees" wire:model.live="course_fees" placeholder="Enter course fees"
+                    icon="o-currency-rupee" money />
 
-                <x-input label="Down Payment" wire:model.live="down_payment" step="0.01"
-                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" money />
+                <x-input label="Down Payment" wire:model.live="down_payment"
+                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" money
+                    hint="Cannot exceed course fees" />
 
                 <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"
-                    placeholder="Enter number of installments (optional)" icon="o-calculator" min="0" />
+                    placeholder="Enter number of installments (optional)" icon="o-calculator" min="0"
+                    hint="Leave empty if no installments" />
 
-                <x-datepicker label="Installment Date (optional)" wire:model="installment_date" icon="o-calendar"
-                    :config="$dateConfig" />
-
-                <x-input label="Installment Amount" wire:model="installment_amount" step="0.01"
-                    icon="o-currency-rupee" money />
+                <x-datepicker label="Installment Date (optional)" wire:model.live="installment_date"
+                    icon="o-calendar" :config="$dateConfig" />
 
                 <x-datepicker label="Enrollment Date" wire:model="enrollment_date" icon="o-calendar"
                     :config="$dateConfig" />
@@ -417,13 +589,78 @@ new class extends Component {
                     placeholder="Enter incharge name (optional)" icon="o-user" />
             </div>
 
+            <!-- Fees Summary -->
+            @if ($course_fees > 0)
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-primary mb-4">Fees Summary</h3>
+
+                        <div class="bg-base-200 rounded-lg p-4 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium">Total Course Fees:</span>
+                                <span class="font-bold text-lg">{{ $this->formatCurrency($total_payable) }}</span>
+                            </div>
+
+                            @if ($down_payment > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="font-medium">Down Payment:</span>
+                                    <span
+                                        class="font-bold text-success">-{{ $this->formatCurrency($down_payment) }}</span>
+                                </div>
+                            @endif
+
+                            <div class="flex justify-between items-center border-t pt-3">
+                                <span class="font-medium">Remaining Amount:</span>
+                                <span
+                                    class="font-bold text-lg text-primary">{{ $this->formatCurrency($remaining_amount) }}</span>
+                            </div>
+
+                            @if ($no_of_installments > 0 && count($installment_breakdown) > 0)
+                                <div class="mt-4">
+                                    <h4 class="font-semibold text-base mb-3">Installment Breakdown
+                                        ({{ $no_of_installments }} installments)</h4>
+
+                                    <!-- Display calculated installment amount -->
+                                    <div class="bg-base-100 rounded-lg p-3 border mb-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium">Monthly Installment Amount:</span>
+                                            <span
+                                                class="font-bold text-lg text-primary">{{ $this->formatCurrency($installment_breakdown[0]['amount'] ?? 0) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        @foreach ($installment_breakdown as $installment)
+                                            <div class="bg-base-100 rounded-lg p-3 border">
+                                                <div class="text-sm text-gray-600">Installment
+                                                    {{ $installment['installment_no'] }}</div>
+                                                <div class="font-bold text-lg">
+                                                    {{ $this->formatCurrency($installment['amount']) }}</div>
+                                                <div class="text-xs text-gray-500">Due: {{ $installment['due_date'] }}
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="mt-3 text-xs bg-base-100 p-2 rounded-md">
+                                        <x-alert title="Note:" icon="o-exclamation-triangle"
+                                            description="Installment amounts are calculated by dividing the
+                                        remaining amount (after down payment) by the number of installments. The last
+                                        installment may vary slightly to account for rounding." />
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Student Signature & Image -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <h3 class="text-lg font-semibold text-primary">Student Image</h3>
                     <div class="space-y-2 mt-3">
                         <x-file wire:model="student_image" accept="image/*" placeholder="Upload student image"
-                            icon="o-photo" hint="Max 2MB">
+                            icon="o-photo" hint="Max 2MB" crop-after-change :crop-config="$config">
                             <img src="https://placehold.co/300x300?text=Image" alt="Student Image"
                                 class="w-32 h-32 object-cover rounded-lg">
                         </x-file>
@@ -434,7 +671,8 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Student Signature</h3>
                     <div class="space-y-2 mt-3">
                         <x-file wire:model="student_signature_image" accept="image/*"
-                            placeholder="Upload student signature" icon="o-photo" hint="Max 2MB">
+                            placeholder="Upload student signature" icon="o-photo" hint="Max 2MB" crop-after-change
+                            :crop-config="$config">
                             <img src="https://placehold.co/300x300?text=Signature" alt="Signature"
                                 class="w-32 h-32 object-cover rounded-lg">
                         </x-file>

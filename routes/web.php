@@ -36,6 +36,20 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('category')->name('category.')->group(function () {
                 Volt::route('/', 'backend.category.index')->name('index');
             });
+
+            Route::prefix('course')->name('course.')->group(function () {
+                Volt::route('/', 'backend.course.index')->name('index');
+                Volt::route('/create', 'backend.course.create')->name('create');
+                Volt::route('/{course}/show', 'backend.course.show')->name('show');
+                Volt::route('/{course}/edit', 'backend.course.edit')->name('edit');
+            });
+
+            Route::prefix('exam')->name('exam.')->group(function () {
+                Volt::route('/', 'backend.exam.index')->name('index');
+                Volt::route('/create', 'backend.exam.create')->name('create');
+                Volt::route('/{exam}/show', 'backend.exam.show')->name('show');
+                Volt::route('/{exam}/edit', 'backend.exam.edit')->name('edit');
+            });
         });
     });
 });

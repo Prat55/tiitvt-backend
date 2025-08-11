@@ -188,8 +188,7 @@ new class extends Component {
                 @if ($student->no_of_installments)
                     <div>
                         <label class="text-sm font-medium text-gray-600">Installments</label>
-                        <p class="text-sm">{{ $student->no_of_installments }} ×
-                            ₹{{ number_format($student->installment_amount, 2) }}</p>
+                        <p class="text-sm">{{ $student->no_of_installments }} installments</p>
                     </div>
                 @endif
 
@@ -268,6 +267,39 @@ new class extends Component {
             </div>
         </x-card>
     </div>
+
+    <!-- Installments -->
+    @if ($student->installments && $student->installments->count() > 0)
+        <div class="mt-6">
+            <x-card shadow>
+                <h3 class="text-lg font-semibold text-primary mb-4">Installment Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach ($student->installments as $installment)
+                        <div class="bg-base-100 rounded-lg p-4 border">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm font-medium text-gray-600">Installment
+                                    {{ $installment->installment_no }}</span>
+                                <span class="badge {{ $installment->status_badge_class }} text-xs">
+                                    {{ ucfirst($installment->status) }}
+                                </span>
+                            </div>
+                            <div class="text-lg font-bold text-primary mb-1">
+                                ₹{{ number_format($installment->amount, 2) }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                Due: {{ $installment->formatted_due_date }}
+                            </div>
+                            @if ($installment->status === 'paid')
+                                <div class="text-xs text-success mt-1">
+                                    Paid: {{ $installment->formatted_paid_date }}
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </x-card>
+        </div>
+    @endif
 
     <!-- Student Signature -->
     @if ($student->student_signature_image)

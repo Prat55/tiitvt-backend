@@ -46,7 +46,6 @@ return new class extends Migration
             $table->decimal('down_payment', 10, 2)->nullable();
             $table->integer('no_of_installments')->nullable();
             $table->date('installment_date')->nullable();
-            $table->decimal('installment_amount', 10, 2)->nullable();
 
             // Additional Fields
             $table->date('enrollment_date')->nullable();
