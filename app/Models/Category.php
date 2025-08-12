@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Category extends Model
 {
@@ -25,13 +26,21 @@ class Category extends Model
     protected static function booted()
     {
         static::deleting(function ($category) {
-            $category->courses()->delete();
+            $category->courseCategories()->delete();
         });
     }
 
-    public function courses(): HasMany
+    public function courseCategories(): HasMany
     {
         return $this->hasMany(CourseCategory::class);
+    }
+
+    /**
+     * Get the courses for the category.
+     */
+    public function courses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'course_categories');
     }
 
     /**

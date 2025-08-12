@@ -53,6 +53,8 @@
                 <x-menu-item title="Center" icon="o-building-office" link="{{ route('admin.center.index') }}" />
                 <x-menu-item title="Student" icon="o-user" link="{{ route('admin.student.index') }}" />
                 <x-menu-item title="Category" icon="o-tag" link="{{ route('admin.category.index') }}" />
+                <x-menu-item title="Course" icon="o-book-open" link="{{ route('admin.course.index') }}" />
+                <x-menu-item title="Exam" icon="o-book-open" link="{{ route('admin.exam.index') }}" />
             </x-menu>
         </x-slot:sidebar>
 

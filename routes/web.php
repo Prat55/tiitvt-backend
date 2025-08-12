@@ -55,6 +55,7 @@ Route::middleware(['admin.auth'])->group(function () {
 });
 
 require __DIR__ . '/auth.php';
+require __DIR__ . '/frontend.php';
 
 // Certificate verification route (public)
 Route::get('/certificate/verify/{token}', function ($token) {
