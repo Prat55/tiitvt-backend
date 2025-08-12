@@ -116,7 +116,7 @@ class Course extends Model
     public function getDiscountPercentageAttribute(): ?float
     {
         if ($this->mrp && $this->price && $this->mrp > $this->price) {
-            return round((($this->mrp - $this->price) / $this->mrp) * 100, 2);
+            return round((($this->mrp - $this->price) / $this->mrp) * 100);
         }
         return null;
     }

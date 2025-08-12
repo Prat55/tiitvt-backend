@@ -88,11 +88,11 @@ new class extends Component {
         @scope('cell_categories', $course)
             @if ($course->categories->count() > 0)
                 <div class="flex flex-wrap gap-1">
-                    @foreach ($course->categories->take(2) as $category)
+                    @foreach ($course->categories->take(1) as $category)
                         <span class="badge badge-primary badge-sm h-fit">{{ $category->name }}</span>
                     @endforeach
-                    @if ($course->categories->count() > 2)
-                        <span class="badge badge-ghost badge-sm">+{{ $course->categories->count() - 2 }}</span>
+                    @if ($course->categories->count() > 1)
+                        <span class="badge badge-soft badge-sm">+{{ $course->categories->count() - 1 }}</span>
                     @endif
                 </div>
             @else
