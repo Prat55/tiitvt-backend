@@ -5,6 +5,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
+use App\Enums\InstallmentStatusEnum;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\{Layout, Title};
 use App\Models\{Course, Center, Student};
@@ -549,8 +550,7 @@ new class extends Component {
                 <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
                     icon="o-academic-cap" :options="$courses" single searchable clearable />
 
-                <x-input type="time" label="Batch Time" wire:model="batch_time"
-                    placeholder="Enter batch time (optional)" />
+                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
 
                 <x-textarea label="Scheme Given" wire:model="scheme_given"
                     placeholder="Enter scheme details (optional)" icon="o-document-text" rows="3" />

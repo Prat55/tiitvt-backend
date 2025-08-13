@@ -63,18 +63,18 @@ new class extends Component {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm font-medium text-gray-600">Course Name</label>
-                            <p class="text-base font-semibold">{{ $course->name }}</p>
+                            <p class="text-base font-semibold text-gray-700 dark:text-gray-300">{{ $course->name }}</p>
                         </div>
 
                         <div>
                             <label class="text-sm font-medium text-gray-600">Slug</label>
-                            <p class="text-base font-mono text-gray-700">{{ $course->slug }}</p>
+                            <p class="text-base font-mono text-gray-700 dark:text-gray-300">{{ $course->slug }}</p>
                         </div>
 
                         @if ($course->duration)
                             <div>
                                 <label class="text-sm font-medium text-gray-600">Duration</label>
-                                <p class="text-base">{{ $course->duration }}</p>
+                                <p class="text-base text-gray-700 dark:text-gray-300">{{ $course->duration }}</p>
                             </div>
                         @endif
 
@@ -91,16 +91,17 @@ new class extends Component {
                     </div>
                     @if ($course->meta_description)
                         <div>
-                            <label class="text-sm font-medium text-gray-600">Meta Description</label>
-                            <p class="text-base text-gray-700 mt-1">{{ $course->meta_description }}</p>
+                            <label class="text-sm font-bold">Meta Description</label>
+                            <p class="text-base text-gray-700 dark:text-gray-300 mt-1">{{ $course->meta_description }}
+                            </p>
                         </div>
                     @endif
 
 
                     @if ($course->description)
                         <div>
-                            <label class="text-sm font-medium text-gray-600">Description</label>
-                            <p class="text-base text-gray-700 mt-1">{!! $course->description !!}</p>
+                            <label class="text-sm font-bold">Description</label>
+                            <div class="mt-1">{!! $course->description !!}</div>
                         </div>
                     @endif
                 </div>
@@ -122,7 +123,7 @@ new class extends Component {
                         @if ($course->mrp)
                             <div>
                                 <label class="text-sm font-medium text-gray-600">MRP</label>
-                                <p class="text-lg text-gray-700">{{ $course->formatted_mrp }}</p>
+                                <p class="text-lg text-gray-700 dark:text-gray-300">{{ $course->formatted_mrp }}</p>
                             </div>
                         @endif
 
@@ -142,23 +143,6 @@ new class extends Component {
                             </div>
                         @endif
                     </div>
-                </div>
-            </x-card>
-
-            <!-- Categories -->
-            <x-card shadow>
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-primary">Categories</h3>
-
-                    @if ($course->categories->count() > 0)
-                        <div class="flex flex-wrap gap-2">
-                            @foreach ($course->categories as $category)
-                                <span class="badge badge-primary badge-lg">{{ $category->name }}</span>
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-gray-500">No categories assigned</p>
-                    @endif
                 </div>
             </x-card>
         </div>
@@ -226,6 +210,23 @@ new class extends Component {
                             <span class="font-mono">{{ $course->id }}</span>
                         </div>
                     </div>
+                </div>
+            </x-card>
+
+            <!-- Categories -->
+            <x-card shadow>
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-primary">Categories</h3>
+
+                    @if ($course->categories->count() > 0)
+                        <div class="flex flex-wrap gap-2">
+                            @foreach ($course->categories as $category)
+                                <span class="badge badge-primary badge-lg">{{ $category->name }}</span>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-gray-500">No categories assigned</p>
+                    @endif
                 </div>
             </x-card>
         </div>

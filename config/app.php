@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'mail' => [
+        'to' => [
+            'address' => env('APP_MAIL_TO_ADDRESS', 'hello@example.com'),
+        ],
+        'backup' => [
+            'address' => env('APP_MAIL_BACKUP_ADDRESS', 'backup@example.com'),
+        ],
+        'support' => [
+            'address' => env('APP_MAIL_SUPPORT_ADDRESS', 'support@example.com'),
+        ],
+    ],
+
 ];

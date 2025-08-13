@@ -83,7 +83,7 @@ new class extends Component {
                     ],
                     'title' => [
                         'display' => true,
-                        'text' => 'Monthly Enrollment Trend',
+                        'text' => 'Current Year Monthly Enrollment Trend',
                         'font' => [
                             'size' => 16,
                             'weight' => 'bold',
@@ -133,7 +133,7 @@ new class extends Component {
                     ],
                     'title' => [
                         'display' => true,
-                        'text' => 'Monthly Revenue Trend',
+                        'text' => 'Current Year Monthly Revenue Trend',
                         'font' => [
                             'size' => 16,
                             'weight' => 'bold',
@@ -269,7 +269,8 @@ new class extends Component {
                 (SELECT COUNT(*) FROM students) as total_students,
                 (SELECT COUNT(*) FROM courses) as total_courses,
                 (SELECT COUNT(*) FROM exams) as total_exams,
-                (SELECT COUNT(*) FROM certificates) as total_certificates
+                (SELECT COUNT(*) FROM certificates) as total_certificates,
+                (SELECT COUNT(*) FROM students WHERE YEAR(created_at) = YEAR(CURDATE())) as current_year_enrollments
         ")[0];
 
         // Single query for revenue data
@@ -288,6 +289,7 @@ new class extends Component {
             'total_revenue' => $revenue->total_revenue,
             'pending_payments' => $revenue->pending_payments,
             'total_certificates' => $counts->total_certificates,
+            'current_year_enrollments' => $counts->current_year_enrollments,
         ];
     }
 
@@ -305,12 +307,13 @@ new class extends Component {
                 COUNT(s.id) as total_students,
                 COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount ELSE 0 END), 0) as total_revenue,
                 COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0) as pending_payments,
-                (SELECT COUNT(*) FROM certificates WHERE student_id IN (SELECT id FROM students WHERE center_id = ?)) as total_certificates
+                (SELECT COUNT(*) FROM certificates WHERE student_id IN (SELECT id FROM students WHERE center_id = ?)) as total_certificates,
+                (SELECT COUNT(*) FROM students WHERE center_id = ? AND YEAR(created_at) = YEAR(CURDATE())) as current_year_enrollments
             FROM students s
             LEFT JOIN invoices i ON s.id = i.student_id
             WHERE s.center_id = ?
         ",
-            [$center->id, $center->id],
+            [$center->id, $center->id, $center->id],
         )[0];
 
         return [
@@ -318,6 +321,7 @@ new class extends Component {
             'total_revenue' => $stats->total_revenue,
             'pending_payments' => $stats->pending_payments,
             'total_certificates' => $stats->total_certificates,
+            'current_year_enrollments' => $stats->current_year_enrollments,
         ];
     }
 
@@ -453,24 +457,24 @@ new class extends Component {
             return [];
         }
 
-        // Single optimized query for enrollment trend
+        // Single optimized query for enrollment trend - Current Year
         $enrollmentData = DB::select("
             SELECT
                 DATE_FORMAT(created_at, '%Y-%m') as month,
                 COUNT(*) as count
             FROM students
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            WHERE YEAR(created_at) = YEAR(CURDATE())
             GROUP BY month
             ORDER BY month
         ");
 
-        // Single optimized query for revenue trend
+        // Single optimized query for revenue trend - Current Year
         $revenueData = DB::select("
             SELECT
                 DATE_FORMAT(paid_at, '%Y-%m') as month,
                 SUM(amount) as total
             FROM invoices
-            WHERE status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            WHERE status = 'paid' AND YEAR(paid_at) = YEAR(CURDATE())
             GROUP BY month
             ORDER BY month
         ");
@@ -496,14 +500,28 @@ new class extends Component {
 
     private function formatEnrollmentChart($data)
     {
+        // Create a complete year array with all months
+        $currentYear = Carbon::now()->year;
+        $allMonths = [];
+        $monthlyData = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            $monthKey = sprintf('%04d-%02d', $currentYear, $month);
+            $allMonths[] = Carbon::createFromDate($currentYear, $month, 1)->format('M Y');
+
+            // Find data for this month or set to 0
+            $monthData = collect($data)->firstWhere('month', $monthKey);
+            $monthlyData[] = $monthData ? $monthData->count : 0;
+        }
+
         return [
             'type' => 'line',
             'data' => [
-                'labels' => collect($data)->map(fn($d) => Carbon::parse($d->month . '-01')->format('M Y'))->toArray(),
+                'labels' => $allMonths,
                 'datasets' => [
                     [
                         'label' => 'New Enrollments',
-                        'data' => collect($data)->pluck('count')->toArray(),
+                        'data' => $monthlyData,
                         'borderColor' => 'rgb(59, 130, 246)',
                         'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
                         'tension' => 0.3,
@@ -515,14 +533,28 @@ new class extends Component {
 
     private function formatRevenueChart($data)
     {
+        // Create a complete year array with all months
+        $currentYear = Carbon::now()->year;
+        $allMonths = [];
+        $monthlyData = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            $monthKey = sprintf('%04d-%02d', $currentYear, $month);
+            $allMonths[] = Carbon::createFromDate($currentYear, $month, 1)->format('M Y');
+
+            // Find data for this month or set to 0
+            $monthData = collect($data)->firstWhere('month', $monthKey);
+            $monthlyData[] = $monthData ? $monthData->total : 0;
+        }
+
         return [
             'type' => 'bar',
             'data' => [
-                'labels' => collect($data)->map(fn($d) => Carbon::parse($d->month . '-01')->format('M Y'))->toArray(),
+                'labels' => $allMonths,
                 'datasets' => [
                     [
                         'label' => 'Revenue (₹)',
-                        'data' => collect($data)->pluck('total')->toArray(),
+                        'data' => $monthlyData,
                         'backgroundColor' => 'rgba(34, 197, 94, 0.8)',
                         'borderColor' => 'rgb(34, 197, 94)',
                         'borderWidth' => 1,
@@ -583,7 +615,7 @@ new class extends Component {
         </div>
     @else
         {{-- Statistics Cards --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             @if ($user->isAdmin())
                 {{-- Centers Card --}}
                 <x-card shadow>
@@ -616,6 +648,25 @@ new class extends Component {
                         </div>
                         <div class="p-4 bg-secondary/10 rounded-full">
                             <x-icon name="o-academic-cap" class="w-8 h-8 text-secondary" />
+                        </div>
+                    </div>
+                </x-card>
+
+                {{-- Current Year Enrollments Card --}}
+                <x-card shadow>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Current Year Enrollments</p>
+                            <p class="text-3xl font-bold mt-1">
+                                {{ number_format($statistics['current_year_enrollments'] ?? 0) }}
+                            </p>
+                            <p class="text-sm text-info mt-2">
+                                <x-icon name="o-calendar" class="w-4 h-4 inline" />
+                                {{ Carbon::now()->year }} enrollments
+                            </p>
+                        </div>
+                        <div class="p-4 bg-info/10 rounded-full">
+                            <x-icon name="o-calendar" class="w-8 h-8 text-info" />
                         </div>
                     </div>
                 </x-card>
@@ -669,6 +720,25 @@ new class extends Component {
                         </div>
                         <div class="p-4 bg-primary/10 rounded-full">
                             <x-icon name="o-academic-cap" class="w-8 h-8 text-primary" />
+                        </div>
+                    </div>
+                </x-card>
+
+                {{-- Current Year Enrollments Card --}}
+                <x-card shadow>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Current Year Enrollments</p>
+                            <p class="text-3xl font-bold mt-1">
+                                {{ number_format($statistics['current_year_enrollments'] ?? 0) }}
+                            </p>
+                            <p class="text-sm text-info mt-2">
+                                <x-icon name="o-calendar" class="w-4 h-4 inline" />
+                                {{ Carbon::now()->year }} enrollments
+                            </p>
+                        </div>
+                        <div class="p-4 bg-info/10 rounded-full">
+                            <x-icon name="o-academic-cap" class="w-8 h-8 text-info" />
                         </div>
                     </div>
                 </x-card>
@@ -754,25 +824,25 @@ new class extends Component {
 
         {{-- Charts Section (Admin Only) - Auto Loaded --}}
         @if ($user->isAdmin() && !empty($chartsData))
-            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-                {{-- Enrollment Trend Chart --}}
-                <x-card title="Enrollment Trend" shadow
-                    class="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20">
-                    <div class="h-80 p-4">
-                        <x-chart wire:model="enrollmentChart" />
-                    </div>
-                </x-card>
+            {{-- Enrollment Trend Chart --}}
+            <x-card title="Current Year Enrollment Trend" shadow
+                class="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 mb-6">
+                <div class="h-80 p-4">
+                    <x-chart wire:model="enrollmentChart" class="h-full w-full" />
+                </div>
+            </x-card>
 
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                 {{-- Revenue Trend Chart --}}
-                <x-card title="Revenue Trend" shadow
+                <x-card title="Current Year Revenue Trend" shadow
                     class="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20">
                     <div class="h-80 p-4">
-                        <x-chart wire:model="revenueChart" />
+                        <x-chart wire:model="revenueChart" class="h-full w-full" />
                     </div>
                 </x-card>
 
                 {{-- Course Popularity Chart --}}
-                <x-card title="Course Popularity" shadow
+                <x-card title="Courses" shadow
                     class="bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20">
                     <div class="h-80 p-4">
                         <x-chart wire:model="coursePopularityChart" />
@@ -780,7 +850,7 @@ new class extends Component {
                 </x-card>
 
                 {{-- Student Distribution Chart --}}
-                <x-card title="Student Distribution" shadow
+                <x-card title="Students" shadow
                     class="bg-gradient-to-br from-orange-50 to-yellow-100 dark:from-orange-900/20 dark:to-yellow-900/20">
                     <div class="h-80 p-4">
                         <x-chart wire:model="studentDistributionChart" />
@@ -880,7 +950,7 @@ new class extends Component {
                             @endscope
                             @scope('cell_date', $payment)
                                 <span
-                                    class="text-sm">{{ $payment->paid_at ? Carbon\Carbon::parse($payment->paid_at)->format('d M Y') : 'N/A' }}</span>
+                                    class="text-sm">{{ $payment->paid_at ? Carbon::parse($payment->paid_at)->format('d M Y') : 'N/A' }}</span>
                             @endscope
                         </x-table>
                     </x-card>

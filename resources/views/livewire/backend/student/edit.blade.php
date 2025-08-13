@@ -1,14 +1,12 @@
 <?php
 
-use App\Models\Student;
-use App\Models\Center;
-use App\Models\Course;
 use Mary\Traits\Toast;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\{Layout, Title};
+use App\Models\{Student, Center, Course};
 
 new class extends Component {
     use WithFileUploads, Toast;
@@ -60,6 +58,13 @@ new class extends Component {
     public float $total_payable = 0;
     public array $installment_breakdown = [];
 
+    // Installment management
+    public array $existing_installments = [];
+    public float $total_paid_amount = 0;
+    public float $total_pending_amount = 0;
+    public int $paid_installments_count = 0;
+    public int $pending_installments_count = 0;
+
     // Additional Fields
     public ?string $enrollment_date = '';
     public ?string $incharge_name = '';
@@ -83,6 +88,8 @@ new class extends Component {
     {
         $this->student = $student;
         $this->loadStudentData();
+        $this->loadExistingInstallments();
+        $this->checkOverdueInstallments();
         $this->calculateInstallments();
     }
 
@@ -128,6 +135,41 @@ new class extends Component {
         $this->course_id = $this->student->course_id ?? 0;
     }
 
+    // Load existing installments and calculate totals
+    private function loadExistingInstallments(): void
+    {
+        $this->existing_installments = $this->student->installments()->orderBy('installment_no')->get()->toArray();
+
+        $this->total_paid_amount = $this->student->installments()->where('status', 'paid')->sum('amount');
+
+        $this->total_pending_amount = $this->student
+            ->installments()
+            ->whereIn('status', ['pending', 'overdue'])
+            ->sum('amount');
+
+        $this->paid_installments_count = $this->student->installments()->where('status', 'paid')->count();
+
+        $this->pending_installments_count = $this->student
+            ->installments()
+            ->whereIn('status', ['pending', 'overdue'])
+            ->count();
+    }
+
+    // Check and update overdue installments
+    private function checkOverdueInstallments(): void
+    {
+        $overdueInstallments = $this->student->installments()->where('status', 'pending')->where('due_date', '<', now())->get();
+
+        foreach ($overdueInstallments as $installment) {
+            $installment->markAsOverdue();
+        }
+
+        // Reload installments data after updating statuses
+        if ($overdueInstallments->count() > 0) {
+            $this->loadExistingInstallments();
+        }
+    }
+
     // Helper method to format currency
     public function formatCurrency($amount): string
     {
@@ -151,32 +193,126 @@ new class extends Component {
 
             // Generate installment breakdown if number of installments is specified
             if (($this->no_of_installments ?? 0) > 0 && $this->remaining_amount > 0) {
-                $installmentAmount = round($this->remaining_amount / ($this->no_of_installments ?? 1), 2);
-
-                // Generate installment breakdown
-                $this->installment_breakdown = [];
-                $remainingForLastInstallment = $this->remaining_amount;
-
-                for ($i = 1; $i <= ($this->no_of_installments ?? 0); $i++) {
-                    if ($i == ($this->no_of_installments ?? 0)) {
-                        // Last installment gets the remaining amount to avoid rounding errors
-                        $amount = round($remainingForLastInstallment, 2);
-                    } else {
-                        $amount = $installmentAmount;
-                        $remainingForLastInstallment -= $amount;
-                    }
-
-                    $this->installment_breakdown[] = [
-                        'installment_no' => $i,
-                        'amount' => $amount,
-                        'due_date' => $this->installment_date
-                            ? \Carbon\Carbon::parse($this->installment_date)
-                                ->addMonths($i - 1)
-                                ->format('d/m/Y')
-                            : 'TBD',
-                    ];
+                // If we have existing installments, preserve paid ones and recalculate only pending ones
+                if (!empty($this->existing_installments)) {
+                    $this->calculateInstallmentsWithExisting();
+                } else {
+                    $this->calculateNewInstallments();
                 }
             }
+        }
+    }
+
+    // Calculate installments when there are existing ones
+    private function calculateInstallmentsWithExisting(): void
+    {
+        $paidAmount = $this->total_paid_amount;
+        $remainingAfterPaid = $this->remaining_amount - $paidAmount;
+
+        // If all installments are paid, no need to recalculate
+        if ($remainingAfterPaid <= 0) {
+            $this->installment_breakdown = [];
+            return;
+        }
+
+        // Calculate how many pending installments we need
+        $pendingInstallmentsNeeded = $this->no_of_installments - $this->paid_installments_count;
+
+        if ($pendingInstallmentsNeeded <= 0) {
+            // All installments are paid, no pending ones needed
+            $this->installment_breakdown = [];
+            return;
+        }
+
+        // Calculate amount per pending installment
+        $installmentAmount = round($remainingAfterPaid / $pendingInstallmentsNeeded, 2);
+        $remainingForLastInstallment = $remainingAfterPaid;
+
+        $this->installment_breakdown = [];
+
+        // Add existing paid installments to breakdown (for display purposes)
+        foreach ($this->existing_installments as $installment) {
+            if ($installment['status'] === 'paid') {
+                $this->installment_breakdown[] = [
+                    'installment_no' => $installment['installment_no'],
+                    'amount' => $installment['amount'],
+                    'due_date' => \Carbon\Carbon::parse($installment['due_date'])->format('d/m/Y'),
+                    'status' => 'paid',
+                    'paid_date' => $installment['paid_date'] ? \Carbon\Carbon::parse($installment['paid_date'])->format('d/m/Y') : null,
+                    'is_existing' => true,
+                ];
+            }
+        }
+
+        // Calculate new pending installments
+        $pendingCount = 0;
+        for ($i = 1; $i <= $this->no_of_installments; $i++) {
+            // Skip if this installment number already exists and is paid
+            $existingPaid = collect($this->existing_installments)->where('installment_no', $i)->where('status', 'paid')->first();
+
+            if ($existingPaid) {
+                continue; // Skip, already added above
+            }
+
+            // Calculate amount for this pending installment
+            if ($pendingCount == $pendingInstallmentsNeeded - 1) {
+                // Last pending installment gets the remaining amount to avoid rounding errors
+                $amount = round($remainingForLastInstallment, 2);
+            } else {
+                $amount = $installmentAmount;
+                $remainingForLastInstallment -= $amount;
+            }
+
+            $this->installment_breakdown[] = [
+                'installment_no' => $i,
+                'amount' => $amount,
+                'due_date' => $this->installment_date
+                    ? \Carbon\Carbon::parse($this->installment_date)
+                        ->addMonths($i - 1)
+                        ->format('d/m/Y')
+                    : 'TBD',
+                'status' => 'pending',
+                'is_existing' => false,
+            ];
+
+            $pendingCount++;
+        }
+
+        // Sort by installment number
+        usort($this->installment_breakdown, function ($a, $b) {
+            return $a['installment_no'] <=> $b['installment_no'];
+        });
+    }
+
+    // Calculate new installments (when no existing ones)
+    private function calculateNewInstallments(): void
+    {
+        $installmentAmount = round($this->remaining_amount / ($this->no_of_installments ?? 1), 2);
+        $remainingForLastInstallment = $this->remaining_amount;
+
+        // Generate installment breakdown
+        $this->installment_breakdown = [];
+
+        for ($i = 1; $i <= ($this->no_of_installments ?? 0); $i++) {
+            if ($i == ($this->no_of_installments ?? 0)) {
+                // Last installment gets the remaining amount to avoid rounding errors
+                $amount = round($remainingForLastInstallment, 2);
+            } else {
+                $amount = $installmentAmount;
+                $remainingForLastInstallment -= $amount;
+            }
+
+            $this->installment_breakdown[] = [
+                'installment_no' => $i,
+                'amount' => $amount,
+                'due_date' => $this->installment_date
+                    ? \Carbon\Carbon::parse($this->installment_date)
+                        ->addMonths($i - 1)
+                        ->format('d/m/Y')
+                    : 'TBD',
+                'status' => 'pending',
+                'is_existing' => false,
+            ];
         }
     }
 
@@ -250,6 +386,23 @@ new class extends Component {
                 $this->error('Cannot create installments when remaining amount is zero or negative.', position: 'toast-bottom');
                 return;
             }
+
+            // Check if we have existing installments and validate the new configuration
+            if (!empty($this->existing_installments)) {
+                $newRemainingAmount = ($this->course_fees ?? 0) - ($this->down_payment ?? 0);
+
+                // Ensure new remaining amount is not less than paid installments
+                if ($newRemainingAmount < $this->total_paid_amount) {
+                    $this->error('New remaining amount cannot be less than the total amount of paid installments (' . $this->formatCurrency($this->total_paid_amount) . ').', position: 'toast-bottom');
+                    return;
+                }
+
+                // Ensure new installment count is not less than paid installments
+                if (($this->no_of_installments ?? 0) < $this->paid_installments_count) {
+                    $this->error('Cannot decrease installments below the number of paid installments (' . $this->paid_installments_count . ').', position: 'toast-bottom');
+                    return;
+                }
+            }
         }
 
         $this->validate();
@@ -299,11 +452,144 @@ new class extends Component {
 
             $this->student->update($data);
 
+            // Handle installment updates if needed
+            if (($this->no_of_installments ?? 0) > 0 && $this->remaining_amount > 0) {
+                $this->updateInstallments();
+            }
+
             $this->success('Student updated successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.student.show', $this->student->id));
         } catch (\Exception $e) {
             $this->error('Failed to update student. Please try again.', position: 'toast-bottom');
         }
+    }
+
+    // Update installments while preserving paid ones
+    private function updateInstallments(): void
+    {
+        try {
+            // Get current installments from database
+            $currentInstallments = $this->student->installments()->orderBy('installment_no')->get();
+
+            // Separate paid and pending installments
+            $paidInstallments = $currentInstallments->where('status', 'paid');
+            $pendingInstallments = $currentInstallments->whereIn('status', ['pending', 'overdue']);
+
+            // Calculate remaining amount after paid installments
+            $paidAmount = $paidInstallments->sum('amount');
+            $remainingAfterPaid = $this->remaining_amount - $paidAmount;
+
+            // If all installments are paid, no need to update
+            if ($remainingAfterPaid <= 0) {
+                return;
+            }
+
+            // Calculate how many pending installments we need
+            $pendingInstallmentsNeeded = $this->no_of_installments - $paidInstallments->count();
+
+            if ($pendingInstallmentsNeeded <= 0) {
+                // All installments are paid, no pending ones needed
+                return;
+            }
+
+            // Calculate amount per pending installment
+            $installmentAmount = round($remainingAfterPaid / $pendingInstallmentsNeeded, 2);
+            $remainingForLastInstallment = $remainingAfterPaid;
+
+            // Delete existing pending installments
+            $pendingInstallments->each(function ($installment) {
+                $installment->delete();
+            });
+
+            // Create new pending installments
+            $pendingCount = 0;
+            for ($i = 1; $i <= $this->no_of_installments; $i++) {
+                // Skip if this installment number already exists and is paid
+                $existingPaid = $paidInstallments->where('installment_no', $i)->first();
+
+                if ($existingPaid) {
+                    continue; // Skip, already exists and paid
+                }
+
+                // Calculate amount for this pending installment
+                if ($pendingCount == $pendingInstallmentsNeeded - 1) {
+                    // Last pending installment gets the remaining amount to avoid rounding errors
+                    $amount = round($remainingForLastInstallment, 2);
+                } else {
+                    $amount = $installmentAmount;
+                    $remainingForLastInstallment -= $amount;
+                }
+
+                // Create new installment
+                \App\Models\Installment::create([
+                    'student_id' => $this->student->id,
+                    'installment_no' => $i,
+                    'amount' => $amount,
+                    'due_date' => $this->installment_date ? \Carbon\Carbon::parse($this->installment_date)->addMonths($i - 1) : now()->addMonths($i - 1),
+                    'status' => 'pending',
+                ]);
+
+                $pendingCount++;
+            }
+
+            // Reload installments data
+            $this->loadExistingInstallments();
+        } catch (\Exception $e) {
+            // Log error but don't fail the entire save operation
+            \Log::error('Failed to update installments for student ' . $this->student->id . ': ' . $e->getMessage());
+        }
+    }
+
+    // Refresh installment data
+    public function refreshInstallments(): void
+    {
+        $this->loadExistingInstallments();
+        $this->checkOverdueInstallments();
+        $this->calculateInstallments();
+    }
+
+    // Get warning message about existing installments
+    public function getExistingInstallmentsWarning(): ?string
+    {
+        if (empty($this->existing_installments)) {
+            return null;
+        }
+
+        $message = 'This student has existing installments. ';
+
+        if ($this->paid_installments_count > 0) {
+            $message .= "{$this->paid_installments_count} installment(s) are already paid (₹{$this->total_paid_amount}). ";
+        }
+
+        if ($this->pending_installments_count > 0) {
+            $message .= "{$this->pending_installments_count} installment(s) are pending (₹{$this->total_pending_amount}). ";
+        }
+
+        $message .= 'Only pending installments will be updated when you change fees or installment settings.';
+
+        return $message;
+    }
+
+    // Get summary of what will happen when saving
+    public function getSaveSummary(): ?string
+    {
+        if (empty($this->existing_installments)) {
+            return null;
+        }
+
+        $summary = "When you save, the following will happen:\n";
+
+        if ($this->paid_installments_count > 0) {
+            $summary .= "• {$this->paid_installments_count} paid installment(s) will be preserved\n";
+        }
+
+        if ($this->pending_installments_count > 0) {
+            $summary .= "• {$this->pending_installments_count} pending installment(s) will be updated with new amounts\n";
+        }
+
+        $summary .= '• New installment amounts will be calculated based on remaining amount after paid installments';
+
+        return $summary;
     }
 
     // Remove uploaded file
@@ -325,6 +611,16 @@ new class extends Component {
     // Calculate installments when fees change
     public function updatedCourseFees(): void
     {
+        // Check if we're decreasing course fees and have paid installments
+        if (($this->course_fees ?? 0) < $this->student->course_fees && $this->total_paid_amount > 0) {
+            $newRemainingAmount = ($this->course_fees ?? 0) - ($this->down_payment ?? 0);
+            if ($newRemainingAmount < $this->total_paid_amount) {
+                $this->error('Cannot decrease course fees below the total amount of paid installments (' . $this->formatCurrency($this->total_paid_amount) . ').', position: 'toast-bottom');
+                $this->course_fees = $this->student->course_fees;
+                return;
+            }
+        }
+
         // Clear related fields if course fees is 0 or empty
         if (($this->course_fees ?? 0) <= 0) {
             $this->down_payment = 0;
@@ -334,6 +630,7 @@ new class extends Component {
             $this->total_payable = 0;
         } else {
             // Recalculate installments if course fees is valid
+            // This will preserve paid installments and recalculate only pending ones
             $this->calculateInstallments();
         }
     }
@@ -345,14 +642,26 @@ new class extends Component {
             $this->down_payment = $this->course_fees;
         }
 
+        // Check if we're increasing down payment and have paid installments
+        if (($this->down_payment ?? 0) > ($this->student->down_payment ?? 0) && $this->total_paid_amount > 0) {
+            $newRemainingAmount = ($this->course_fees ?? 0) - ($this->down_payment ?? 0);
+            if ($newRemainingAmount < $this->total_paid_amount) {
+                $this->error('Cannot increase down payment above the amount that would make remaining amount less than paid installments (' . $this->formatCurrency($this->total_paid_amount) . ').', position: 'toast-bottom');
+                $this->down_payment = $this->student->down_payment ?? 0;
+                return;
+            }
+        }
+
         // Clear installments if down payment equals course fees
         if (($this->down_payment ?? 0) == ($this->course_fees ?? 0)) {
             $this->no_of_installments = 0;
             $this->installment_breakdown = [];
             $this->remaining_amount = 0;
+        } else {
+            // Recalculate installments if down payment is valid
+            // This will preserve paid installments and recalculate only pending ones
+            $this->calculateInstallments();
         }
-
-        $this->calculateInstallments();
     }
 
     public function updatedNoOfInstallments(): void
@@ -362,18 +671,32 @@ new class extends Component {
             $this->no_of_installments = 24;
         }
 
+        // Check if we're decreasing the number of installments
+        $currentInstallmentCount = count($this->existing_installments);
+        if (($this->no_of_installments ?? 0) < $currentInstallmentCount) {
+            // Check if we have more paid installments than the new count
+            if ($this->paid_installments_count > ($this->no_of_installments ?? 0)) {
+                $this->error('Cannot decrease installments below the number of paid installments (' . $this->paid_installments_count . ').', position: 'toast-bottom');
+                $this->no_of_installments = $currentInstallmentCount;
+                return;
+            }
+        }
+
         // Clear breakdown if no installments
         if (($this->no_of_installments ?? 0) <= 0) {
             $this->installment_breakdown = [];
             $this->remaining_amount = ($this->course_fees ?? 0) - ($this->down_payment ?? 0);
         } else {
             // Calculate installments if number is valid
+            // This will preserve paid installments and recalculate only pending ones
             $this->calculateInstallments();
         }
     }
 
     public function updatedInstallmentDate(): void
     {
+        // Recalculate installments if installment date is valid
+        // This will preserve paid installments and recalculate only pending ones
         $this->calculateInstallments();
     }
 
@@ -529,8 +852,7 @@ new class extends Component {
                 <x-input label="Course Taken" wire:model="course_taken" placeholder="Enter course taken (optional)"
                     icon="o-book-open" />
 
-                <x-input type="time" label="Batch Time" wire:model="batch_time"
-                    placeholder="Enter batch time (optional)" />
+                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
 
                 <x-textarea label="Scheme Given" wire:model="scheme_given"
                     placeholder="Enter scheme details (optional)" icon="o-document-text" rows="3" />
@@ -543,6 +865,12 @@ new class extends Component {
                     <x-alert title="How it works:" icon="o-exclamation-triangle" class="alert-info mt-3 text-white"
                         description="Enter the course fees, optional down payment, and number of installments. The system will automatically calculate the remaining amount and divide it equally among installments. The last installment may vary slightly to account for rounding."
                         dismissible />
+
+                    @if ($this->getExistingInstallmentsWarning())
+                        <x-alert title="Existing Installments:" icon="o-exclamation-triangle"
+                            class="alert-warning mt-3" description="{{ $this->getExistingInstallmentsWarning() }}"
+                            dismissible />
+                    @endif
                 </div>
 
                 <x-input label="Course Fees" wire:model.live="course_fees" step="0.01"
@@ -594,35 +922,86 @@ new class extends Component {
 
                             @if (($no_of_installments ?? 0) > 0 && count($installment_breakdown ?? []) > 0)
                                 <div class="mt-4">
-                                    <h4 class="font-semibold text-base mb-3">Installment Breakdown
-                                        ({{ $no_of_installments ?? 0 }} installments)</h4>
-
-                                    <!-- Display calculated installment amount -->
-                                    <div class="bg-base-100 rounded-lg p-3 border mb-3">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-medium">Monthly Installment Amount:</span>
-                                            <span
-                                                class="font-bold text-lg text-primary">{{ $this->formatCurrency($installment_breakdown[0]['amount'] ?? 0) }}</span>
-                                        </div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h4 class="font-semibold text-base">Installment Breakdown
+                                            ({{ $no_of_installments ?? 0 }} installments)</h4>
+                                        @if (!empty($existing_installments))
+                                            <x-button label="Refresh Installments" icon="o-arrow-path"
+                                                class="btn-sm btn-outline" wire:click="refreshInstallments" />
+                                        @endif
                                     </div>
+
+                                    <!-- Show existing installments summary if any -->
+                                    @if (!empty($existing_installments))
+                                        <div class="bg-base-100 rounded-lg p-3 border mb-3">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                                <div class="flex justify-between items-center">
+                                                    <span class="font-medium">Paid Installments:</span>
+                                                    <span
+                                                        class="font-bold text-success">{{ $paid_installments_count }}
+                                                        ({{ $this->formatCurrency($total_paid_amount) }})</span>
+                                                </div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="font-medium">Pending Installments:</span>
+                                                    <span
+                                                        class="font-bold text-warning">{{ $pending_installments_count }}
+                                                        ({{ $this->formatCurrency($total_pending_amount) }})</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    <!-- Display calculated installment amount for pending installments -->
+                                    @php
+                                        $pendingInstallments = collect($installment_breakdown)->where(
+                                            'status',
+                                            'pending',
+                                        );
+                                        $pendingCount = $pendingInstallments->count();
+                                    @endphp
+
+                                    @if ($pendingCount > 0)
+                                        <div class="bg-base-100 rounded-lg p-3 border mb-3">
+                                            <div class="flex justify-between items-center">
+                                                <span class="font-medium">Monthly Installment Amount (Pending):</span>
+                                                <span
+                                                    class="font-bold text-lg text-primary">{{ $this->formatCurrency($pendingInstallments->first()['amount'] ?? 0) }}</span>
+                                            </div>
+                                        </div>
+                                    @endif
 
                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         @foreach ($installment_breakdown as $installment)
-                                            <div class="bg-base-100 rounded-lg p-3 border">
-                                                <div class="text-sm text-gray-600">Installment
-                                                    {{ $installment['installment_no'] }}</div>
+                                            <div
+                                                class="bg-base-100 rounded-lg p-3 border {{ $installment['status'] === 'paid' ? 'border-success' : ($installment['status'] === 'overdue' ? 'border-error' : 'border-warning') }}">
+                                                <div class="flex justify-between items-start mb-2">
+                                                    <div class="text-sm text-gray-600">Installment
+                                                        {{ $installment['installment_no'] }}</div>
+                                                    @if (isset($installment['status']))
+                                                        <span
+                                                            class="badge badge-sm {{ $installment['status'] === 'paid' ? 'badge-success' : ($installment['status'] === 'overdue' ? 'badge-error' : 'badge-warning') }}">
+                                                            {{ ucfirst($installment['status']) }}
+                                                        </span>
+                                                    @endif
+                                                </div>
                                                 <div class="font-bold text-lg">
-                                                    {{ $this->formatCurrency($installment['amount']) }}</div>
+                                                    {{ $this->formatCurrency($installment['amount']) }}
+                                                </div>
                                                 <div class="text-xs text-gray-500">Due: {{ $installment['due_date'] }}
                                                 </div>
+                                                @if (isset($installment['paid_date']) && $installment['paid_date'])
+                                                    <div class="text-xs text-success mt-1">Paid:
+                                                        {{ $installment['paid_date'] }}</div>
+                                                @endif
+                                                @if (isset($installment['is_existing']) && $installment['is_existing'])
+                                                    <div class="text-xs text-info mt-1">Existing</div>
+                                                @endif
                                             </div>
                                         @endforeach
                                     </div>
                                     <div class="mt-3 text-xs bg-base-100 p-2 rounded-md">
                                         <x-alert title="Note:" icon="o-exclamation-triangle"
-                                            description="Installment amounts are calculated by dividing the
-                                        remaining amount (after down payment) by the number of installments. The last
-                                        installment may vary slightly to account for rounding." />
+                                            description="Paid installments are preserved when recalculating. Only pending installments are updated based on the new course fees and installment count. The last pending installment may vary slightly to account for rounding." />
                                     </div>
                                 </div>
                             @endif
@@ -638,8 +1017,8 @@ new class extends Component {
                     <div class="space-y-2 mt-3">
                         <x-file wire:model="student_image" accept="image/*" placeholder="Upload student image"
                             icon="o-photo" hint="Max 2MB" crop-after-change :crop-config="$config">
-                            <img src="https://placehold.co/300x300?text=Image" alt="Student Image"
-                                class="w-32 h-32 object-cover rounded-lg">
+                            <img src="{{ $student->student_image ? asset('storage/' . $student->student_image) : 'https://placehold.co/300x300?text=Image' }}"
+                                alt="Student Image" class="w-32 h-32 object-cover rounded-lg">
                         </x-file>
                     </div>
                 </div>
@@ -650,12 +1029,33 @@ new class extends Component {
                         <x-file wire:model="student_signature_image" accept="image/*"
                             placeholder="Upload student signature" icon="o-photo" hint="Max 2MB" crop-after-change
                             :crop-config="$config">
-                            <img src="https://placehold.co/300x300?text=Signature" alt="Signature"
-                                class="w-32 h-32 object-cover rounded-lg">
+                            <img src="{{ $student->student_signature_image ? asset('storage/' . $student->student_signature_image) : 'https://placehold.co/300x300?text=Signature' }}"
+                                alt="Signature" class="w-32 h-32 object-cover rounded-lg">
                         </x-file>
                     </div>
                 </div>
             </div>
+
+            <!-- Save Summary -->
+            @if ($this->getSaveSummary())
+                <div class="bg-base-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-base mb-3 text-primary">What will happen when you save:</h4>
+                    <div class="text-sm space-y-1">
+                        @foreach (explode("\n", $this->getSaveSummary()) as $line)
+                            @if (trim($line))
+                                <div class="flex items-start gap-2">
+                                    @if (str_starts_with(trim($line), '•'))
+                                        <span class="text-primary">•</span>
+                                        <span>{{ trim(substr($line, 1)) }}</span>
+                                    @else
+                                        <span class="font-medium">{{ $line }}</span>
+                                    @endif
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <!-- Form Actions -->
             <div class="flex justify-end gap-3 pt-6 border-t">

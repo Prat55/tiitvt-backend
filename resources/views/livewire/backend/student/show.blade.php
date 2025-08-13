@@ -1,9 +1,9 @@
 <?php
 
 use Mary\Traits\Toast;
-use App\Models\Student;
-use App\Models\Installment;
 use Livewire\Volt\Component;
+use App\Enums\InstallmentStatusEnum;
+use App\Models\{Student, Installment};
 use Livewire\Attributes\{Layout, Title};
 
 new class extends Component {
@@ -29,6 +29,9 @@ new class extends Component {
         } else {
             $this->student = $student;
         }
+
+        // Automatically check for overdue installments when component loads
+        $this->checkAndMarkOverdueInstallments();
     }
 
     public function openStatusModal($installmentId)
@@ -86,25 +89,25 @@ new class extends Component {
         }
 
         $this->validate([
-            'newStatus' => 'required|in:pending,paid,overdue',
-            'paidAmount' => 'required_if:newStatus,paid|numeric|min:0',
+            'newStatus' => 'required|in:' . implode(',', InstallmentStatusEnum::values()),
+            'paidAmount' => 'required_if:newStatus,' . InstallmentStatusEnum::Paid->value . '|numeric|min:0',
             'notes' => 'nullable|string|max:500',
         ]);
 
         try {
             $installment = $this->selectedInstallment;
 
-            if ($this->newStatus === 'paid') {
+            if ($this->newStatus === InstallmentStatusEnum::Paid->value) {
                 $installment->markAsPaid($this->paidAmount, $this->notes);
                 $this->success('Installment marked as paid successfully!', position: 'toast-bottom');
-            } elseif ($this->newStatus === 'overdue') {
+            } elseif ($this->newStatus === InstallmentStatusEnum::Overdue->value) {
                 $installment->markAsOverdue();
                 $installment->update(['notes' => $this->notes]);
                 $this->success('Installment marked as overdue!', position: 'toast-bottom');
             } else {
                 // Reset to pending
                 $installment->update([
-                    'status' => 'pending',
+                    'status' => InstallmentStatusEnum::Pending->value,
                     'paid_date' => null,
                     'paid_amount' => null,
                     'notes' => $this->notes,
@@ -115,6 +118,9 @@ new class extends Component {
             // Refresh the student data
             $this->student->refresh();
             $this->closeStatusModal();
+
+            // Recalculate overdue status after update
+            $this->checkAndMarkOverdueInstallments();
         } catch (\Exception $e) {
             $this->error('Failed to update installment status. Please try again.', position: 'toast-bottom');
         }
@@ -128,7 +134,7 @@ new class extends Component {
         }
 
         $this->validate([
-            'bulkStatus' => 'required|in:pending,paid,overdue',
+            'bulkStatus' => 'required|in:' . implode(',', InstallmentStatusEnum::values()),
             'bulkNotes' => 'nullable|string|max:500',
         ]);
 
@@ -137,15 +143,15 @@ new class extends Component {
             $installments = Installment::whereIn('id', $this->selectedInstallments)->get();
 
             foreach ($installments as $installment) {
-                if ($this->bulkStatus === 'paid') {
+                if ($this->bulkStatus === InstallmentStatusEnum::Paid->value) {
                     $installment->markAsPaid($installment->amount, $this->bulkNotes);
-                } elseif ($this->bulkStatus === 'overdue') {
+                } elseif ($this->bulkStatus === InstallmentStatusEnum::Overdue->value) {
                     $installment->markAsOverdue();
                     $installment->update(['notes' => $this->bulkNotes]);
                 } else {
                     // Reset to pending
                     $installment->update([
-                        'status' => 'pending',
+                        'status' => InstallmentStatusEnum::Pending->value,
                         'paid_date' => null,
                         'paid_amount' => null,
                         'notes' => $this->bulkNotes,
@@ -159,6 +165,9 @@ new class extends Component {
             // Refresh the student data
             $this->student->refresh();
             $this->closeBulkUpdateModal();
+
+            // Recalculate overdue status after bulk update
+            $this->checkAndMarkOverdueInstallments();
         } catch (\Exception $e) {
             $this->error('Failed to update installments. Please try again.', position: 'toast-bottom');
         }
@@ -166,24 +175,44 @@ new class extends Component {
 
     public function getStatusOptions()
     {
-        return [['id' => 'pending', 'name' => 'Pending'], ['id' => 'paid', 'name' => 'Paid'], ['id' => 'overdue', 'name' => 'Overdue']];
+        return collect(InstallmentStatusEnum::all())
+            ->map(function ($status) {
+                return ['id' => $status->value, 'name' => $status->label()];
+            })
+            ->toArray();
     }
 
     public function getInstallmentSummary()
     {
         $installments = $this->student->installments;
         $total = $installments->sum('amount');
-        $paid = $installments->where('status', 'paid')->sum('paid_amount');
-        $pending = $installments->where('status', '!=', 'paid')->sum('amount');
-        $overdue = $installments->where('status', 'overdue')->sum('amount');
-        $pendingCount = $installments->where('status', 'pending')->count();
-        $overdueCount = $installments->where('status', 'overdue')->count();
+        $paid = $installments->filter(fn($installment) => $installment->status->isPaid())->sum('paid_amount');
+
+        // Calculate overdue amount more comprehensively using new model methods
+        $overdueAmount = 0;
+        $overdueCount = 0;
+
+        foreach ($installments as $installment) {
+            if ($installment->status->isOverdue()) {
+                $overdueAmount += $installment->amount;
+                $overdueCount++;
+            } elseif ($installment->shouldBeOverdue()) {
+                // Include installments that should be overdue (past due date but not paid)
+                $overdueAmount += $installment->getOverdueAmount();
+                if ($installment->getOverdueAmount() > 0) {
+                    $overdueCount++;
+                }
+            }
+        }
+
+        $pending = $installments->filter(fn($installment) => $installment->status->isPending())->sum('amount');
+        $pendingCount = $installments->filter(fn($installment) => $installment->status->isPending())->count();
 
         return [
             'total' => $total,
             'paid' => $paid,
             'pending' => $pending,
-            'overdue' => $overdue,
+            'overdue' => $overdueAmount,
             'pendingCount' => $pendingCount,
             'overdueCount' => $overdueCount,
             'paymentProgress' => $total > 0 ? ($paid / $total) * 100 : 0,
@@ -194,7 +223,7 @@ new class extends Component {
     {
         try {
             $overdueCount = 0;
-            $pendingInstallments = $this->student->installments()->where('status', 'pending')->get();
+            $pendingInstallments = $this->student->installments->filter(fn($installment) => $installment->status->isPending());
 
             foreach ($pendingInstallments as $installment) {
                 if ($installment->isOverdue()) {
@@ -206,6 +235,9 @@ new class extends Component {
             if ($overdueCount > 0) {
                 $this->success("Marked {$overdueCount} installment(s) as overdue!", position: 'toast-bottom');
                 $this->student->refresh();
+
+                // Recalculate overdue status after marking
+                $this->checkAndMarkOverdueInstallments();
             } else {
                 $this->info('No overdue installments found.', position: 'toast-bottom');
             }
@@ -214,14 +246,85 @@ new class extends Component {
         }
     }
 
+    public function markSpecificInstallmentAsOverdue($installmentId)
+    {
+        try {
+            $installment = $this->student->installments()->findOrFail($installmentId);
+
+            if ($installment->status->isPending()) {
+                $installment->markAsOverdue();
+                $this->success("Installment {$installment->installment_no} marked as overdue!", position: 'toast-bottom');
+
+                // Refresh and recalculate
+                $this->student->refresh();
+                $this->checkAndMarkOverdueInstallments();
+            } else {
+                $this->error('Only pending installments can be marked as overdue.', position: 'toast-bottom');
+            }
+        } catch (\Exception $e) {
+            $this->error('Failed to mark installment as overdue. Please try again.', position: 'toast-bottom');
+        }
+    }
+
+    public function refreshOverdueStatus()
+    {
+        try {
+            // Check and mark overdue installments
+            $this->checkAndMarkOverdueInstallments();
+
+            // Refresh the student data
+            $this->student->refresh();
+
+            $this->success('Student data and installments refreshed. Overdue status recalculated.', position: 'toast-bottom');
+        } catch (\Exception $e) {
+            $this->error('Failed to refresh student data. Please try again.', position: 'toast-bottom');
+        }
+    }
+
     public function getNextDueInstallment()
     {
-        return $this->student->installments()->where('status', 'pending')->where('due_date', '>=', now())->orderBy('due_date')->first();
+        return $this->student->installments->filter(fn($installment) => $installment->status->isPending() && $installment->due_date >= now())->sortBy('due_date')->first();
     }
 
     public function getOverdueInstallments()
     {
-        return $this->student->installments()->where('status', 'overdue')->orderBy('due_date')->get();
+        return $this->student->installments->filter(fn($installment) => $installment->status->isOverdue())->sortBy('due_date');
+    }
+
+    public function getAllOverdueInstallments()
+    {
+        $installments = $this->student->installments;
+        $overdueInstallments = collect();
+
+        foreach ($installments as $installment) {
+            if ($installment->status->isOverdue() || $installment->shouldBeOverdue()) {
+                $overdueInstallments->push($installment);
+            }
+        }
+
+        return $overdueInstallments->sortBy('due_date');
+    }
+
+    public function checkAndMarkOverdueInstallments()
+    {
+        try {
+            $overdueCount = 0;
+            $pendingInstallments = $this->student->installments->filter(fn($installment) => $installment->status->isPending());
+
+            foreach ($pendingInstallments as $installment) {
+                if ($installment->isOverdue()) {
+                    $installment->markAsOverdue();
+                    $overdueCount++;
+                }
+            }
+
+            if ($overdueCount > 0) {
+                // Refresh the student data to reflect changes
+                $this->student->refresh();
+            }
+        } catch (\Exception $e) {
+            // Silently handle errors during automatic check
+        }
     }
 }; ?>
 
@@ -269,7 +372,7 @@ new class extends Component {
                     <div class="avatar avatar-online avatar-placeholder">
                         <div class="bg-neutral text-neutral-content w-16 rounded-md">
                             <img src="{{ asset('storage/' . $student->student_image) }}" alt="Student Image"
-                                class="w-full h-full object-cover rounded-full">
+                                class="w-full h-full object-cover ">
                         </div>
                     </div>
                 @else
@@ -497,6 +600,8 @@ new class extends Component {
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-primary">Installment Details</h3>
                     <div class="flex gap-2">
+                        <x-button label="Refresh Overdue" icon="o-arrow-path" class="btn-sm btn-outline btn-info"
+                            wire:click="refreshOverdueStatus" />
                         <x-button label="Mark Overdue" icon="o-exclamation-triangle"
                             class="btn-sm btn-outline btn-warning" wire:click="markOverdueInstallments" />
                         <x-button label="Bulk Update" icon="o-arrow-path" class="btn-sm btn-outline btn-primary"
@@ -521,7 +626,12 @@ new class extends Component {
                     </div>
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Overdue Amount</div>
-                        <div class="stat-value text-error text-lg">₹{{ number_format($summary['overdue'], 2) }}</div>
+                        <div class="stat-value text-error text-lg">
+                            ₹{{ number_format($summary['overdue'], 2) }}
+                            @if ($summary['overdue'] > 0)
+                                <div class="text-xs text-error mt-1">({{ $summary['overdueCount'] }} overdue)</div>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
@@ -557,11 +667,65 @@ new class extends Component {
                     <x-progress value="{{ $summary['paymentProgress'] }}" max="100" class="w-full" />
                 </div>
 
+                <!-- Overdue Installments Alert -->
+                @if ($summary['overdue'] > 0)
+                    <div class="mb-6 p-4 bg-error/10 border border-error rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <x-icon name="o-exclamation-triangle" class="text-error" />
+                            <h4 class="text-lg font-semibold text-error">Overdue Installments</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <strong>Total Overdue Amount:</strong>
+                                <span class="text-error font-bold">₹{{ number_format($summary['overdue'], 2) }}</span>
+                            </div>
+                            <div>
+                                <strong>Overdue Count:</strong>
+                                <span class="text-error font-bold">{{ $summary['overdueCount'] }}</span>
+                                installment(s)
+                            </div>
+                            <div>
+                                <strong>Action Required:</strong>
+                                <span class="text-error">Immediate attention needed</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Debug Information (Development Only) -->
+                @if (config('app.debug'))
+                    <div class="mb-6 p-4 bg-base-300 rounded-lg">
+                        <h4 class="text-sm font-semibold text-primary mb-2">Debug Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            <div>
+                                <strong>Total Installments:</strong> {{ $student->installments->count() }}<br>
+                                <strong>Pending:</strong> {{ $summary['pendingCount'] }}<br>
+                                <strong>Overdue:</strong> {{ $summary['overdueCount'] }}<br>
+                                <strong>Paid:</strong>
+                                {{ $student->installments->filter(fn($installment) => $installment->status->isPaid())->count() }}
+                            </div>
+                            <div>
+                                <strong>Overdue Amount:</strong> ₹{{ number_format($summary['overdue'], 2) }}<br>
+                                <strong>Pending Amount:</strong> ₹{{ number_format($summary['pending'], 2) }}<br>
+                                <strong>Paid Amount:</strong> ₹{{ number_format($summary['paid'], 2) }}
+                            </div>
+                            <div>
+                                <strong>Next Due:</strong>
+                                @if ($this->getNextDueInstallment())
+                                    {{ $this->getNextDueInstallment()->formatted_due_date }}
+                                @else
+                                    N/A
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Installment Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach ($student->installments as $installment)
                         <x-card
-                            class="bg-base-200 rounded-lg p-4 hover:shadow-md transition-shadow {{ $installment->isOverdue() ? 'border-error border-2' : '' }}">
+                            class="bg-base-200 rounded-lg p-4 hover:shadow-md transition-shadow {{ $installment->shouldBeOverdue() ? 'border-error border-2' : '' }}">
                             <!-- Selection Checkbox -->
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex items-center gap-2">
@@ -572,7 +736,10 @@ new class extends Component {
                                         {{ $installment->installment_no }}</span>
                                 </div>
                                 <span class="badge {{ $installment->status_badge_class }} text-xs">
-                                    {{ ucfirst($installment->status) }}
+                                    {{ $installment->status->label() }}
+                                    @if ($installment->shouldBeOverdue() && !$installment->status->isOverdue())
+                                        <span class="text-error">(OVERDUE)</span>
+                                    @endif
                                 </span>
                             </div>
 
@@ -582,12 +749,12 @@ new class extends Component {
 
                             <div class="text-xs text-gray-500">
                                 Due: {{ $installment->formatted_due_date }}
-                                @if ($installment->isOverdue())
+                                @if ($installment->shouldBeOverdue())
                                     <span class="text-error font-medium">(OVERDUE)</span>
                                 @endif
                             </div>
 
-                            @if ($installment->status === 'paid')
+                            @if ($installment->status->isPaid())
                                 <div class="text-xs text-success mt-1">
                                     Paid: {{ $installment->formatted_paid_date }}
                                 </div>
@@ -605,10 +772,18 @@ new class extends Component {
                             @endif
 
                             <div class="mt-3">
-                                <button wire:click="openStatusModal({{ $installment->id }})"
-                                    class="btn btn-sm btn-outline btn-primary w-full">
-                                    Update Status
-                                </button>
+                                <div class="flex gap-2">
+                                    <button wire:click="openStatusModal({{ $installment->id }})"
+                                        class="btn btn-sm btn-outline btn-primary flex-1">
+                                        Update Status
+                                    </button>
+                                    @if ($installment->status->isPending() && $installment->shouldBeOverdue())
+                                        <button wire:click="markSpecificInstallmentAsOverdue({{ $installment->id }})"
+                                            class="btn btn-sm btn-outline btn-error">
+                                            Mark Overdue
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
                         </x-card>
                     @endforeach
@@ -660,7 +835,7 @@ new class extends Component {
             <x-select label="Status" wire:model="newStatus" class="select select-bordered w-full"
                 :options="$this->getStatusOptions()" />
 
-            @if ($newStatus === 'paid')
+            @if ($newStatus === InstallmentStatusEnum::Paid->value)
                 <x-input label="Paid Amount" type="number" wire:model="paidAmount" step="0.01" min="0"
                     class="input input-bordered w-full" placeholder="Enter paid amount"></x-input>
             @endif
@@ -698,7 +873,7 @@ new class extends Component {
         <x-slot:actions>
             <x-button label="Cancel" @click="$wire.showBulkUpdateModal = false" />
             <x-button label="Update All Selected" class="btn-primary" wire:click="bulkUpdateInstallmentStatus"
-                :disabled="empty($bulkStatus)" />
+                :disabled="!empty($bulkStatus)" />
         </x-slot:actions>
     </x-modal>
 </div>
