@@ -179,13 +179,13 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Actions</h3>
 
                     <x-button label="Edit Course" icon="o-pencil" class="btn-primary w-full"
-                        link="{{ route('admin.course.edit', $course->id) }}" />
+                        link="{{ route('admin.course.edit', $course->id) }}" responsive />
 
                     <x-button label="View Students" icon="o-users" class="btn-outline w-full"
-                        link="{{ route('admin.student.index') }}?course={{ $course->id }}" />
+                        link="{{ route('admin.student.index') }}?course={{ $course->id }}" responsive />
 
                     <x-button label="Manage Exams" icon="o-academic-cap" class="btn-outline w-full"
-                        link="{{ route('admin.exam.index') }}?course={{ $course->id }}" />
+                        link="{{ route('admin.exam.index') }}?course={{ $course->id }}" responsive />
                 </div>
             </x-card>
 

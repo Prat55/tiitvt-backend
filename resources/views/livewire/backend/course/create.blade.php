@@ -268,9 +268,9 @@ new class extends Component {
             <!-- Form Actions -->
             <div class="flex justify-end gap-3 pt-6 border-t">
                 <x-button label="Cancel" icon="o-x-mark" class="btn-error btn-soft btn-sm"
-                    link="{{ route('admin.course.index') }}" />
+                    link="{{ route('admin.course.index') }}" responsive />
                 <x-button label="Create Course" icon="o-plus" class="btn-primary btn-sm btn-soft" type="submit"
-                    spinner="save" />
+                    spinner="save" responsive />
             </div>
         </form>
     </x-card>

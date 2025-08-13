@@ -133,9 +133,9 @@ new class extends Component {
         @scope('actions', $course)
             <div class="flex gap-1">
                 <x-button icon="o-eye" link="{{ route('admin.course.show', $course->id) }}" class="btn-xs btn-ghost"
-                    title="View Details" />
+                    title="View Details" responsive />
                 <x-button icon="o-pencil" link="{{ route('admin.course.edit', $course->id) }}" class="btn-xs btn-ghost"
-                    title="Edit Course" />
+                    title="Edit Course" responsive />
             </div>
         @endscope
         <x-slot:empty>

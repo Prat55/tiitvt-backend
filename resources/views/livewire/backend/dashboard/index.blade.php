@@ -614,6 +614,40 @@ new class extends Component {
             @endfor
         </div>
     @else
+        {{-- Quick Actions --}}
+        <x-card title="Quick Actions" shadow class="mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                @if ($user->isAdmin())
+                    <x-button label="Add Center" icon="o-plus" link="{{ route('admin.center.create') }}"
+                        class="btn-primary" responsive />
+                    <x-button label="Add Student" icon="o-user-plus" link="{{ route('admin.student.create') }}"
+                        class="btn-secondary" responsive />
+                    <x-button label="Add Course" icon="o-book-open" link="{{ route('admin.course.create') }}"
+                        class="btn-accent" responsive />
+                    <x-button label="Category" icon="o-tag" link="{{ route('admin.category.index') }}"
+                        class="btn-info" responsive />
+                @elseif($user->isCenter())
+                    <x-button label="Add Student" icon="o-user-plus" link="{{ route('center.student.create') }}"
+                        class="btn-primary" responsive />
+                    <x-button label="View Students" icon="o-user-group" link="{{ route('center.student.index') }}"
+                        class="btn-secondary" responsive />
+                    <x-button label="Invoices" icon="o-document-text" link="{{ route('center.invoice.index') }}"
+                        class="btn-accent" responsive />
+                    <x-button label="Profile" icon="o-user" link="{{ route('center.profile') }}" class="btn-info"
+                        responsive />
+                @elseif($user->isStudent())
+                    <x-button label="My Courses" icon="o-book-open" link="{{ route('student.course.index') }}"
+                        class="btn-primary" responsive />
+                    <x-button label="Take Exam" icon="o-clipboard-document-check"
+                        link="{{ route('student.exam.index') }}" class="btn-secondary" responsive />
+                    <x-button label="Results" icon="o-chart-bar" link="{{ route('student.result.index') }}"
+                        class="btn-accent" responsive />
+                    <x-button label="Certificates" icon="o-document-check"
+                        link="{{ route('student.certificate.index') }}" class="btn-info" responsive />
+                @endif
+            </div>
+        </x-card>
+
         {{-- Statistics Cards --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             @if ($user->isAdmin())
@@ -622,7 +656,8 @@ new class extends Component {
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">Total Centers</p>
-                            <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_centers'] ?? 0) }}</p>
+                            <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_centers'] ?? 0) }}
+                            </p>
                             <p class="text-sm text-success mt-2">
                                 <x-icon name="o-arrow-trending-up" class="w-4 h-4 inline" />
                                 {{ $statistics['total_centers'] ?? 0 }} active
@@ -780,7 +815,8 @@ new class extends Component {
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">Exams Taken</p>
-                            <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_exams'] ?? 0) }}</p>
+                            <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_exams'] ?? 0) }}
+                            </p>
                         </div>
                         <div class="p-4 bg-primary/10 rounded-full">
                             <x-icon name="o-clipboard-document-check" class="w-8 h-8 text-primary" />
@@ -858,12 +894,6 @@ new class extends Component {
                 </x-card>
             </div>
         @endif
-
-        {{-- Recent Activities - Lazy Loaded --}}
-        <div class="mb-6">
-            <x-button label="Load Recent Activities" icon="o-clock" wire:click="loadRecentActivities"
-                class="btn-secondary" :disabled="!empty($recentActivities)" />
-        </div>
 
         @if (!empty($recentActivities))
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -986,42 +1016,6 @@ new class extends Component {
             </div>
         @endif
 
-        {{-- Quick Actions --}}
-        <x-card title="Quick Actions" shadow>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                @if ($user->isAdmin())
-                    <x-button label="Add Center" icon="o-plus" link="{{ route('admin.center.create') }}"
-                        class="btn-primary" responsive />
-                    <x-button label="Add Student" icon="o-user-plus" link="{{ route('admin.student.create') }}"
-                        class="btn-secondary" responsive />
-                    <x-button label="Add Course" icon="o-book-open" link="{{ route('admin.course.create') }}"
-                        class="btn-accent" responsive />
-                    <x-button label="View Reports" icon="o-chart-bar" link="###" class="btn-info" responsive />
-                @elseif($user->isCenter())
-                    <x-button label="Add Student" icon="o-user-plus" link="{{ route('center.student.create') }}"
-                        class="btn-primary" responsive />
-                    <x-button label="View Students" icon="o-user-group" link="{{ route('center.student.index') }}"
-                        class="btn-secondary" responsive />
-                    <x-button label="Invoices" icon="o-document-text" link="{{ route('center.invoice.index') }}"
-                        class="btn-accent" responsive />
-                    <x-button label="Profile" icon="o-user" link="{{ route('center.profile') }}" class="btn-info"
-                        responsive />
-                @elseif($user->isStudent())
-                    <x-button label="My Courses" icon="o-book-open" link="{{ route('student.course.index') }}"
-                        class="btn-primary" responsive />
-                    <x-button label="Take Exam" icon="o-clipboard-document-check"
-                        link="{{ route('student.exam.index') }}" class="btn-secondary" responsive />
-                    <x-button label="Results" icon="o-chart-bar" link="{{ route('student.result.index') }}"
-                        class="btn-accent" responsive />
-                    <x-button label="Certificates" icon="o-document-check"
-                        link="{{ route('student.certificate.index') }}" class="btn-info" responsive />
-                @endif
-            </div>
-        </x-card>
 
-        {{-- Refresh Button --}}
-        <div class="mt-6 text-center">
-            <x-button label="Refresh Dashboard" icon="o-arrow-path" wire:click="refreshData" class="btn-outline" />
-        </div>
     @endif
 </div>
