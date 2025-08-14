@@ -1,248 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <!-- ========== Meta Tags ========== -->
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Learna - Education HTML Template">
-
-    <!-- ========== Page Title ========== -->
-    <title>Learna - Education HTML Template</title>
-
-    <!-- ========== Favicon Icon ========== -->
-    <link rel="shortcut icon" href="{{ asset('frontend/img/favicon.png') }}" type="image/x-icon">
-
-    <!-- ========== Start Stylesheet ========== -->
-    <link href="{{ asset('frontend/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/font-awesome.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/magnific-popup.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/swiper-bundle.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/animate.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/validnavs.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/helper.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/unit-test.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/css/style.css') }}" rel="stylesheet">
-    <link href="{{ asset('frontend/style.css') }}" rel="stylesheet">
-    <!-- ========== End Stylesheet ========== -->
-
-</head>
-
-<body>
-
-    <!-- Start Preloader
-    ============================================= -->
-    <div id="preloader">
-        <div id="edufix-preloader" class="edufix-preloader">
-            <div class="animation-preloader">
-                <div class="spinner"></div>
-                <div class="txt-loading">
-                    <span data-text-preloader="E" class="letters-loading">
-                        E
-                    </span>
-                    <span data-text-preloader="D" class="letters-loading">
-                        D
-                    </span>
-                    <span data-text-preloader="U" class="letters-loading">
-                        U
-                    </span>
-                    <span data-text-preloader="F" class="letters-loading">
-                        F
-                    </span>
-                    <span data-text-preloader="I" class="letters-loading">
-                        I
-                    </span>
-                    <span data-text-preloader="X" class="letters-loading">
-                        X
-                    </span>
-                </div>
-            </div>
-            <div class="loader">
-                <div class="row">
-                    <div class="col-3 loader-section section-left">
-                        <div class="bg"></div>
-                    </div>
-                    <div class="col-3 loader-section section-left">
-                        <div class="bg"></div>
-                    </div>
-                    <div class="col-3 loader-section section-right">
-                        <div class="bg"></div>
-                    </div>
-                    <div class="col-3 loader-section section-right">
-                        <div class="bg"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Preloader -->
-
-    <!-- Start Header Top
-    ============================================= -->
-    <div class="top-bar-area top-bar-style-one bg-dark text-light">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-12">
-                    <ul class="item-flex justify-content-end">
-                        <li>
-                            <a href="tel:+4733378901">
-                                <img src="{{ asset('frontend/img/icon/2.png') }}" alt="Icon"> Phone: +4733378901
-                            </a>
-                        </li>
-                        <li>
-                            <a href="mailto:name@email.com">
-                                <img src="{{ asset('frontend/img/icon/3.png') }}" alt="Icon"> Email:
-                                edufik@info.com
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Header Top -->
-
-    <!-- Header
-    ============================================= -->
-    <header>
-        <!-- Start Navigation -->
-        <nav
-            class="navbar mobile-sidenav navbar-sticky navbar-default validnavs dark navbar-fixed no-background inc-topbar">
-
-
-            <div class="container d-flex justify-content-between align-items-center">
-
-                <!-- Start Header Navigation -->
-                <div class="item-flex">
-                    <div class="navbar-header">
-                        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-menu">
-                            <i class="fa fa-bars"></i>
-                        </button>
-                        <a class="navbar-brand" href="index.html">
-                            <img src="{{ asset('frontend/img/logo.png') }}" class="logo" alt="Logo">
-                        </a>
-                    </div>
-                    <form class="search-form" action="#">
-                        <input type="text" placeholder="Search" class="form-control" name="text">
-                        <button type="submit">
-                            <i class="fa fa-search"></i>
-                        </button>
-                    </form>
-                </div>
-                <!-- End Header Navigation -->
-
-                <div class="nav-item-box d-flex justify-content-between align-items-center">
-                    <!-- Collect the nav links, forms, and other content for toggling -->
-                    <div class="collapse navbar-collapse" id="navbar-menu">
-
-                        <img src="{{ asset('frontend/img/logo.png') }}" alt="Logo">
-                        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-menu">
-                            <i class="fa fa-times"></i>
-                        </button>
-
-                        <ul class="nav navbar-nav navbar-right" data-in="fadeInDown" data-out="fadeOutUp">
-                            <li><a href="{{ route('frontend.index') }}">Home</a></li>
-                            <li><a href="{{ route('frontend.index') }}">About</a></li>
-                            <li><a href="{{ route('frontend.index') }}">Courses</a></li>
-                            <li><a href="{{ route('frontend.index') }}">Contact</a></li>
-                            <li><a href="{{ route('login') }}">Login</a></li>
-                        </ul>
-                    </div><!-- /.navbar-collapse -->
-
-                    <div class="attr-right">
-                        <!-- Start Atribute Navigation -->
-                        <div class="attr-nav">
-                            <ul>
-                                <li class="side-menu">
-                                    <a href="#">
-                                        <div class="menu-icon">
-                                            <span class="bar-1"></span>
-                                            <span class="bar-2"></span>
-                                            <span class="bar-3"></span>
-                                        </div>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <!-- End Atribute Navigation -->
-                    </div>
-                </div>
-
-                <!-- Start Side Menu -->
-                <div class="side">
-                    <a href="#" class="close-side"><i class="fas fa-times"></i></a>
-                    <div class="widget">
-                        <div class="logo">
-                            <img src="{{ asset('frontend/img/logo-light.png') }}" alt="Logo">
-                        </div>
-                        <p>
-                            Arrived compass prepare an on as. Reasonable particular on my it in sympathize. Size now
-                            easy eat hand how. Unwilling he departure elsewhere dejection at. Heart large seems may
-                            purse means few blind.
-                        </p>
-                    </div>
-                    <div class="widget address">
-                        <div>
-                            <ul>
-                                <li>
-                                    <div class="content">
-                                        <p>Address</p>
-                                        <strong>California, TX 70240</strong>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="content">
-                                        <p>Email</p>
-                                        <strong>support@validtheme.com</strong>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="content">
-                                        <p>Contact</p>
-                                        <strong>+44-20-7328-4499</strong>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="widget newsletter">
-                        <h4 class="title">Get Subscribed!</h4>
-                        <form action="#">
-                            <div class="input-group stylish-input-group">
-                                <input type="email" placeholder="Enter your e-mail" class="form-control"
-                                    name="email">
-                                <span class="input-group-addon">
-                                    <button type="submit">
-                                        <i class="fa fa-long-arrow-right"></i>
-                                    </button>
-                                </span>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="widget social">
-                        <ul class="link">
-                            <li><a href="#"><i class="fab fa-facebook-f"></i></a></li>
-                            <li><a href="#"><i class="fab fa-twitter"></i></a></li>
-                            <li><a href="#"><i class="fab fa-linkedin-in"></i></a></li>
-                            <li><a href="#"><i class="fab fa-behance"></i></a></li>
-                        </ul>
-                    </div>
-
-                </div>
-                <!-- End Side Menu -->
-
-            </div>
-            <!-- Overlay screen for menu -->
-            <div class="overlay-screen"></div>
-            <!-- End Overlay screen for menu -->
-        </nav>
-        <!-- End Navigation -->
-    </header>
-    <!-- End Header -->
-
-    <!-- Start Banner Area
-    ============================================= -->
+@extends('frontend.layouts.app')
+@section('content')
+    <!-- Start Banner Area -->
     <div class="banner-style-nine-area bg-cover"
         style="background-image: url({{ asset('frontend/img/shape/banner-7.jpg') }});">
         <div class="container">
@@ -250,16 +8,18 @@
                 <div class="row align-items-center">
                     <div class="col-lg-7 pr-60 pr-md-15 pr-xs-15">
                         <div class="info">
-                            <h4><img src="{{ asset('frontend/img/shape/91.png') }}" alt="Image Not Found"> Discover
-                                20,000+ World-Class
-                                Courses</h4>
+                            <h4>
+                                <img src="{{ asset('frontend/img/shape/91.png') }}" alt="Image Not Found">
+                                Discover 20,000+ World-Class Courses
+                            </h4>
                             <h2>Learn <strong>Smarter</strong> Achieve knowledge</h2>
                             <p>
                                 Expand your knowledge and open doors to exciting careers with our online education
                                 platform.
                             </p>
-                            <a class="btn btn-md btn-gradient animation"
-                                href="course-filter-list-sidebar.html">Explore Course</a>
+                            <a class="btn btn-md btn-gradient animation" href="###">
+                                Explore Course
+                            </a>
                         </div>
                     </div>
                     <div class="col-lg-5">
@@ -287,109 +47,50 @@
     </div>
     <!-- End Banner -->
 
-    <!-- Start Category
-    ============================================= -->
-    <div class="category-style-two-area default-padding bg-cover bg-gray-secondary"
-        style="background-image: url({{ asset('frontend/img/shape/wooden.png') }});">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-8 offset-lg-2">
-                    <div class="site-heading text-center">
-                        <h4 class="sub-title">Top categories</h4>
-                        <h2 class="title split-text">Most demanding category to learn from today</h2>
+    @if ($categories->count() > 0)
+        <!-- Start Category -->
+        <div class="category-style-two-area default-padding bg-cover bg-gray-secondary"
+            style="background-image: url({{ asset('frontend/img/shape/wooden.png') }});">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-8 offset-lg-2">
+                        <div class="site-heading text-center">
+                            <h4 class="sub-title">Top categories</h4>
+                            <h2 class="title split-text">Most demanding category to learn from today</h2>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="category-style-two-carousel swiper">
-                        <!-- Additional required wrapper -->
-                        <div class="swiper-wrapper">
-
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="category-style-two-item wow fadeInUp">
-                                    <a href="course-filter.html">
-                                        <div class="info">
-                                            <h4>Programming <strong>interface </strong></h4>
-                                            <span>10 Courses</span>
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="category-style-two-carousel swiper">
+                            <div class="swiper-wrapper">
+                                @foreach ($categories as $category)
+                                    <div class="swiper-slide">
+                                        <div class="category-style-two-item wow fadeInUp">
+                                            <a href="course-filter.html">
+                                                <div class="info">
+                                                    <h4>{{ $category->name }} <strong>interface </strong></h4>
+                                                    <span>{{ $category->courses->count() }} Course(s)</span>
+                                                </div>
+                                                <i class="fas fa-long-arrow-right"></i>
+                                                <div class="thumb">
+                                                    <img src="{{ $category->image ? asset('storage/' . $category->image) : 'https://placehold.co/600x400' }}"
+                                                        alt="{{ $category->name }}">
+                                                </div>
+                                            </a>
                                         </div>
-                                        <i class="fas fa-long-arrow-right"></i>
-                                        <div class="thumb">
-                                            <img src="{{ asset('frontend/img/category/1.jpg') }}"
-                                                alt="Image Not Found">
-                                        </div>
-                                    </a>
-                                </div>
+                                    </div>
+                                @endforeach
                             </div>
-                            <!-- End Single Item -->
-
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="category-style-two-item wow fadeInUp" data-wow-delay="100ms">
-                                    <a href="course-filter.html">
-                                        <div class="info">
-                                            <h4>Business Guide <strong>& Finance </strong></h4>
-                                            <span>26 Courses</span>
-                                        </div>
-                                        <i class="fas fa-long-arrow-right"></i>
-                                        <div class="thumb">
-                                            <img src="{{ asset('frontend/img/category/2.jpg') }}"
-                                                alt="Image Not Found">
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                            <!-- End Single Item -->
-
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="category-style-two-item wow fadeInUp" data-wow-delay="200ms">
-                                    <a href="course-filter.html">
-                                        <div class="info">
-                                            <h4>Arts & Design <strong>Diagram </strong></h4>
-                                            <span>38 Courses</span>
-                                        </div>
-                                        <i class="fas fa-long-arrow-right"></i>
-                                        <div class="thumb">
-                                            <img src="{{ asset('frontend/img/category/3.jpg') }}"
-                                                alt="Image Not Found">
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                            <!-- End Single Item -->
-
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="category-style-two-item wow fadeInUp" data-wow-delay="300ms">
-                                    <a href="course-filter.html">
-                                        <div class="info">
-                                            <h4>Web Design & <strong>Development </strong></h4>
-                                            <span>20 Courses</span>
-                                        </div>
-                                        <i class="fas fa-long-arrow-right"></i>
-                                        <div class="thumb">
-                                            <img src="{{ asset('frontend/img/category/4.jpg') }}"
-                                                alt="Image Not Found">
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                            <!-- End Single Item -->
-
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- End Category -->
+    @endif
 
-    <!-- Start About
-    ============================================= -->
     <div class="about-style-three-area overflow-hidden default-padding">
         <div class="container">
             <div class="about-style-three-items wow fadeInUp" data-wow-delay="200ms">
@@ -434,907 +135,98 @@
             </div>
         </div>
     </div>
-    <!-- End About -->
 
-    <!-- Start Course
-    ============================================= -->
-    <div class="course-style-two-area default-padding bottom-less bg-gray-gradient-secondary overflow-hidden">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-8 offset-lg-2">
-                    <div class="site-heading text-center">
-                        <h4 class="sub-title">Latest Courses</h4>
-                        <h2 class="title">Most Popular Courses</h2>
+    @if ($courses->count() > 0)
+        <div class="course-style-two-area default-padding bottom-less bg-gray-gradient-secondary overflow-hidden">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-8 offset-lg-2">
+                        <div class="site-heading text-center">
+                            <h4 class="sub-title">Latest Courses</h4>
+                            <h2 class="title">Most Popular Courses</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <div class="course-style-one-carousel swiper">
+                    <div class="swiper-wrapper">
+                        <div class="swiper-slide">
+                            <div class="row">
+                                <div class="course-inner-carousel swiper">
+                                    <div class="swiper-wrapper">
+                                        @foreach ($courses as $course)
+                                            <div class="swiper-slide">
+                                                <div class="course-style-one-item hover-less style-two">
+                                                    <div class="thumb">
+                                                        <img src="{{ $course->image ? asset('storage/' . $course->image) : 'https://placehold.co/600x350' }}"
+                                                            alt="{{ $course->name }}">
+                                                    </div>
+
+                                                    <div class="top-meta">
+                                                        <ul>
+                                                            <li>
+                                                                <div class="course-rating">
+                                                                    <i class="fas fa-star"></i>
+                                                                    <i class="fas fa-star"></i>
+                                                                    <i class="fas fa-star"></i>
+                                                                    <i class="fas fa-star"></i>
+                                                                    <i class="fas fa-star-half-alt"></i>
+                                                                    <span>(4.8)</span>
+                                                                </div>
+                                                            </li>
+                                                        </ul>
+                                                        <div class="bookmark">
+                                                            <a href="#"><i class="fas fa-bookmark"></i></a>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="info">
+                                                        <div class="author">
+                                                            <img src="{{ asset('default/tiitvt_logo.svg') }}"
+                                                                alt="Image Not Found">
+                                                            <a href="{{ route('frontend.index') }}">
+                                                                {{ config('app.name') }}
+                                                            </a>
+                                                        </div>
+                                                        <h4><a href="course-single.html">{{ $course->name }}</a></h4>
+                                                        <div class="course-meta">
+                                                            <ul>
+                                                                <li>
+                                                                    <i class="fas fa-user"></i>
+                                                                    {{ $course->students->count() }} Students
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="course-bottom-meta">
+                                                        <h2 class="price">
+                                                            <del>{{ $course->mrp }}</del>
+                                                            {{ $course->price }}
+                                                        </h2>
+
+                                                        <a href="">
+                                                            <i class="fas fa-shopping-cart"></i> Enroll Now
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- End Single Item -->
                     </div>
                 </div>
             </div>
         </div>
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="course-style-one-bullet swiper">
-                        <div class="swiper-wrapper">
-                            <div class="swiper-slide">
-                                <div class="course-bullet-item">
-                                    <div class="icon">
-                                        <img src="{{ asset('frontend/img/icon/26.png') }}" alt="Image Not Found">
-                                    </div>
-                                    <div class="info">
-                                        <h4>Design</h4>
-                                        <span>14 Courses</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="swiper-slide">
-                                <div class="course-bullet-item">
-                                    <div class="icon">
-                                        <img src="{{ asset('frontend/img/icon/27.png') }}" alt="Image Not Found">
-                                    </div>
-                                    <div class="info">
-                                        <h4>App Development</h4>
-                                        <span>26 Courses</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="swiper-slide">
-                                <div class="course-bullet-item">
-                                    <div class="icon">
-                                        <img src="{{ asset('frontend/img/icon/28.png') }}" alt="Image Not Found">
-                                    </div>
-                                    <div class="info">
-                                        <h4>Spoken English</h4>
-                                        <span>15 Courses</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="swiper-slide">
-                                <div class="course-bullet-item">
-                                    <div class="icon">
-                                        <img src="{{ asset('frontend/img/icon/29.png') }}" alt="Image Not Found">
-                                    </div>
-                                    <div class="info">
-                                        <h4>Development</h4>
-                                        <span>12 Courses</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="swiper-slide">
-                                <div class="course-bullet-item">
-                                    <div class="icon">
-                                        <img src="{{ asset('frontend/img/icon/30.png') }}" alt="Image Not Found">
-                                    </div>
-                                    <div class="info">
-                                        <h4>Security</h4>
-                                        <span>23 Courses</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- End Course -->
+    @endif
 
-            <div class="course-style-one-carousel swiper">
-                <div class="swiper-wrapper">
-
-                    <!-- Single Item -->
-                    <div class="swiper-slide">
-                        <div class="row">
-                            <div class="course-inner-carousel swiper">
-                                <div class="swiper-wrapper">
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/4.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star-half-alt"></i>
-                                                            <span>(4.8)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m2.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Aleesha Brown <span>WordPress
-                                                            Developer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Basic to Advance UX & UI Design and
-                                                        live Training Course</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 78 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 120 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$48.00</del> $32.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/7.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m1.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Kevin Martin <span>Graphics Designer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Best live Figma Courses online with
-                                                        expertise certificates</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 54 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 340 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$53.00</del> $28.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/8.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star-half-alt"></i>
-                                                            <span>(4.9)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m3.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Sarah Albert <span>Marketing Expert</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Complete React Front-end developer
-                                                        course</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 48 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 650 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$36.00</del> $20.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- End Single Item -->
-
-                    <!-- Single Item -->
-                    <div class="swiper-slide">
-                        <div class="row">
-                            <div class="course-inner-carousel swiper">
-                                <div class="swiper-wrapper">
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/9.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star-half-alt"></i>
-                                                            <span>(4.8)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m3.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Aleesha Brown <span>WordPress
-                                                            Developer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">How to create a dyanmic app by using
-                                                        Flutter development</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 78 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 458 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$36.00</del> $20.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/5.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star-half-alt"></i>
-                                                            <span>(4.7)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m1.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Kevin Martin <span>Graphics Designer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Online learning management system &
-                                                        learn dash course</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 108 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 457 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$42.00</del> $28.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/10.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star-half-alt"></i>
-                                                            <span>(4.7)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m3.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Sarah Albert <span>Marketing Expert</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Complete Mobile app development final
-                                                        course basic to Advance</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 45 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 875 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$46.00</del> $34.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- End Single Item -->
-
-                    <!-- Single Item -->
-                    <div class="swiper-slide">
-                        <div class="row">
-                            <div class="course-inner-carousel swiper">
-                                <div class="swiper-wrapper">
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/2.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m1.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Aleesha Brown <span>WordPress
-                                                            Developer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">English grammar courses online with
-                                                        real certificates</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 78 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 465 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$28.00</del> $16.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/6.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m2.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Kevin Martin <span>Graphics Designer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Dynamic website development to make
-                                                        money from online</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 108 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 457 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$28.00</del> $25.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/3.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m3.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Sarah Albert <span>Marketing Expert</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Complete React Front-end developer
-                                                        course</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 45 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 260 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$43.00</del> $35.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- End Single Item -->
-
-                    <!-- Single Item -->
-                    <div class="swiper-slide">
-                        <div class="row">
-                            <div class="course-inner-carousel swiper">
-                                <div class="swiper-wrapper">
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/1.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m2.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Aleesha Brown <span>WordPress
-                                                            Developer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">WordPress and WooCommerce complete
-                                                        development.</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 78 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 246 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$36.00</del> $20.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/6.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m1.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Sarah Albert <span>Marketing Expert</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Dynamic website development to make
-                                                        money from online</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 108 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 457 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$45.00</del> $36.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/3.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star-half-alt"></i>
-                                                            <span>(4.9)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m3.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Kevin Martin <span>Graphics Designer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Complete React Front-end developer
-                                                        course</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 45 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 650 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$56.00</del> $42.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- End Single Item -->
-
-                    <!-- Single Item -->
-                    <div class="swiper-slide">
-                        <div class="row">
-                            <div class="course-inner-carousel swiper">
-                                <div class="swiper-wrapper">
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/11.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m1.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Kevin Martin <span>Graphics Designer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">WordPress and WooCommerce complete
-                                                        development.</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 78 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 245 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$54.00</del> $46.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/6.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m2.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Aleesha Brown <span>WordPress
-                                                            Developer</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Dynamic website development to make
-                                                        money from online</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 108 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 457 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$36.00</del> $28.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                    <!-- Single Item -->
-                                    <div class="swiper-slide">
-                                        <div class="course-style-one-item hover-less style-two">
-                                            <div class="thumb">
-                                                <img src="{{ asset('frontend/img/courses/3.jpg') }}"
-                                                    alt="Image Not Found">
-                                            </div>
-                                            <div class="top-meta">
-                                                <ul>
-                                                    <li>
-                                                        <div class="course-rating">
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <i class="fas fa-star"></i>
-                                                            <span>(5.0)</span>
-                                                        </div>
-                                                    </li>
-                                                </ul>
-                                                <div class="bookmark">
-                                                    <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="info">
-                                                <div class="author">
-                                                    <img src="{{ asset('frontend/img/team/m4.jpg') }}"
-                                                        alt="Image Not Found">
-                                                    <a href="#">Sarah Albert <span>Marketing Expert</span></a>
-                                                </div>
-                                                <h4><a href="course-single.html">Complete React Front-end developer
-                                                        course</a></h4>
-                                                <div class="course-meta">
-                                                    <ul>
-                                                        <li>
-                                                            <i class="fas fa-file-alt"></i> 45 Lessons
-                                                        </li>
-                                                        <li>
-                                                            <i class="fas fa-user"></i> 306 Students
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                            <div class="course-bottom-meta">
-                                                <h2 class="price"><del>$48.00</del> $32.00</h2>
-                                                <a href="#"><i class="fas fa-shopping-cart"></i> Add to cart</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Single Item -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- End Single Item -->
-
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Course -->
-
-    <!-- Start Certificate
-    ============================================= -->
+    <!-- Start Certificate -->
     <div class="certificate-area">
         <div class="container">
             <div class="row">
@@ -1360,8 +252,8 @@
                                             <div class="info">
                                                 <h4>Coding Certificate</h4>
                                                 <span>Total Awarded 450</span>
-                                                <a class="btn circle btn-theme animation"
-                                                    href="course-single.html">View Programs</a>
+                                                <a class="btn circle btn-theme animation" href="course-single.html">View
+                                                    Programs</a>
                                             </div>
                                         </div>
                                     </div>
@@ -1376,8 +268,8 @@
                                             <div class="info">
                                                 <h4>Design Certificate</h4>
                                                 <span>Total Awarded 350</span>
-                                                <a class="btn circle btn-theme animation"
-                                                    href="course-single.html">View Programs</a>
+                                                <a class="btn circle btn-theme animation" href="course-single.html">View
+                                                    Programs</a>
                                             </div>
                                         </div>
                                     </div>
@@ -1398,66 +290,7 @@
     </div>
     <!-- End Certificate -->
 
-    <!-- Start Live Course
-    ============================================= -->
-    <div class="live-course-area default-padding bg-theme"
-        style="background-image: url({{ asset('frontend/img/shape/93.png') }});">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-6 offset-xl-3 col-lg-8 offset-lg-2">
-                    <div class="site-heading text-light text-center">
-                        <h4 class="sub-title">Live Class</h4>
-                        <h2 class="title split-text">Interactive LIVE and Self-Paced Courses</h2>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-7 col-lg-8">
-                    <div class="step-style-one-items">
-                        <div class="step-style-one-item">
-                            <span>01</span>
-                            <h4>Enroll Class</h4>
-                        </div>
-                        <div class="step-style-one-item">
-                            <span>02</span>
-                            <h4>Join Live</h4>
-                        </div>
-                        <div class="step-style-one-item">
-                            <span>03</span>
-                            <h4>Become an expert</h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-12">
-                    <div class="live-course-items">
-                        <img class="wow fadeInUp" src="{{ asset('frontend/img/thumb/16.jpg') }}"
-                            alt="Image Not Found">
-                        <div class="live-instructor wow fadeInRight" data-wow-delay="300ms">
-                            <img src="{{ asset('frontend/img/advisor/6.jpg') }}" alt="Image Not Found">
-                            <div class="info">
-                                <h4><strong>Instructor: </strong> Amaul Joey</h4>
-                                <ul>
-                                    <li><strong>Course Taken</strong> 28</li>
-                                    <li><strong>Average Rating</strong> <span><i class="fas fa-star"></i> 4.9</span>
-                                    </li>
-                                    <li><strong>Online Students</strong> 30k</li>
-                                </ul>
-                                <a href="course-single.html" class="btn-style-two mt-30">
-                                    <span>Join Now</span> <i class="fas fa-long-arrow-right"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Live Crouse -->
-
-    <!-- Start Testimonial
-    ============================================= -->
+    <!-- Start Testimonial -->
     <div class="testimonial-style-two-area default-padding">
         <div class="container">
             <div class="row">
@@ -1480,8 +313,7 @@
                                 <div class="testimonial-style-two">
                                     <div class="top-info">
                                         <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}"
-                                                alt="Image Not Found">
+                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
                                         </div>
                                         <h5>Great Quality</h5>
                                     </div>
@@ -1498,16 +330,13 @@
                                                 </div>
                                                 <div class="info">
                                                     <h4>Michel Dark</h4>
-                                                    <span>WordPress Course</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star-half-alt"></i>
+                                                    <div class="ratings">
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star-half-alt"></i>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1515,13 +344,13 @@
                                 </div>
                             </div>
                             <!-- Single Item -->
+
                             <!-- Single Item -->
                             <div class="swiper-slide">
                                 <div class="testimonial-style-two">
                                     <div class="top-info">
                                         <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}"
-                                                alt="Image Not Found">
+                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
                                         </div>
                                         <h5>Best Course Ever</h5>
                                     </div>
@@ -1541,16 +370,13 @@
                                                 </div>
                                                 <div class="info">
                                                     <h4>Kennsual Martin</h4>
-                                                    <span>Laravel Batch - 11</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
+                                                    <div class="ratings">
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1563,8 +389,7 @@
                                 <div class="testimonial-style-two">
                                     <div class="top-info">
                                         <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}"
-                                                alt="Image Not Found">
+                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
                                         </div>
                                         <h5>Very Easy Course</h5>
                                     </div>
@@ -1604,8 +429,7 @@
                                 <div class="testimonial-style-two">
                                     <div class="top-info">
                                         <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}"
-                                                alt="Image Not Found">
+                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
                                         </div>
                                         <h5>Exellent Quality</h5>
                                     </div>
@@ -1646,8 +470,7 @@
                                 <div class="testimonial-style-two">
                                     <div class="top-info">
                                         <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}"
-                                                alt="Image Not Found">
+                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
                                         </div>
                                         <h5>Best Course Ever</h5>
                                     </div>
@@ -1692,8 +515,7 @@
     </div>
     <!-- End Testimonial -->
 
-    <!-- Start Blog
-    ============================================= -->
+    <!-- Start Blog -->
     <div class="blog-area home-blog-style-two bg-gray-gradient-secondary default-padding bottom-less">
         <div class="container">
             <div class="row">
@@ -1755,6 +577,7 @@
                     </div>
                 </div>
                 <!-- End Single Item -->
+
                 <!-- Single Item -->
                 <div class="col-xl-4 col-md-6 col-lg-6 mb-30">
                     <div class="home-blog-style-two-item wow fadeInUp" data-wow-delay="400ms">
@@ -1783,8 +606,7 @@
     </div>
     <!-- End Blog -->
 
-    <!-- Start Newsletter
-    ============================================= -->
+    <!-- Start Newsletter -->
     <div class="newsletter-area default-padding-bottom bg-gray-gradient-secondary">
         <div class="container">
             <div class="newsletter-style-one-items bg-theme text-center bg-cover"
@@ -1811,188 +633,4 @@
         </div>
     </div>
     <!-- End Newsletter -->
-
-    <!-- Start Footer
-    ============================================= -->
-    <footer class="bg-dark footer-style-one text-light">
-        <div class="footer-shape-style-one">
-            <img src="{{ asset('frontend/img/shape/2-light.png') }}" alt="Image Not Found">
-        </div>
-        <div class="container">
-            <div class="f-items default-padding">
-                <div class="row">
-                    <div class="col-lg-4 col-md-6 footer-item pr-30 pr-md-15 pr-xs-15">
-                        <div class="f-item about">
-                            <div class="footer-logo">
-                                <img src="{{ asset('frontend/img/logo-light.png') }}" alt="Image Not Found">
-                            </div>
-                            <p>
-                                Bndulgence diminution so discovered mr apartments. Are off under folly death wrote cause
-                                her way spite plan upon.
-                            </p>
-                            <ul class="footer-social">
-                                <li>
-                                    <a href="#">
-                                        <i class="fab fa-facebook-f"></i>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#">
-                                        <img src="{{ asset('frontend/img/icon/x.png') }}" alt="Icon">
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#">
-                                        <i class="fab fa-youtube"></i>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#">
-                                        <i class="fab fa-linkedin-in"></i>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-6 footer-item">
-                        <div class="f-item link">
-                            <h4 class="widget-title">About</h4>
-                            <ul>
-                                <li>
-                                    <a href="about-us.html">About Us</a>
-                                </li>
-                                <li>
-                                    <a href="course-filter.html">Courses</a>
-                                </li>
-                                <li>
-                                    <a href="blog-with-sidebar.html">News & Blogs</a>
-                                </li>
-                                <li>
-                                    <a href="ins">Become a Teacher</a>
-                                </li>
-                                <li>
-                                    <a href="event.html">Events</a>
-                                </li>
-                                <li>
-                                    <a href="contact-us.html">Contact</a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-6 footer-item">
-                        <div class="f-item link">
-                            <h4 class="widget-title">Quick Link</h4>
-                            <ul>
-                                <li>
-                                    <a href="contact-us.html">Live Workshop</a>
-                                </li>
-                                <li>
-                                    <a href="course-filter.html">Free Courses</a>
-                                </li>
-                                <li>
-                                    <a href="contact-us.html">Addmition</a>
-                                </li>
-                                <li>
-                                    <a href="contact-us.html">Request A Demo</a>
-                                </li>
-                                <li>
-                                    <a href="blog-with-sidebar.html">Media Relations</a>
-                                </li>
-                                <li>
-                                    <a href="about-us.html">Students</a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-6 footer-item">
-                        <div class="f-item newsletter">
-                            <h4 class="widget-title">Contact Info</h4>
-                            <ul class="contact-list-two">
-                                <li>
-                                    <div class="icon">
-                                        <i class="fas fa-phone-alt"></i>
-                                    </div>
-                                    <div class="info">
-                                        <h5><a href="tel:+4733378901">+(964)-2856-3364</a></h5>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="icon">
-                                        <i class="fas fa-envelope"></i>
-                                    </div>
-                                    <div class="info">
-                                        <h5><a href="mailto:info@crysta.com">Info@validtheme.com</a></h5>
-                                    </div>
-                                </li>
-                            </ul>
-                            <h4>Download Edufix App</h4>
-                            <ul class="app-store">
-                                <li>
-                                    <a href="#"><img src="{{ asset('frontend/img/icon/4.png') }}"
-                                            alt="Image Not Found"></a>
-                                </li>
-                                <li>
-                                    <a href="#"><img src="{{ asset('frontend/img/icon/5.png') }}"
-                                            alt="Image Not Found"></a>
-                                </li>
-                                <li>
-                                    <a href="#"><img src="{{ asset('frontend/img/icon/6.png') }}"
-                                            alt="Image Not Found"></a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Start Footer Bottom -->
-        <div class="footer-bottom style-one">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <p>&copy; Copyright 2025. All Rights Reserved by <a href="#">validthemes</a></p>
-                    </div>
-                    <div class="col-lg-6 text-end">
-                        <ul class="link-list">
-                            <li>
-                                <a href="#">Terms</a>
-                            </li>
-                            <li>
-                                <a href="#">Privacy</a>
-                            </li>
-                            <li>
-                                <a href="#">Support</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- End Footer Bottom -->
-    </footer>
-    <!-- End Footer -->
-
-    <!-- jQuery Frameworks
-    ============================================= -->
-    <script src="{{ asset('frontend/js/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/jquery.appear.js') }}"></script>
-    <script src="{{ asset('frontend/js/jquery.easing.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/swiper-bundle.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/progress-bar.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/isotope.pkgd.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/imagesloaded.pkgd.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/magnific-popup.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/count-to.js') }}"></script>
-    <script src="{{ asset('frontend/js/jquery.nice-select.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/wow.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/YTPlayer.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/loopcounter.js') }}"></script>
-    <script src="{{ asset('frontend/js/validnavs.js') }}"></script>
-    <script src="{{ asset('frontend/js/gsap.js') }}"></script>
-    <script src="{{ asset('frontend/js/ScrollTrigger.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/SplitText.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/main.js') }}"></script>
-</body>
-
-</html>
+@endsection

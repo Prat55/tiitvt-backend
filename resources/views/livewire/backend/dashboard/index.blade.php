@@ -184,14 +184,6 @@ new class extends Component {
                             'pointStyle' => 'circle',
                         ],
                     ],
-                    'title' => [
-                        'display' => true,
-                        'text' => 'Course Popularity',
-                        'font' => [
-                            'size' => 16,
-                            'weight' => 'bold',
-                        ],
-                    ],
                 ],
             ],
         ];
@@ -222,14 +214,6 @@ new class extends Component {
                             'padding' => 20,
                             'usePointStyle' => true,
                             'pointStyle' => 'circle',
-                        ],
-                    ],
-                    'title' => [
-                        'display' => true,
-                        'text' => 'Student Distribution',
-                        'font' => [
-                            'size' => 16,
-                            'weight' => 'bold',
                         ],
                     ],
                 ],
@@ -878,7 +862,7 @@ new class extends Component {
                 </x-card>
 
                 {{-- Course Popularity Chart --}}
-                <x-card title="Courses" shadow
+                <x-card title="Course Popularity" shadow
                     class="bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20">
                     <div class="h-80 p-4">
                         <x-chart wire:model="coursePopularityChart" />
@@ -886,7 +870,7 @@ new class extends Component {
                 </x-card>
 
                 {{-- Student Distribution Chart --}}
-                <x-card title="Students" shadow
+                <x-card title="Student Distribution" shadow
                     class="bg-gradient-to-br from-orange-50 to-yellow-100 dark:from-orange-900/20 dark:to-yellow-900/20">
                     <div class="h-80 p-4">
                         <x-chart wire:model="studentDistributionChart" />
