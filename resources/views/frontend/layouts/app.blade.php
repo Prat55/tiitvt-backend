@@ -12,7 +12,7 @@
     <title>Learna - Education HTML Template</title>
 
     <!-- ========== Favicon Icon ========== -->
-    <link rel="shortcut icon" href="{{ asset('frontend/img/favicon.png') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ asset('default/tiitvt_logo.svg') }}" type="image/x-icon">
 
     <!-- ========== Start Stylesheet ========== -->
     <link href="{{ asset('frontend/css/bootstrap.min.css') }}" rel="stylesheet">
@@ -37,23 +37,23 @@
             <div class="animation-preloader">
                 <div class="spinner"></div>
                 <div class="txt-loading">
-                    <span data-text-preloader="E" class="letters-loading">
-                        E
-                    </span>
-                    <span data-text-preloader="D" class="letters-loading">
-                        D
-                    </span>
-                    <span data-text-preloader="U" class="letters-loading">
-                        U
-                    </span>
-                    <span data-text-preloader="F" class="letters-loading">
-                        F
+                    <span data-text-preloader="T" class="letters-loading">
+                        T
                     </span>
                     <span data-text-preloader="I" class="letters-loading">
                         I
                     </span>
-                    <span data-text-preloader="X" class="letters-loading">
-                        X
+                    <span data-text-preloader="I" class="letters-loading">
+                        I
+                    </span>
+                    <span data-text-preloader="T" class="letters-loading">
+                        T
+                    </span>
+                    <span data-text-preloader="V" class="letters-loading">
+                        V
+                    </span>
+                    <span data-text-preloader="T" class="letters-loading">
+                        T
                     </span>
                 </div>
             </div>
@@ -86,13 +86,14 @@
                     <ul class="item-flex justify-content-end">
                         <li>
                             <a href="tel:+4733378901">
-                                <img src="{{ asset('frontend/img/icon/2.png') }}" alt="Icon"> Phone: +4733378901
+                                <img src="{{ asset('frontend/img/icon/2.png') }}" alt="Icon">
+                                Phone: +4733378901
                             </a>
                         </li>
                         <li>
                             <a href="mailto:name@email.com">
-                                <img src="{{ asset('frontend/img/icon/3.png') }}" alt="Icon"> Email:
-                                edufik@info.com
+                                <img src="{{ asset('frontend/img/icon/3.png') }}" alt="Icon">
+                                Email: edufik@info.com
                             </a>
                         </li>
                     </ul>
@@ -112,7 +113,7 @@
     ============================================= -->
     <footer class="bg-dark footer-style-one text-light">
         <div class="footer-shape-style-one">
-            <img src="{{ asset('frontend/img/shape/2-light.png') }}" alt="Image Not Found">
+            <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Image Not Found">
         </div>
         <div class="container">
             <div class="f-items default-padding">

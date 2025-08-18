@@ -13,7 +13,7 @@
                          <i class="fa fa-bars"></i>
                      </button>
                      <a class="navbar-brand" href="index.html">
-                         <img src="{{ asset('frontend/img/logo.png') }}" class="logo" alt="Logo">
+                         <img src="{{ asset('default/tiitvt_logo.svg') }}" class="logo" alt="Logo">
                      </a>
                  </div>
                  <form class="search-form" action="#">
@@ -29,7 +29,7 @@
                  <!-- Collect the nav links, forms, and other content for toggling -->
                  <div class="collapse navbar-collapse" id="navbar-menu">
 
-                     <img src="{{ asset('frontend/img/logo.png') }}" alt="Logo">
+                     <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo">
                      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-menu">
                          <i class="fa fa-times"></i>
                      </button>
@@ -67,7 +67,7 @@
                  <a href="#" class="close-side"><i class="fas fa-times"></i></a>
                  <div class="widget">
                      <div class="logo">
-                         <img src="{{ asset('frontend/img/logo-light.png') }}" alt="Logo">
+                         <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo">
                      </div>
                      <p>
                          Arrived compass prepare an on as. Reasonable particular on my it in sympathize. Size now
