@@ -8,6 +8,10 @@ class WebsiteSetting extends Model
 {
     protected $fillable = [
         'website_name',
+        'meta_title',
+        'meta_keywords',
+        'meta_description',
+        'meta_author',
         'primary_email',
         'secondary_email',
         'primary_phone',

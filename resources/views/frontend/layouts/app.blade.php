@@ -6,10 +6,13 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Learna - Education HTML Template">
+    <meta name="title" content="{{ getWebsiteSettings()->meta_title ?? 'Tiitvt' }}">
+    <meta name="keywords" content="{{ getWebsiteSettings()->meta_keywords ?? 'Tiitvt' }}">
+    <meta name="description" content="{{ getWebsiteSettings()->meta_description ?? 'Tiitvt' }}">
+    <meta name="author" content="{{ getWebsiteSettings()->meta_author ?? 'Tiitvt' }}">
 
     <!-- ========== Page Title ========== -->
-    <title>Learna - Education HTML Template</title>
+    <title>{{ getWebsiteName() }}</title>
 
     <!-- ========== Favicon Icon ========== -->
     <link rel="shortcut icon" href="{{ asset('default/tiitvt_logo.svg') }}" type="image/x-icon">

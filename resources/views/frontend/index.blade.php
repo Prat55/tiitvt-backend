@@ -1,4 +1,5 @@
 @extends('frontend.layouts.app')
+@section('title', 'Home')
 @section('content')
     <!-- Start Banner Area -->
     <div class="banner-style-nine-area bg-cover"
@@ -69,14 +70,14 @@
                                 @foreach ($categories as $category)
                                     <div class="swiper-slide">
                                         <div class="category-style-two-item wow fadeInUp">
-                                            <a href="course-filter.html">
+                                            <a href="?category={{ $category->slug }}">
                                                 <div class="info">
                                                     <h4>{{ $category->name }} <strong>interface </strong></h4>
                                                     <span>{{ $category->courses->count() }} Course(s)</span>
                                                 </div>
                                                 <i class="fas fa-long-arrow-right"></i>
                                                 <div class="thumb">
-                                                    <img src="{{ $category->image ? asset('storage/' . $category->image) : 'https://placehold.co/600x400' }}"
+                                                    <img src="{{ $category->image ? asset('storage/' . $category->image) : 'https://placehold.co/600x400?text=Banner' }}"
                                                         alt="{{ $category->name }}">
                                                 </div>
                                             </a>

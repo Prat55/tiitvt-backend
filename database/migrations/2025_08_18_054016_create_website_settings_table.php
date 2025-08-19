@@ -15,16 +15,22 @@ return new class extends Migration
             $table->id();
 
             $table->string('website_name')->nullable();
+
+            $table->string('meta_title')->nullable();
+            $table->string('meta_keywords')->nullable();
+            $table->string('meta_description')->nullable();
+            $table->string('meta_author')->nullable();
+
             $table->string('primary_email')->nullable();
             $table->string('secondary_email')->nullable();
             $table->string('primary_phone')->nullable();
             $table->string('secondary_phone')->nullable();
             $table->text('address')->nullable();
+
             $table->string('facebook_url')->nullable();
             $table->string('twitter_url')->nullable();
             $table->string('instagram_url')->nullable();
             $table->string('linkedin_url')->nullable();
-
             $table->timestamps();
         });
     }
