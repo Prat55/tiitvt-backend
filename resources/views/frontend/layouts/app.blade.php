@@ -116,7 +116,7 @@
     ============================================= -->
     <footer class="bg-dark footer-style-one text-light">
         <div class="footer-shape-style-one">
-            <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Image Not Found">
+            <img src="{{ asset('frontend/img/shape/2-light.png') }}" alt="Image Not Found">
         </div>
         <div class="container">
             <div class="f-items default-padding">
@@ -124,7 +124,7 @@
                     <div class="col-lg-4 col-md-6 footer-item pr-30 pr-md-15 pr-xs-15">
                         <div class="f-item about">
                             <div class="footer-logo">
-                                <img src="{{ asset('frontend/img/logo-light.png') }}" alt="Image Not Found">
+                                <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Image Not Found">
                             </div>
                             <p>
                                 Bndulgence diminution so discovered mr apartments. Are off under folly death wrote cause
@@ -213,7 +213,11 @@
                                         <i class="fas fa-phone-alt"></i>
                                     </div>
                                     <div class="info">
-                                        <h5><a href="tel:+4733378901">+(964)-2856-3364</a></h5>
+                                        <h5>
+                                            <a href="tel:{{ getWebsiteSettings()->primary_phone }}">
+                                                {{ getWebsiteSettings()->primary_phone }}
+                                            </a>
+                                        </h5>
                                     </div>
                                 </li>
                                 <li>
@@ -221,23 +225,30 @@
                                         <i class="fas fa-envelope"></i>
                                     </div>
                                     <div class="info">
-                                        <h5><a href="mailto:info@crysta.com">Info@validtheme.com</a></h5>
+                                        <h5>
+                                            <a href="mailto:{{ getWebsiteSettings()->primary_email }}">
+                                                {{ getWebsiteSettings()->primary_email }}
+                                            </a>
+                                        </h5>
                                     </div>
                                 </li>
                             </ul>
                             <h4>Download Edufix App</h4>
                             <ul class="app-store">
                                 <li>
-                                    <a href="#"><img src="{{ asset('frontend/img/icon/4.png') }}"
-                                            alt="Image Not Found"></a>
+                                    <a href="#">
+                                        <img src="{{ asset('frontend/img/icon/4.png') }}" alt="Image Not Found">
+                                    </a>
                                 </li>
                                 <li>
-                                    <a href="#"><img src="{{ asset('frontend/img/icon/5.png') }}"
-                                            alt="Image Not Found"></a>
+                                    <a href="#">
+                                        <img src="{{ asset('frontend/img/icon/5.png') }}" alt="Image Not Found">
+                                    </a>
                                 </li>
                                 <li>
-                                    <a href="#"><img src="{{ asset('frontend/img/icon/6.png') }}"
-                                            alt="Image Not Found"></a>
+                                    <a href="#">
+                                        <img src="{{ asset('frontend/img/icon/6.png') }}" alt="Image Not Found">
+                                    </a>
                                 </li>
                             </ul>
                         </div>
@@ -250,7 +261,12 @@
             <div class="container">
                 <div class="row">
                     <div class="col-lg-6">
-                        <p>&copy; Copyright 2025. All Rights Reserved by <a href="#">validthemes</a></p>
+                        <p>
+                            &copy; Copyright {{ date('Y') }}. All Rights Reserved by
+                            <a href="{{ route('frontend.index') }}">
+                                {{ config('app.name') }}
+                            </a>
+                        </p>
                     </div>
                     <div class="col-lg-6 text-end">
                         <ul class="link-list">
