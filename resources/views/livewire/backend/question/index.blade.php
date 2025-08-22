@@ -16,8 +16,6 @@ new class extends Component {
 
     public $sortBy = ['column' => 'id', 'direction' => 'desc'];
 
-    public string $category_filter = '';
-
     public function boot(): void
     {
         $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'question_text', 'label' => 'Question', 'class' => 'w-80'], ['key' => 'category', 'label' => 'Category', 'class' => 'w-32'], ['key' => 'options', 'label' => 'Options', 'class' => 'w-24'], ['key' => 'correct_option', 'label' => 'Correct', 'class' => 'w-24'], ['key' => 'points', 'label' => 'Points', 'class' => 'w-20'], ['key' => 'actions', 'label' => 'Actions', 'class' => 'w-32']];
@@ -25,13 +23,10 @@ new class extends Component {
 
     public function deleteQuestion($questionId)
     {
-        try {
-            $question = Question::findOrFail($questionId);
-            $question->delete();
-            $this->success('Question deleted successfully!', position: 'toast-bottom');
-        } catch (\Exception $e) {
-            $this->error('Failed to delete question. Please try again.', position: 'toast-bottom');
-        }
+        $question = Question::findOrFail($questionId);
+        $question->options()->delete();
+        $question->delete();
+        $this->success('Question deleted successfully!', position: 'toast-bottom');
     }
 
     public function rendering($view)
@@ -39,9 +34,6 @@ new class extends Component {
         $view->questions = Question::with(['category', 'options', 'correctOption'])
             ->when($this->search, function ($query) {
                 $query->where('question_text', 'like', '%' . $this->search . '%');
-            })
-            ->when($this->category_filter, function ($query) {
-                $query->where('category_id', $this->category_filter);
             })
             ->orderBy(...array_values($this->sortBy))
             ->paginate(20);
@@ -79,14 +71,6 @@ new class extends Component {
     </div>
     <hr class="mb-5">
 
-    <!-- Filters -->
-    <x-card shadow class="mb-5">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <x-choices-offline label="Filter by Category" wire:model.live="category_filter" placeholder="All Categories"
-                icon="o-tag" :options="$categories" clearable />
-        </div>
-    </x-card>
-
     <!-- Questions Table -->
     <x-table :headers="$headers" :rows="$questions" with-pagination :sort-by="$sortBy">
         @scope('cell_question_text', $question)
@@ -96,7 +80,7 @@ new class extends Component {
         @endscope
 
         @scope('cell_category', $question)
-            <span class="badge badge-secondary badge-sm">{{ $question->category->name ?? 'N/A' }}</span>
+            <span class="badge badge-secondary badge-sm h-fit">{{ $question->category->name ?? 'N/A' }}</span>
         @endscope
 
         @scope('cell_options', $question)
@@ -104,7 +88,7 @@ new class extends Component {
         @endscope
 
         @scope('cell_correct_option', $question)
-            <span class="badge badge-success badge-sm">{{ $question->correctOption->option_text ?? 'N/A' }}</span>
+            <span class="badge badge-success badge-sm h-fit">{{ $question->correctOption->option_text ?? 'N/A' }}</span>
         @endscope
 
         @scope('cell_points', $question)

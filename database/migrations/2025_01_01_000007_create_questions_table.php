@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->text('question_text');
-            $table->foreignId('correct_option_id');
+            $table->unsignedBigInteger('correct_option_id')->nullable();
             $table->integer('points')->default(1);
             $table->timestamps();
         });

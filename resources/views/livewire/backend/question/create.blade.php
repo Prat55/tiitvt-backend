@@ -24,7 +24,7 @@ new class extends Component {
             'category_id' => 'required|exists:categories,id',
             'options' => 'required|array|min:4|max:4',
             'options.*' => 'required|string|max:255',
-            'correct_option_id' => 'required|string|max:255',
+            'correct_option_id' => 'required|string|in:0,1,2,3',
             'points' => 'required|integer|min:1|max:100',
         ];
     }
@@ -41,6 +41,7 @@ new class extends Component {
             'options.max' => 'Exactly four options are required.',
             'options.*.required' => 'All options must have text.',
             'correct_option_id.required' => 'Please select the correct option.',
+            'correct_option_id.in' => 'Please select a valid correct option.',
             'points.required' => 'Points are required.',
             'points.min' => 'Points must be at least 1.',
             'points.max' => 'Points cannot exceed 100.',
@@ -59,34 +60,56 @@ new class extends Component {
                 return;
             }
 
-            // Check if correct option ID is valid (0, 1, 2, or 3)
-            if (!in_array($this->correct_option_id, ['0', '1', '2', '3'])) {
-                $this->error('Please select a valid correct option.', position: 'toast-bottom');
-                return;
-            }
+            // Use database transaction to ensure data consistency
+            \DB::beginTransaction();
 
+            // Create the question first without the correct_option_id
             $question = Question::create([
                 'category_id' => $this->category_id,
                 'question_text' => $this->question_text,
-                'correct_option' => $this->options[(int) $this->correct_option_id],
+                'correct_option_id' => null, // We'll set this after creating options
                 'points' => $this->points,
             ]);
 
-            // Create options
+            // Create options and track the correct option
+            $correctOptionId = null;
             foreach ($this->options as $index => $optionText) {
                 $option = $question->options()->create([
                     'option_text' => $optionText,
                     'order_by' => $index + 1, // Set order_by based on position
                 ]);
 
-                // If this is the correct option, update the question with the option ID
-                if ($index == (int) $this->correct_option_id) {
-                    $question->update(['correct_option' => $option->id]);
+                // If this is the correct option, store the option ID
+                if ($index == $this->correct_option_id) {
+                    $correctOptionId = $option->id;
                 }
             }
 
+            // Update the question with the correct option ID
+            if ($correctOptionId) {
+                $question->update(['correct_option_id' => $correctOptionId]);
+            }
+
+            // Commit the transaction
+            \DB::commit();
+
             $this->success('Question created successfully!', position: 'toast-bottom', redirect: route('admin.question.index'));
         } catch (\Exception $e) {
+            // Rollback the transaction on error
+            \DB::rollBack();
+
+            // Log the error for debugging
+            \Log::error('Question creation failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'data' => [
+                    'question_text' => $this->question_text,
+                    'category_id' => $this->category_id,
+                    'options' => $this->options,
+                    'correct_option_id' => $this->correct_option_id,
+                    'points' => $this->points,
+                ],
+            ]);
+
             $this->error('Failed to create question. Please try again.', position: 'toast-bottom');
         }
     }

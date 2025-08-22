@@ -90,7 +90,7 @@ new class extends Component {
             'category_id' => 'required|exists:categories,id',
             'options' => 'required|array|min:4|max:4',
             'options.*' => 'required|string|max:255',
-            'correct_option_id' => 'required|string|max:255',
+            'correct_option_id' => 'required',
             'points' => 'required|integer|min:1|max:100',
         ];
     }
@@ -227,7 +227,7 @@ new class extends Component {
                 </div>
 
                 <x-choices-offline label="Category" wire:model="category_id" placeholder="Select a category"
-                    icon="o-tag" :options="$categories" required />
+                    icon="o-tag" :options="$categories" required single searchable clearable />
 
                 <x-textarea label="Question Text" wire:model="question_text" placeholder="Enter your question here..."
                     icon="o-question-mark-circle" maxlength="1000" required class="md:col-span-2" />
