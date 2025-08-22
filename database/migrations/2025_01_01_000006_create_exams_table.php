@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ExamStatusEnum;
+use App\Models\{Course, Student};
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,10 +15,15 @@ return new class extends Migration
     {
         Schema::create('exams', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('course_id')->constrained()->onDelete('cascade');
-            $table->string('title');
+            $table->string('exam_id')->unique()->comment('Unique exam identifier for students');
+            $table->string('password')->comment('Password for exam access');
+            $table->foreignIdFor(Course::class)->constrained()->onDelete('cascade');
+            $table->foreignIdFor(Student::class)->constrained()->onDelete('cascade');
             $table->integer('duration')->comment('Duration in minutes');
-            $table->boolean('is_active')->default(true);
+            $table->date('date');
+            $table->time('start_time');
+            $table->time('end_time');
+            $table->string('status')->default(ExamStatusEnum::SCHEDULED->value);
             $table->timestamps();
         });
     }

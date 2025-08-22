@@ -2,123 +2,248 @@
 
 namespace App\Services;
 
-use App\Models\Exam;
-use App\Models\ExamResult;
-use App\Models\Question;
-use App\Models\Student;
+use App\Enums\ExamStatusEnum;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use App\Models\{Exam, Student, Course, Category, ExamCategory};
 
 class ExamService
 {
     /**
-     * Create a new exam with questions.
+     * Schedule a new exam for a student
      */
-    public function createExam(array $data): Exam
+    public function scheduleExam(array $data): Exam
     {
         return DB::transaction(function () use ($data) {
             $exam = Exam::create([
                 'course_id' => $data['course_id'],
-                'title' => $data['title'],
+                'student_id' => $data['student_id'],
                 'duration' => $data['duration'],
-                'is_active' => $data['is_active'] ?? true,
+                'date' => $data['date'],
+                'start_time' => $data['start_time'],
+                'end_time' => $data['end_time'],
+                'status' => ExamStatusEnum::SCHEDULED,
             ]);
 
-            // Create questions for the exam
-            foreach ($data['questions'] as $questionData) {
-                $question = Question::create([
-                    'exam_id' => $exam->id,
-                    'question_text' => $questionData['question_text'],
-                    'points' => $questionData['points'] ?? 1,
-                ]);
+            Log::info('Exam scheduled successfully', [
+                'exam_id' => $exam->exam_id,
+                'student_id' => $exam->student_id,
+                'course_id' => $exam->course_id,
+                'scheduled_date' => $exam->date,
+                'scheduled_time' => $exam->start_time . ' - ' . $exam->end_time
+            ]);
 
-                // Create options for the question
-                foreach ($questionData['options'] as $index => $optionText) {
-                    $option = $question->options()->create([
-                        'option_text' => $optionText,
-                        'order_by' => $index + 1, // Set order_by based on position
-                    ]);
-
-                    // If this is the correct option, update the question with the option ID
-                    if ($index == $questionData['correct_option_index']) {
-                        $question->update(['correct_option_id' => $option->id]);
-                    }
-                }
-            }
-
-            return $exam->load('questions');
+            return $exam;
         });
     }
 
     /**
-     * Evaluate exam results for a student.
+     * Schedule a new exam for a student with specific categories
      */
-    public function evaluateExam(Student $student, Exam $exam, array $answers): ExamResult
+    public function scheduleExamWithCategories(array $data): Exam
     {
-        $questions = $exam->questions->load('options');
-        $totalPoints = $questions->sum('points');
-        $earnedPoints = 0;
+        return DB::transaction(function () use ($data) {
+            $exam = Exam::create([
+                'course_id' => $data['course_id'],
+                'student_id' => $data['student_id'],
+                'duration' => $data['duration'],
+                'date' => $data['date'],
+                'start_time' => $data['start_time'],
+                'end_time' => $data['end_time'],
+                'status' => ExamStatusEnum::SCHEDULED,
+            ]);
 
-        foreach ($answers as $questionId => $selectedOptionText) {
-            $question = $questions->find($questionId);
-            if ($question && $question->correctOption && $question->correctOption->option_text === $selectedOptionText) {
-                $earnedPoints += $question->points;
+            // Attach categories to the exam
+            if (!empty($data['category_ids'])) {
+                foreach ($data['category_ids'] as $categoryId) {
+                    ExamCategory::create([
+                        'exam_id' => $exam->id,
+                        'category_id' => $categoryId,
+                    ]);
+                }
+            }
+
+            Log::info('Exam scheduled successfully with categories', [
+                'exam_id' => $exam->exam_id,
+                'student_id' => $exam->student_id,
+                'course_id' => $exam->course_id,
+                'category_ids' => $data['category_ids'] ?? [],
+                'scheduled_date' => $exam->date,
+                'scheduled_time' => $exam->start_time . ' - ' . $exam->end_time
+            ]);
+
+            return $exam->load('student', 'examCategories.category');
+        });
+    }
+
+    /**
+     * Get completed categories for a course (categories where all students have completed exams)
+     */
+    public function getCompletedCategories(int $courseId): array
+    {
+        $course = Course::with(['students', 'categories'])->find($courseId);
+
+        if (!$course || $course->students->isEmpty() || $course->categories->isEmpty()) {
+            return [];
+        }
+
+        $completedCategories = [];
+
+        foreach ($course->categories as $category) {
+            $allStudentsCompleted = true;
+
+            foreach ($course->students as $student) {
+                // Check if this student has completed an exam for this category
+                $hasCompletedExam = Exam::where('student_id', $student->id)
+                    ->where('course_id', $courseId)
+                    ->whereHas('examCategories', function ($query) use ($category) {
+                        $query->where('category_id', $category->id);
+                    })
+                    ->where('status', ExamStatusEnum::COMPLETED)
+                    ->exists();
+
+                if (!$hasCompletedExam) {
+                    $allStudentsCompleted = false;
+                    break;
+                }
+            }
+
+            if ($allStudentsCompleted) {
+                $completedCategories[] = [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                ];
             }
         }
 
-        $score = ($earnedPoints / $totalPoints) * 100;
-        $resultStatus = $score >= 70 ? 'pass' : 'fail'; // Assuming 70% is passing
-
-        return ExamResult::create([
-            'student_id' => $student->id,
-            'exam_id' => $exam->id,
-            'score' => $score,
-            'result_status' => $resultStatus,
-            'declared_by' => Auth::id(),
-            'declared_at' => now(),
-            'answers' => $answers,
-        ]);
+        return $completedCategories;
     }
 
     /**
-     * Get exam results for a student.
+     * Get available categories for a course (excluding completed ones)
      */
-    public function getStudentExamResults(Student $student): \Illuminate\Database\Eloquent\Collection
+    public function getAvailableCategories(int $courseId): array
     {
-        return $student->examResults()->with(['exam', 'declaredBy'])->get();
+        $course = Course::with('categories')->find($courseId);
+
+        if (!$course) {
+            return [];
+        }
+
+        $completedCategoryIds = collect($this->getCompletedCategories($courseId))->pluck('id')->toArray();
+
+        return $course->categories
+            ->whereNotIn('id', $completedCategoryIds)
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                ];
+            })
+            ->toArray();
     }
 
     /**
-     * Get exam results for a specific exam.
+     * Get student's course information
      */
-    public function getExamResults(Exam $exam): \Illuminate\Database\Eloquent\Collection
+    public function getStudentCourse(int $studentId): ?Course
     {
-        return $exam->examResults()->with(['student', 'declaredBy'])->get();
+        $student = Student::with('course')->find($studentId);
+        return $student?->course;
     }
 
     /**
-     * Get exam statistics.
+     * Cancel overdue exams
      */
-    public function getExamStatistics(Exam $exam): array
+    public function cancelOverdueExams(): array
     {
-        $results = $exam->examResults;
+        $overdueExams = Exam::overdue()->get();
+
+        if ($overdueExams->isEmpty()) {
+            return ['cancelled' => 0, 'failed' => 0];
+        }
+
+        $cancelledCount = 0;
+        $failedCount = 0;
+
+        foreach ($overdueExams as $exam) {
+            try {
+                $exam->update(['status' => ExamStatusEnum::CANCELLED]);
+                $cancelledCount++;
+
+                Log::info('Exam automatically cancelled', [
+                    'exam_id' => $exam->exam_id,
+                    'student_id' => $exam->student_id,
+                    'course_id' => $exam->course_id,
+                    'scheduled_date' => $exam->date,
+                    'scheduled_end_time' => $exam->end_time,
+                    'cancelled_at' => now(),
+                    'reason' => 'Automatically cancelled due to being overdue'
+                ]);
+            } catch (\Exception $e) {
+                $failedCount++;
+                Log::error('Failed to cancel overdue exam', [
+                    'exam_id' => $exam->exam_id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
 
         return [
-            'total_students' => $results->count(),
-            'passed_students' => $results->where('result_status', 'pass')->count(),
-            'failed_students' => $results->where('result_status', 'fail')->count(),
-            'average_score' => $results->avg('score'),
-            'highest_score' => $results->max('score'),
-            'lowest_score' => $results->min('score'),
+            'cancelled' => $cancelledCount,
+            'failed' => $failedCount
         ];
     }
 
     /**
-     * Activate or deactivate an exam.
+     * Get exam statistics
      */
-    public function toggleExamStatus(Exam $exam): bool
+    public function getExamStats(): array
     {
-        $exam->update(['is_active' => !$exam->is_active]);
-        return $exam->is_active;
+        return [
+            'total' => Exam::count(),
+            'scheduled' => Exam::where('status', ExamStatusEnum::SCHEDULED)->count(),
+            'completed' => Exam::where('status', ExamStatusEnum::COMPLETED)->count(),
+            'cancelled' => Exam::where('status', ExamStatusEnum::CANCELLED)->count(),
+            'overdue' => Exam::overdue()->count(),
+        ];
+    }
+
+    /**
+     * Validate exam schedule time conflicts
+     */
+    public function hasTimeConflict(int $studentId, string $date, string $startTime, string $endTime, ?int $excludeExamId = null): bool
+    {
+        $query = Exam::where('student_id', $studentId)
+            ->where('date', $date)
+            ->where('status', ExamStatusEnum::SCHEDULED)
+            ->where(function ($q) use ($startTime, $endTime) {
+                $q->whereBetween('start_time', [$startTime, $endTime])
+                    ->orWhereBetween('end_time', [$startTime, $endTime])
+                    ->orWhere(function ($q2) use ($startTime, $endTime) {
+                        $q2->where('start_time', '<=', $startTime)
+                            ->where('end_time', '>=', $endTime);
+                    });
+            });
+
+        if ($excludeExamId) {
+            $query->where('id', '!=', $excludeExamId);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Get upcoming exams for a student
+     */
+    public function getUpcomingExams(int $studentId, int $limit = 5): \Illuminate\Database\Eloquent\Collection
+    {
+        return Exam::where('student_id', $studentId)
+            ->where('status', ExamStatusEnum::SCHEDULED)
+            ->where('date', '>=', now()->toDateString())
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->limit($limit)
+            ->get();
     }
 }

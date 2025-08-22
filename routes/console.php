@@ -19,3 +19,8 @@ Schedule::command('installments:handle-overdue')
     ->daily()
     ->at('10:00')
     ->appendOutputTo(storage_path('logs/overdue-handling.log'));
+
+// Exam cancellation - every 15 minutes to check for overdue exams
+Schedule::command('exams:cancel-overdue')
+    ->everyFifteenMinutes()
+    ->appendOutputTo(storage_path('logs/exam-cancellation.log'));

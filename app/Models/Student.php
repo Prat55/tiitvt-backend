@@ -166,4 +166,9 @@ class Student extends Model
         $timestamp = now()->format('His');
         return "TIITVT/ATC/{$centerId}/{$studentNumber}_{$timestamp}";
     }
+
+    public function scopeSearch($query, $search)
+    {
+        return $query->whereAny(['first_name', 'fathers_name', 'surname', 'tiitvt_reg_no', 'mobile', 'email'], 'like', "%{$search}%");
+    }
 }
