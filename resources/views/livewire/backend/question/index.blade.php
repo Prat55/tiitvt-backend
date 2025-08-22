@@ -88,7 +88,8 @@ new class extends Component {
         @endscope
 
         @scope('cell_correct_option', $question)
-            <span class="badge badge-success badge-sm h-fit">{{ $question->correctOption->option_text ?? 'N/A' }}</span>
+            <span
+                class="badge badge-success badge-sm h-fit">{{ Str::limit($question->correctOption->option_text, 20) ?? 'N/A' }}</span>
         @endscope
 
         @scope('cell_points', $question)
