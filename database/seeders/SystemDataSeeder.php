@@ -154,58 +154,78 @@ class SystemDataSeeder extends Seeder
         ]);
 
         // Create questions for PHP exam
-        Question::create([
+        $phpQuestion1 = Question::create([
             'exam_id' => $phpExam->id,
             'question_text' => 'What does PHP stand for?',
-            'options' => [
-                'A' => 'Personal Home Page',
-                'B' => 'PHP: Hypertext Preprocessor',
-                'C' => 'Programming Home Page',
-                'D' => 'Preprocessor Hypertext PHP'
-            ],
-            'correct_option' => 'B',
             'points' => 1,
         ]);
 
-        Question::create([
+        // Create options for PHP question 1
+        $phpQuestion1->options()->createMany([
+            ['option_text' => 'Personal Home Page'],
+            ['option_text' => 'PHP: Hypertext Preprocessor'],
+            ['option_text' => 'Programming Home Page'],
+            ['option_text' => 'Preprocessor Hypertext PHP']
+        ]);
+
+        // Update question with correct option ID (option B - index 1)
+        $correctOption1 = $phpQuestion1->options()->where('option_text', 'PHP: Hypertext Preprocessor')->first();
+        $phpQuestion1->update(['correct_option_id' => $correctOption1->id]);
+
+        $phpQuestion2 = Question::create([
             'exam_id' => $phpExam->id,
             'question_text' => 'Which of the following is used to declare a constant in PHP?',
-            'options' => [
-                'A' => 'const',
-                'B' => 'define()',
-                'C' => 'constant()',
-                'D' => 'Both A and B'
-            ],
-            'correct_option' => 'D',
             'points' => 1,
         ]);
+
+        // Create options for PHP question 2
+        $phpQuestion2->options()->createMany([
+            ['option_text' => 'const'],
+            ['option_text' => 'define()'],
+            ['option_text' => 'constant()'],
+            ['option_text' => 'Both A and B']
+        ]);
+
+        // Update question with correct option ID (option D - index 3)
+        $correctOption2 = $phpQuestion2->options()->where('option_text', 'Both A and B')->first();
+        $phpQuestion2->update(['correct_option_id' => $correctOption2->id]);
 
         // Create questions for Laravel exam
-        Question::create([
+        $laravelQuestion1 = Question::create([
             'exam_id' => $laravelExam->id,
             'question_text' => 'What is the default database driver in Laravel?',
-            'options' => [
-                'A' => 'MySQL',
-                'B' => 'PostgreSQL',
-                'C' => 'SQLite',
-                'D' => 'SQL Server'
-            ],
-            'correct_option' => 'C',
             'points' => 1,
         ]);
 
-        Question::create([
+        // Create options for Laravel question 1
+        $laravelQuestion1->options()->createMany([
+            ['option_text' => 'MySQL'],
+            ['option_text' => 'PostgreSQL'],
+            ['option_text' => 'SQLite'],
+            ['option_text' => 'SQL Server']
+        ]);
+
+        // Update question with correct option ID (option C - index 2)
+        $correctOption3 = $laravelQuestion1->options()->where('option_text', 'SQLite')->first();
+        $laravelQuestion1->update(['correct_option_id' => $correctOption3->id]);
+
+        $laravelQuestion2 = Question::create([
             'exam_id' => $laravelExam->id,
             'question_text' => 'Which command is used to create a new Laravel project?',
-            'options' => [
-                'A' => 'laravel new project-name',
-                'B' => 'composer create-project laravel/laravel project-name',
-                'C' => 'php artisan new project-name',
-                'D' => 'laravel create project-name'
-            ],
-            'correct_option' => 'B',
             'points' => 1,
         ]);
+
+        // Create options for Laravel question 2
+        $laravelQuestion2->options()->createMany([
+            ['option_text' => 'laravel new project-name'],
+            ['option_text' => 'composer create-project laravel/laravel project-name'],
+            ['option_text' => 'php artisan new project-name'],
+            ['option_text' => 'laravel create project-name']
+        ]);
+
+        // Update question with correct option ID (option B - index 1)
+        $correctOption4 = $laravelQuestion2->options()->where('option_text', 'composer create-project laravel/laravel project-name')->first();
+        $laravelQuestion2->update(['correct_option_id' => $correctOption4->id]);
 
         // Create invoices
         Invoice::create([

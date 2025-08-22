@@ -73,9 +73,11 @@ This document outlines the backend architecture for the SaaS-based IT classes ma
 
 #### 8. Question
 
-- **Fields**: exam_id, question_text, options (JSON), correct_option, points
+- **Fields**: exam_id, question_text, correct_option_id, points
 - **Relationships**:
   - `belongsTo` exam
+  - `belongsTo` correctOption (Option)
+  - `hasMany` options
 
 #### 9. ExamResult
 

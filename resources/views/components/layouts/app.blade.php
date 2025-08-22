@@ -54,7 +54,12 @@
                 <x-menu-item title="Student" icon="o-user" link="{{ route('admin.student.index') }}" />
                 <x-menu-item title="Category" icon="o-tag" link="{{ route('admin.category.index') }}" />
                 <x-menu-item title="Course" icon="o-book-open" link="{{ route('admin.course.index') }}" />
-                <x-menu-item title="Exam" icon="o-book-open" link="{{ route('admin.exam.index') }}" />
+
+                <x-menu-sub title="Exam" icon="o-square-2-stack">
+                    <x-menu-item title="Exam" icon="o-book-open" link="{{ route('admin.exam.index') }}" />
+                    <x-menu-item title="Question" icon="o-question-mark-circle"
+                        link="{{ route('admin.question.index') }}" />
+                </x-menu-sub>
             </x-menu>
         </x-slot:sidebar>
 

@@ -26,13 +26,24 @@ class ExamService
 
             // Create questions for the exam
             foreach ($data['questions'] as $questionData) {
-                Question::create([
+                $question = Question::create([
                     'exam_id' => $exam->id,
                     'question_text' => $questionData['question_text'],
-                    'options' => $questionData['options'],
-                    'correct_option' => $questionData['correct_option'],
                     'points' => $questionData['points'] ?? 1,
                 ]);
+
+                // Create options for the question
+                foreach ($questionData['options'] as $index => $optionText) {
+                    $option = $question->options()->create([
+                        'option_text' => $optionText,
+                        'order_by' => $index + 1, // Set order_by based on position
+                    ]);
+
+                    // If this is the correct option, update the question with the option ID
+                    if ($index == $questionData['correct_option_index']) {
+                        $question->update(['correct_option_id' => $option->id]);
+                    }
+                }
             }
 
             return $exam->load('questions');
@@ -44,13 +55,13 @@ class ExamService
      */
     public function evaluateExam(Student $student, Exam $exam, array $answers): ExamResult
     {
-        $questions = $exam->questions;
+        $questions = $exam->questions->load('options');
         $totalPoints = $questions->sum('points');
         $earnedPoints = 0;
 
-        foreach ($answers as $questionId => $selectedOption) {
+        foreach ($answers as $questionId => $selectedOptionText) {
             $question = $questions->find($questionId);
-            if ($question && $question->correct_option === $selectedOption) {
+            if ($question && $question->correctOption && $question->correctOption->option_text === $selectedOptionText) {
                 $earnedPoints += $question->points;
             }
         }

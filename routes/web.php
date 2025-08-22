@@ -50,6 +50,13 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/{exam}/show', 'backend.exam.show')->name('show');
                 Volt::route('/{exam}/edit', 'backend.exam.edit')->name('edit');
             });
+
+            Route::prefix('question')->name('question.')->group(function () {
+                Volt::route('/', 'backend.question.index')->name('index');
+                Volt::route('/create', 'backend.question.create')->name('create');
+                Volt::route('/{question}/show', 'backend.question.show')->name('show');
+                Volt::route('/{question}/edit', 'backend.question.edit')->name('edit');
+            });
         });
     });
 });
