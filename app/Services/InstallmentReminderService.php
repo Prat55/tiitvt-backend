@@ -6,6 +6,7 @@ use App\Models\Installment;
 use App\Models\Student;
 use App\Mail\NotificationMail;
 use App\Helpers\MailHelper;
+use App\Helpers\EmailNotificationHelper;
 use App\Enums\InstallmentStatusEnum;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
@@ -87,18 +88,40 @@ class InstallmentReminderService
                 return;
             }
 
-            $subject = $this->getReminderSubject($days);
-            $body = $this->getReminderBody($installment, $days);
+            // Use the new EmailNotificationHelper for better template management and consistency
+            $data = [
+                'student' => $student,
+                'installment' => $installment,
+                'days' => $days,
+                'dueDate' => $installment->due_date->format('d/m/Y'),
+                'amount' => number_format($installment->amount, 2),
+                'urgencyText' => $days === 1 ? 'URGENT' : 'Important'
+            ];
 
-            // Use the MailHelper to send the email
-            MailHelper::sendInstallmentReminder($student->email, $subject, $body, $installment);
+            $options = [
+                'queue' => true, // Queue the email for better performance
+                'subject_prefix' => $days === 1 ? 'URGENT: ' : 'Reminder: '
+            ];
 
-            Log::info("Installment reminder sent to {$student->email} for installment {$installment->id} due in {$days} days");
+            $result = EmailNotificationHelper::sendNotificationByType(
+                'installment_reminder',
+                $student->email,
+                $data,
+                $options
+            );
+
+            if ($result) {
+                Log::info("Installment reminder sent successfully to {$student->email} for installment {$installment->id} due in {$days} days");
+            } else {
+                Log::warning("Failed to send installment reminder to {$student->email} for installment {$installment->id}");
+            }
         } catch (\Exception $e) {
             Log::error("Failed to send installment reminder: " . $e->getMessage(), [
                 'installment_id' => $installment->id,
                 'student_id' => $installment->student_id,
-                'days' => $days
+                'days' => $days,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Installment;
 use App\Models\Student;
 use App\Helpers\MailHelper;
+use App\Helpers\EmailNotificationHelper;
 use App\Enums\InstallmentStatusEnum;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -141,18 +142,41 @@ class OverdueInstallmentService
                 return;
             }
 
-            $subject = $this->getOverdueReminderSubject($daysAfterOverdue);
-            $body = $this->getOverdueReminderBody($installment, $daysAfterOverdue);
+            // Use the new EmailNotificationHelper for better template management and consistency
+            $data = [
+                'student' => $student,
+                'installment' => $installment,
+                'daysAfterOverdue' => $daysAfterOverdue,
+                'daysOverdue' => Carbon::now()->diffInDays($installment->due_date),
+                'dueDate' => $installment->due_date->format('d/m/Y'),
+                'amount' => number_format($installment->amount, 2),
+                'urgencyText' => $daysAfterOverdue === 0 ? 'CRITICAL' : 'URGENT'
+            ];
 
-            // Use the MailHelper to send the email
-            MailHelper::sendOverdueReminder($student->email, $subject, $body, $installment);
+            $options = [
+                'queue' => false, // Send overdue notifications immediately (high priority)
+                'subject_prefix' => 'URGENT: '
+            ];
 
-            Log::info("Overdue reminder sent to {$student->email} for installment {$installment->id} ({$daysAfterOverdue} days after due date)");
+            $result = EmailNotificationHelper::sendNotificationByType(
+                'overdue_notification',
+                $student->email,
+                $data,
+                $options
+            );
+
+            if ($result) {
+                Log::info("Overdue reminder sent successfully to {$student->email} for installment {$installment->id} ({$daysAfterOverdue} days after due date)");
+            } else {
+                Log::warning("Failed to send overdue reminder to {$student->email} for installment {$installment->id}");
+            }
         } catch (\Exception $e) {
             Log::error("Failed to send overdue reminder: " . $e->getMessage(), [
                 'installment_id' => $installment->id,
                 'student_id' => $installment->student_id,
-                'days_after_overdue' => $daysAfterOverdue
+                'days_after_overdue' => $daysAfterOverdue,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }

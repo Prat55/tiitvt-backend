@@ -66,6 +66,9 @@ new class extends Component {
     public float $total_payable = 0;
     public array $installment_breakdown = [];
 
+    // Notification
+    public bool $send_notification = false;
+
     // Computed properties for validation
     public function getFeesValidationErrors(): array
     {
@@ -231,6 +234,10 @@ new class extends Component {
                 $this->createInstallments($student);
             }
 
+            if ($this->send_notification) {
+                $this->sendNotification($student);
+            }
+
             $this->success('Student admitted successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.student.index'));
         } catch (\Exception $e) {
@@ -334,6 +341,53 @@ new class extends Component {
                 'due_date' => $dueDate,
                 'status' => 'pending',
             ]);
+        }
+    }
+
+    // Send registration success notification
+    private function sendNotification($student): void
+    {
+        try {
+            // Get course and center details
+            $course = \App\Models\Course::find($this->course_id);
+            $center = \App\Models\Center::find($this->center_id);
+
+            // Calculate monthly installment amount if applicable
+            $monthlyInstallment = 0;
+            if ($this->no_of_installments > 0 && $this->remaining_amount > 0) {
+                $monthlyInstallment = round($this->remaining_amount / $this->no_of_installments, 2);
+            }
+
+            // Prepare data for email
+            $data = [
+                'studentName' => $student->first_name . ' ' . $student->surname,
+                'tiitvtRegNo' => $student->tiitvt_reg_no,
+                'courseName' => $course ? $course->name : 'N/A',
+                'centerName' => $center ? $center->name : 'N/A',
+                'enrollmentDate' => $this->enrollment_date ?: now()->format('d/m/Y'),
+                'courseFees' => $this->course_fees,
+                'downPayment' => $this->down_payment ?: 0,
+                'noOfInstallments' => $this->no_of_installments ?: 0,
+                'monthlyInstallment' => $monthlyInstallment,
+            ];
+
+            // Send email using EmailNotificationHelper
+            $result = \App\Helpers\EmailNotificationHelper::sendNotificationByType('registration_success', $student->email, $data, ['queue' => true]);
+
+            if ($result) {
+                $this->success('Registration success email sent to student!', position: 'toast-bottom');
+            } else {
+                $this->warning('Failed to send registration email. Please check logs.', position: 'toast-bottom');
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send registration notification: ' . $e->getMessage(), [
+                'student_id' => $student->id,
+                'email' => $student->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->warning('Failed to send registration email. Please check logs.', position: 'toast-bottom');
         }
     }
 
@@ -675,6 +729,11 @@ new class extends Component {
                                 class="w-32 h-32 object-cover rounded-lg">
                         </x-file>
                     </div>
+                </div>
+
+                <div>
+                    <x-checkbox label="Send Notification" wire:model="send_notification"
+                        hint="Clicking on this will send a notification to the student with course details." />
                 </div>
             </div>
 
