@@ -22,6 +22,7 @@ new class extends Component {
     public float $price = 0;
     public bool $is_active = true;
     public array $category_ids = [];
+    public int $rating = 4;
 
     // File uploads
     public $course_image;
@@ -45,6 +46,7 @@ new class extends Component {
             'category_ids' => 'array',
             'category_ids.*' => 'exists:categories,id',
             'course_image' => 'nullable|image|max:2048',
+            'rating' => 'nullable|integer|min:0|max:5',
         ];
     }
 
@@ -59,6 +61,8 @@ new class extends Component {
             'price.min' => 'Price must be greater than or equal to 0.',
             'category_ids.array' => 'Please select valid categories.',
             'category_ids.*.exists' => 'One or more selected categories are invalid.',
+            'rating.min' => 'Rating must be greater than or equal to 0.',
+            'rating.max' => 'Rating must be less than or equal to 5.',
         ];
     }
 
@@ -77,6 +81,7 @@ new class extends Component {
                 'mrp' => $this->mrp ?: null,
                 'price' => $this->price ?: null,
                 'is_active' => $this->is_active,
+                'rating' => $this->rating ?? 4,
             ];
 
             if ($this->course_image) {
@@ -206,16 +211,19 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Pricing Information</h3>
                 </div>
 
-                <x-input label="MRP (Maximum Retail Price)" wire:model="mrp" placeholder="Enter MRP"
+                <x-input label="MRP (Maximum Retail Price)" wire:model.live="mrp" placeholder="Enter MRP"
                     icon="o-currency-rupee" money step="0.01" hint="Original price before discount" />
 
-                <x-input label="Selling Price" wire:model="price" placeholder="Enter selling price"
-                    icon="o-currency-rupee" money step="0.01" hint="Final price for customers" />
+                <x-input label="Selling Price" wire:model.live="price" placeholder="Enter selling price"
+                    icon="o-currency-rupee" money step="0.01" hint="Final price for learners" />
 
                 @if ($mrp > 0 && $price > 0 && $mrp > $price)
-                    <div class="md:col-span-2">
-                        <x-alert title="Discount Applied!" icon="o-tag" class="alert-success text-white"
-                            description="Customers will save ₹{{ number_format($mrp - $price, 2) }} ({{ round((($mrp - $price) / $mrp) * 100, 2) }}% off)" />
+                    <div class="md:col-span-2 mt-2">
+                        <x-alert icon="o-tag" class="alert-success">
+                            <h3 class="text-sm font-semibold">Discount Applied!</h3>
+                            Learners will save up to <strong>₹{{ number_format($mrp - $price, 2) }}
+                                ({{ round((($mrp - $price) / $mrp) * 100) }}% off)</strong>
+                        </x-alert>
                     </div>
                 @endif
             </div>
@@ -232,17 +240,25 @@ new class extends Component {
             </div>
 
             <!-- Course Image -->
-            <div class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <h3 class="text-lg font-semibold text-primary">Course Image</h3>
-                    <p class="text-sm text-gray-600 mt-1">Upload an image to represent this course</p>
+                    <div>
+                        <h3 class="text-lg font-semibold text-primary">Course Image</h3>
+                        <p class="text-sm text-gray-600 mt-1">Upload an image to represent this course</p>
+                    </div>
+
+                    <x-file wire:model="course_image" accept="image/*" placeholder="Upload course image" icon="o-photo"
+                        hint="Max 2MB, Recommended: 16:9 aspect ratio" crop-after-change :crop-config="$config">
+                        <img src="https://placehold.co/400x225?text=Course+Image" alt="Course Image"
+                            class="w-full h-48 object-cover rounded-lg">
+                    </x-file>
                 </div>
 
-                <x-file wire:model="course_image" accept="image/*" placeholder="Upload course image" icon="o-photo"
-                    hint="Max 2MB, Recommended: 16:9 aspect ratio" crop-after-change :crop-config="$config">
-                    <img src="https://placehold.co/400x225?text=Course+Image" alt="Course Image"
-                        class="w-full h-48 object-cover rounded-lg">
-                </x-file>
+                <div>
+                    <h3 class="text-lg font-semibold text-primary">Course Rating</h3>
+                    <p class="text-sm text-gray-600 mt-1">Set the rating for this course</p>
+                    <x-rating wire:model="rating" />
+                </div>
             </div>
 
             <!-- Description -->

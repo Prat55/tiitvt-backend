@@ -21,6 +21,7 @@ class Course extends Model
         'duration',
         'mrp',
         'price',
+        'rating',
         'is_active',
     ];
 

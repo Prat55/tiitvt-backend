@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('duration')->nullable(); // e.g., "3 months", "6 weeks"
             $table->decimal('mrp', 10, 2)->nullable();
             $table->decimal('price', 10, 2)->nullable();
+            $table->integer('rating')->default(4);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

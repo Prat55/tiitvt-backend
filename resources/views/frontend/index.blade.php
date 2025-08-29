@@ -77,7 +77,7 @@
                                                 </div>
                                                 <i class="fas fa-long-arrow-right"></i>
                                                 <div class="thumb">
-                                                    <img src="{{ $category->image ? asset('storage/' . $category->image) : 'https://placehold.co/600x400?text=Banner' }}"
+                                                    <img src="{{ $category->image ? asset('storage/' . $category->image) : 'https://placehold.co/600x400?text=' . $category->name }}"
                                                         alt="{{ $category->name }}">
                                                 </div>
                                             </a>
