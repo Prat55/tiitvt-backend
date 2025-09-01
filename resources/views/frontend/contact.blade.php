@@ -23,18 +23,33 @@
     <div class="contact-style-one-area overflow-hidden default-padding-bottom">
         <div class="container">
             <div class="row">
-
                 <div class="contact-stye-one col-lg-10 offset-lg-1">
                     <div class="contact-form-style-one">
                         <h2 class="heading">Send us a message</h2>
-                        <form action="{{ asset('frontend/mail/contact.php') }}" method="POST"
+
+                        @if (session('success'))
+                            <div class="alert alert-success mt-3">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
+                        @if (session('error'))
+                            <div class="alert alert-danger mt-3">
+                                {{ session('error') }}
+                            </div>
+                        @endif
+
+                        <form action="{{ route('frontend.contact_submit') }}" method="POST"
                             class="contact-form contact-form">
+                            @csrf
                             <div class="row">
                                 <div class="col-lg-12">
                                     <div class="form-group">
                                         <input class="form-control" id="name" name="name" placeholder="Name *"
                                             type="text">
-                                        <span class="alert-error"></span>
+                                        @error('name')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -43,14 +58,18 @@
                                     <div class="form-group">
                                         <input class="form-control" id="email" name="email" placeholder="Email*"
                                             type="email">
-                                        <span class="alert-error"></span>
+                                        @error('email')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
                                     <div class="form-group">
                                         <input class="form-control" id="phone" name="phone" placeholder="Phone"
                                             type="text">
-                                        <span class="alert-error"></span>
+                                        @error('phone')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -58,19 +77,18 @@
                                 <div class="col-lg-12">
                                     <div class="form-group comments">
                                         <textarea class="form-control" id="comments" name="message" placeholder="Write a message *"></textarea>
+                                        @error('message')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-lg-12">
-                                    <button type="submit" name="submit" id="submit">
+                                    <button type="submit" onclick="this.disabled=true; this.form.submit();">
                                         <i class="fa fa-paper-plane"></i> Get in Touch
                                     </button>
                                 </div>
-                            </div>
-                            <!-- Alert Message -->
-                            <div class="col-lg-12 alert-notification">
-                                <div id="message" class="alert-msg"></div>
                             </div>
                         </form>
                         <img src="{{ asset('frontend/img/shape/88.png') }}" alt="Image Not Found">

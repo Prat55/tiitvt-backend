@@ -7,4 +7,5 @@ Route::name('frontend.')->group(function () {
     Route::get('/', [PageController::class, 'index'])->name('index');
     Route::get('/about', [PageController::class, 'about'])->name('about');
     Route::get('/contact', [PageController::class, 'contact'])->name('contact');
+    Route::post('/contact', [PageController::class, 'contact_submit'])->name('contact_submit');
 });

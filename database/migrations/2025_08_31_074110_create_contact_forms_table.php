@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('ip_address')->nullable();
             $table->boolean('marked_as_read')->default(false);
             $table->timestamp('read_at')->nullable();
-            $table->foreignId('read_by');
+            $table->foreignId('read_by')->nullable();
 
             $table->timestamps();
         });

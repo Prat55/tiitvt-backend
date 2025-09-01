@@ -44,6 +44,6 @@ class PageController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return redirect()->back()->with('success', 'Message sent successfully');
+        return redirect()->back()->with('success', 'Response captured successfully');
     }
 }
