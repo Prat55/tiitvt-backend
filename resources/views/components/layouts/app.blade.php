@@ -58,6 +58,7 @@
                 <x-menu-sub title="Exam" icon="o-square-2-stack">
                     <x-menu-item title="Schedule" icon="o-calendar" link="{{ route('admin.exam.schedule') }}" />
                     <x-menu-item title="Exam" icon="o-book-open" link="{{ route('admin.exam.index') }}" />
+                    <x-menu-item title="Results" icon="o-chart-bar" link="{{ route('admin.exam.results') }}" />
                     <x-menu-item title="Question" icon="o-question-mark-circle"
                         link="{{ route('admin.question.index') }}" />
                 </x-menu-sub>

@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Enums\ExamStatusEnum;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\{Exam, Student, Course, Category, ExamCategory};
+use App\Models\{Exam, Student, Course, Category, ExamCategory, ExamStudent};
 
 class ExamService
 {
@@ -17,7 +17,6 @@ class ExamService
         return DB::transaction(function () use ($data) {
             $exam = Exam::create([
                 'course_id' => $data['course_id'],
-                'student_id' => $data['student_id'],
                 'duration' => $data['duration'],
                 'date' => $data['date'],
                 'start_time' => $data['start_time'],
@@ -27,7 +26,6 @@ class ExamService
 
             Log::info('Exam scheduled successfully', [
                 'exam_id' => $exam->exam_id,
-                'student_id' => $exam->student_id,
                 'course_id' => $exam->course_id,
                 'scheduled_date' => $exam->date,
                 'scheduled_time' => $exam->start_time . ' - ' . $exam->end_time
@@ -38,14 +36,14 @@ class ExamService
     }
 
     /**
-     * Schedule a new exam for a student with specific categories
+     * Schedule a new exam for multiple students with specific categories
      */
     public function scheduleExamWithCategories(array $data): Exam
     {
         return DB::transaction(function () use ($data) {
+            // Create one exam for the course and categories
             $exam = Exam::create([
                 'course_id' => $data['course_id'],
-                'student_id' => $data['student_id'],
                 'duration' => $data['duration'],
                 'date' => $data['date'],
                 'start_time' => $data['start_time'],
@@ -63,16 +61,26 @@ class ExamService
                 }
             }
 
-            Log::info('Exam scheduled successfully with categories', [
+            // Create ExamStudent records for each student
+            if (!empty($data['student_ids'])) {
+                foreach ($data['student_ids'] as $studentId) {
+                    ExamStudent::create([
+                        'exam_id' => $exam->id,
+                        'student_id' => $studentId,
+                    ]);
+                }
+            }
+
+            Log::info('Exam scheduled successfully with categories and students', [
                 'exam_id' => $exam->exam_id,
-                'student_id' => $exam->student_id,
                 'course_id' => $exam->course_id,
                 'category_ids' => $data['category_ids'] ?? [],
+                'student_ids' => $data['student_ids'] ?? [],
                 'scheduled_date' => $exam->date,
                 'scheduled_time' => $exam->start_time . ' - ' . $exam->end_time
             ]);
 
-            return $exam->load('student', 'examCategories.category');
+            return $exam->load('examStudents.student', 'examCategories.category');
         });
     }
 
@@ -94,10 +102,12 @@ class ExamService
 
             foreach ($course->students as $student) {
                 // Check if this student has completed an exam for this category
-                $hasCompletedExam = Exam::where('student_id', $student->id)
-                    ->where('course_id', $courseId)
+                $hasCompletedExam = Exam::where('course_id', $courseId)
                     ->whereHas('examCategories', function ($query) use ($category) {
                         $query->where('category_id', $category->id);
+                    })
+                    ->whereHas('examStudents', function ($query) use ($student) {
+                        $query->where('student_id', $student->id);
                     })
                     ->where('status', ExamStatusEnum::COMPLETED)
                     ->exists();
@@ -173,7 +183,6 @@ class ExamService
 
                 Log::info('Exam automatically cancelled', [
                     'exam_id' => $exam->exam_id,
-                    'student_id' => $exam->student_id,
                     'course_id' => $exam->course_id,
                     'scheduled_date' => $exam->date,
                     'scheduled_end_time' => $exam->end_time,
@@ -214,9 +223,11 @@ class ExamService
      */
     public function hasTimeConflict(int $studentId, string $date, string $startTime, string $endTime, ?int $excludeExamId = null): bool
     {
-        $query = Exam::where('student_id', $studentId)
-            ->where('date', $date)
+        $query = Exam::where('date', $date)
             ->where('status', ExamStatusEnum::SCHEDULED)
+            ->whereHas('examStudents', function ($q) use ($studentId) {
+                $q->where('student_id', $studentId);
+            })
             ->where(function ($q) use ($startTime, $endTime) {
                 $q->whereBetween('start_time', [$startTime, $endTime])
                     ->orWhereBetween('end_time', [$startTime, $endTime])
@@ -238,9 +249,11 @@ class ExamService
      */
     public function getUpcomingExams(int $studentId, int $limit = 5): \Illuminate\Database\Eloquent\Collection
     {
-        return Exam::where('student_id', $studentId)
-            ->where('status', ExamStatusEnum::SCHEDULED)
+        return Exam::where('status', ExamStatusEnum::SCHEDULED)
             ->where('date', '>=', now()->toDateString())
+            ->whereHas('examStudents', function ($query) use ($studentId) {
+                $query->where('student_id', $studentId);
+            })
             ->orderBy('date')
             ->orderBy('start_time')
             ->limit($limit)

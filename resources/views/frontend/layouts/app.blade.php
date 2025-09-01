@@ -12,7 +12,7 @@
     <meta name="author" content="{{ getWebsiteSettings()->meta_author ?? 'Tiitvt' }}">
 
     <!-- ========== Page Title ========== -->
-    <title>{{ getWebsiteName() }}</title>
+    <title>{{ getWebsiteName() }} | @yield('page_name')</title>
 
     <!-- ========== Favicon Icon ========== -->
     <link rel="shortcut icon" href="{{ asset('default/tiitvt_logo.svg') }}" type="image/x-icon">
@@ -36,7 +36,7 @@
     <!-- Start Preloader
     ============================================= -->
     <div id="preloader">
-        <div id="edufix-preloader" class="edufix-preloader">
+        <div id="tiitvt-preloader" class="tiitvt-preloader">
             <div class="animation-preloader">
                 <div class="spinner"></div>
                 <div class="txt-loading">
@@ -233,7 +233,7 @@
                                     </div>
                                 </li>
                             </ul>
-                            <h4>Download Edufix App</h4>
+                            <h4>Download TIITVTApp</h4>
                             <ul class="app-store">
                                 <li>
                                     <a href="#">

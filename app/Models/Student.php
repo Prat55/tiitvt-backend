@@ -88,6 +88,22 @@ class Student extends Model
     }
 
     /**
+     * Get the exam students for the student.
+     */
+    public function examStudents(): HasMany
+    {
+        return $this->hasMany(ExamStudent::class);
+    }
+
+    /**
+     * Get the exams for the student.
+     */
+    public function exams()
+    {
+        return $this->hasMany(ExamStudent::class);
+    }
+
+    /**
      * Get the invoices for the student.
      */
     public function invoices(): HasMany

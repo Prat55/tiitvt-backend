@@ -21,6 +21,7 @@ new class extends Component {
 
     public $categories = [];
     public $students = [];
+    public $dateConfig = ['altFormat' => 'd/m/Y'];
 
     public function mount()
     {
@@ -65,51 +66,54 @@ new class extends Component {
             $failedExams = [];
             $examService = new ExamService();
 
+            // Check for time conflicts for all selected students
             foreach ($this->selectedStudents as $studentId) {
-                // Check for time conflicts for each student
                 if ($examService->hasTimeConflict($studentId, $this->date, $this->startTime, $this->endTime)) {
                     $student = Student::find($studentId);
                     $failedExams[] = $student->first_name . ' ' . $student->fathers_name . ($student->surname ? ' ' . $student->surname : '');
-                    continue;
                 }
+            }
 
-                // Schedule exam for this student
-                $exam = $examService->scheduleExamWithCategories([
-                    'course_id' => $this->selectedCourse,
-                    'student_id' => $studentId,
-                    'category_ids' => $this->selectedCategories,
-                    'duration' => $this->duration,
-                    'date' => $this->date,
-                    'start_time' => $this->startTime,
-                    'end_time' => $this->endTime,
-                ]);
+            // If there are time conflicts, don't proceed
+            if (!empty($failedExams)) {
+                $errorMessage = 'Failed to schedule exams for: ' . implode(', ', $failedExams) . ' (time conflicts)';
+                $this->error($errorMessage, position: 'toast-bottom');
+                return;
+            }
 
+            // Schedule one exam for all students
+            $exam = $examService->scheduleExamWithCategories([
+                'course_id' => $this->selectedCourse,
+                'student_ids' => $this->selectedStudents,
+                'category_ids' => $this->selectedCategories,
+                'duration' => $this->duration,
+                'date' => $this->date,
+                'start_time' => $this->startTime,
+                'end_time' => $this->endTime,
+            ]);
+
+            // Prepare success message with individual student credentials
+            foreach ($exam->examStudents as $examStudent) {
                 $scheduledExams[] = [
-                    'student_name' => $exam->student->first_name . ' ' . $exam->student->fathers_name . ($exam->student->surname ? ' ' . $exam->student->surname : ''),
+                    'student_name' => $examStudent->student->first_name . ' ' . $examStudent->student->fathers_name . ($examStudent->student->surname ? ' ' . $examStudent->student->surname : ''),
                     'exam_id' => $exam->exam_id,
-                    'password' => $exam->password,
+                    'user_id' => $examStudent->exam_user_id,
+                    'password' => $examStudent->exam_password,
                     'categories' => $exam->examCategories->pluck('category.name')->implode(', '),
                 ];
             }
 
-            // Show success/error messages
+            // Show success message
             if (!empty($scheduledExams)) {
-                $successMessage = 'Successfully scheduled exams for ' . count($scheduledExams) . ' student(s):<br>';
+                $successMessage = 'Successfully scheduled exam for ' . count($scheduledExams) . ' student(s):<br>';
                 foreach ($scheduledExams as $exam) {
-                    $successMessage .= "• {$exam['student_name']}: Exam ID: {$exam['exam_id']}, Password: {$exam['password']}, Categories: {$exam['categories']}<br>";
+                    $successMessage .= "• {$exam['student_name']}: Exam ID: {$exam['exam_id']}, User ID: {$exam['user_id']}, Password: {$exam['password']}, Categories: {$exam['categories']}<br>";
                 }
                 $this->success($successMessage, position: 'toast-bottom');
             }
 
-            if (!empty($failedExams)) {
-                $errorMessage = 'Failed to schedule exams for: ' . implode(', ', $failedExams) . ' (time conflicts)';
-                $this->error($errorMessage, position: 'toast-bottom');
-            }
-
-            // Reset form if all exams were scheduled successfully
-            if (empty($failedExams)) {
-                $this->reset(['selectedCourse', 'selectedStudents', 'selectedCategories', 'duration', 'date', 'startTime', 'endTime']);
-            }
+            // Reset form since all exams were scheduled successfully
+            $this->reset(['selectedCourse', 'selectedStudents', 'selectedCategories', 'duration', 'date', 'startTime', 'endTime']);
         } catch (\Exception $e) {
             $this->error('Failed to schedule exams: ' . $e->getMessage(), position: 'toast-bottom');
         }
@@ -144,7 +148,10 @@ new class extends Component {
         }
     }
 }; ?>
-
+@section('cdn')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endsection
 <div>
     <!-- Header -->
     <div class="flex justify-between items-start lg:items-center flex-col lg:flex-row mt-3 mb-5 gap-2">
@@ -204,8 +211,7 @@ new class extends Component {
                     <x-choices-offline label="Select Students" wire:model="selectedStudents" :options="$students"
                         placeholder="Choose students..." icon="o-users" :disabled="!$selectedCourse || empty($students)"
                         no-result-text="Ops! Nothing here ..." searchable clearable
-                        hint="You can select multiple students. Each student will get a
-                        separate exam with unique ID and password." />
+                        hint="You can select multiple students. All students will take the same exam but with individual user IDs and passwords." />
                 </div>
             </div>
 
@@ -215,16 +221,14 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Exam Details</h3>
                 </div>
 
-                <x-input label="Duration (minutes)" wire:model.live="duration" type="number" min="15"
-                    max="300" icon="o-clock" placeholder="Enter duration in minutes" required />
+                <x-datepicker label="Date" wire:model="date" icon="o-calendar" :config="$dateConfig" />
 
-                <x-input label="Exam Date" wire:model="date" type="date" min="{{ date('Y-m-d') }}" icon="o-calendar"
-                    required />
+                <div class="grid grid-cols-2 gap-3">
+                    <x-input label="Start Time" wire:model.live="startTime" wire:change="calculateEndTime"
+                        type="time" icon="o-play" required />
 
-                <x-input label="Start Time" wire:model.live="startTime" wire:change="calculateEndTime" type="time"
-                    icon="o-play" required />
-
-                <x-input label="End Time" wire:model="endTime" type="time" icon="o-stop" required />
+                    <x-input label="End Time" wire:model="endTime" type="time" icon="o-stop" required />
+                </div>
             </div>
 
             <!-- Duration Info -->

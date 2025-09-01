@@ -52,12 +52,16 @@ class CancelOverdueExams extends Command
 
                     $cancelledCount++;
 
-                    $this->line("✓ Cancelled exam: {$exam->exam_id} for student {$exam->student->full_name}");
+                    $studentNames = $exam->examStudents->map(function ($examStudent) {
+                        return $examStudent->student->full_name;
+                    })->implode(', ');
+
+                    $this->line("✓ Cancelled exam: {$exam->exam_id} for students: {$studentNames}");
 
                     // Log the cancellation
                     Log::info("Exam automatically cancelled", [
                         'exam_id' => $exam->exam_id,
-                        'student_id' => $exam->student_id,
+                        'student_count' => $exam->examStudents->count(),
                         'course_id' => $exam->course_id,
                         'scheduled_date' => $exam->date,
                         'scheduled_end_time' => $exam->end_time,

@@ -1,7 +1,6 @@
 <?php
 
-use App\Models\{Student, Exam};
-use App\Enums\ExamResultStatusEnum;
+use App\Models\{Exam, Student};
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -13,16 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exam_results', function (Blueprint $table) {
+        Schema::create('exam_students', function (Blueprint $table) {
             $table->id();
 
             $table->foreignIdFor(Exam::class);
             $table->foreignIdFor(Student::class);
-            $table->decimal('score', 5, 2);
-            $table->string('result_status')->default(ExamResultStatusEnum::NotDeclared->value);
-            $table->timestamp('declared_at')->nullable();
-            $table->json('data')->nullable();
-            $table->foreignId('declared_by');
+            $table->string('exam_user_id')->unique();
+            $table->string('exam_password');
+            $table->json('answers')->nullable();
 
             $table->timestamps();
         });
@@ -33,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('exam_results');
+        Schema::dropIfExists('exam_students');
     }
 };

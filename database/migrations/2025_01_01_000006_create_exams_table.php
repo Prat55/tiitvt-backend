@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('exam_id')->unique()->comment('Unique exam identifier for students');
             $table->string('password')->comment('Password for exam access');
             $table->foreignIdFor(Course::class)->constrained()->onDelete('cascade');
-            $table->foreignIdFor(Student::class)->constrained()->onDelete('cascade');
             $table->integer('duration')->comment('Duration in minutes');
             $table->date('date');
             $table->time('start_time');
