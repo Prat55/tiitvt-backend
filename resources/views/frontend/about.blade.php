@@ -135,8 +135,8 @@
                 </div>
                 <div class="col-lg-3">
                     <div class="advantages-info">
-                        <h2>The worlds best online education institude</h2>
-                        <a class="btn btn-sm btn-light animation" href="about-us.html">Explore More</a>
+                        <h2>The TIITVT worlds best education institude</h2>
+                        <a class="btn btn-sm btn-light animation" href="{{ route('frontend.about') }}">Explore More</a>
                     </div>
                 </div>
             </div>
@@ -177,6 +177,7 @@
                                             <a href="#"><i class="fab fa-facebook-f"></i></a>
                                         </li>
                                     </ul>
+
                                     <div class="icon">
                                         <div class="inner">
                                             <i class="fas fa-plus"></i>
@@ -242,8 +243,8 @@
                                     </p>
                                 </li>
                             </ul>
-                            <a href="contact-us.html" class="btn-style-two"><span>Become a instructor</span> <i
-                                    class="fas fa-long-arrow-right"></i></a>
+                            <a href="{{ route('frontend.contact') }}" class="btn-style-two"><span>Become a
+                                    instructor</span> <i class="fas fa-long-arrow-right"></i></a>
                         </div>
                     </div>
                     <!-- End Single item -->
@@ -369,7 +370,8 @@
                             <p>
                                 Learn at your own pace, move the between multiple courses.
                             </p>
-                            <a class="btn circle btn-sm btn-gradient animation" href="contact-us.html">Apply Now</a>
+                            <a class="btn circle btn-sm btn-gradient animation"
+                                href="{{ route('frontend.contact') }}">Apply Now</a>
                         </div>
                         <div class="thumb">
                             <img src="{{ asset('frontend/img/illustration/7.png') }}" alt="Image Not Found">
@@ -387,7 +389,8 @@
                             <p>
                                 Learn at your own pace, move the between multiple courses.
                             </p>
-                            <a class="btn btn-sm btn-light circle animation" href="contact-us.html">Apply Now</a>
+                            <a class="btn btn-sm btn-light circle animation" href="{{ route('frontend.contact') }}">Apply
+                                Now</a>
                         </div>
                         <div class="thumb">
                             <img src="{{ asset('frontend/img/illustration/8.png') }}" alt="Image Not Found">
@@ -439,16 +442,13 @@
                                                 </div>
                                                 <div class="info">
                                                     <h4>Michel Dark</h4>
-                                                    <span>WordPress Course</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star-half-alt"></i>
+                                                    <div class="ratings">
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star-half-alt"></i>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -456,6 +456,7 @@
                                 </div>
                             </div>
                             <!-- Single Item -->
+
                             <!-- Single Item -->
                             <div class="swiper-slide">
                                 <div class="testimonial-style-two">
@@ -481,16 +482,13 @@
                                                 </div>
                                                 <div class="info">
                                                     <h4>Kennsual Martin</h4>
-                                                    <span>Laravel Batch - 11</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
+                                                    <div class="ratings">
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                        <i class="fas fa-star"></i>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
