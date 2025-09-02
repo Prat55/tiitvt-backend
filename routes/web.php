@@ -58,6 +58,10 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/{question}/show', 'backend.question.show')->name('show');
                 Volt::route('/{question}/edit', 'backend.question.edit')->name('edit');
             });
+
+            Route::prefix('website-setting')->name('website-setting.')->group(function () {
+                Volt::route('/', 'backend.website-setting.index')->name('index');
+            });
         });
     });
 });

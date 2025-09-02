@@ -44,3 +44,10 @@ if (!function_exists('getWebsiteSecondaryPhone')) {
         return getWebsiteSettings()->secondary_phone ?? null;
     }
 }
+
+if (!function_exists('hasAuthRole')) {
+    function hasAuthRole($role)
+    {
+        return auth()->user()->hasRole($role);
+    }
+}

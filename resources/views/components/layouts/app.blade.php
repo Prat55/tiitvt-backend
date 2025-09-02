@@ -62,6 +62,9 @@
                     <x-menu-item title="Question" icon="o-question-mark-circle"
                         link="{{ route('admin.question.index') }}" />
                 </x-menu-sub>
+
+                <x-menu-item title="Website Settings" icon="o-cog"
+                    link="{{ route('admin.website-setting.index') }}" />
             </x-menu>
         </x-slot:sidebar>
 
