@@ -88,15 +88,15 @@
                 <div class="col-lg-12">
                     <ul class="item-flex justify-content-end">
                         <li>
-                            <a href="tel:+4733378901">
+                            <a href="tel:{{ getWebsiteSettings()->primary_phone }}">
                                 <img src="{{ asset('frontend/img/icon/2.png') }}" alt="Icon">
-                                Phone: +4733378901
+                                Phone: {{ getWebsiteSettings()->primary_phone }}
                             </a>
                         </li>
                         <li>
-                            <a href="mailto:name@email.com">
+                            <a href="mailto:{{ getWebsiteSettings()->primary_email }}">
                                 <img src="{{ asset('frontend/img/icon/3.png') }}" alt="Icon">
-                                Email: edufik@info.com
+                                Email: {{ getWebsiteSettings()->primary_email }}
                             </a>
                         </li>
                     </ul>
@@ -127,27 +127,27 @@
                                 <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Image Not Found">
                             </div>
                             <p>
-                                Bndulgence diminution so discovered mr apartments. Are off under folly death wrote cause
-                                her way spite plan upon.
+                                TIITVT – An ISO 9001:2015 certified skills training & certification body, registered
+                                under MSME, Govt. of India, and a member of NBQP, QCI.
                             </p>
                             <ul class="footer-social">
                                 <li>
-                                    <a href="#">
+                                    <a href="{{ getWebsiteSettings()->facebook_url }}">
                                         <i class="fab fa-facebook-f"></i>
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#">
+                                    <a href="{{ getWebsiteSettings()->twitter_url }}">
                                         <img src="{{ asset('frontend/img/icon/x.png') }}" alt="Icon">
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#">
+                                    <a href="{{ getWebsiteSettings()->linkedin_url }}">
                                         <i class="fab fa-youtube"></i>
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#">
+                                    <a href="{{ getWebsiteSettings()->instagram_url }}">
                                         <i class="fab fa-linkedin-in"></i>
                                     </a>
                                 </li>
@@ -159,22 +159,10 @@
                             <h4 class="widget-title">About</h4>
                             <ul>
                                 <li>
-                                    <a href="about-us.html">About Us</a>
+                                    <a href="{{ route('frontend.about') }}">About Us</a>
                                 </li>
                                 <li>
-                                    <a href="course-filter.html">Courses</a>
-                                </li>
-                                <li>
-                                    <a href="blog-with-sidebar.html">News & Blogs</a>
-                                </li>
-                                <li>
-                                    <a href="ins">Become a Teacher</a>
-                                </li>
-                                <li>
-                                    <a href="event.html">Events</a>
-                                </li>
-                                <li>
-                                    <a href="contact-us.html">Contact</a>
+                                    <a href="{{ route('frontend.contact') }}">Contact</a>
                                 </li>
                             </ul>
                         </div>
@@ -184,26 +172,15 @@
                             <h4 class="widget-title">Quick Link</h4>
                             <ul>
                                 <li>
-                                    <a href="contact-us.html">Live Workshop</a>
+                                    <a href="#0">Courses</a>
                                 </li>
                                 <li>
-                                    <a href="course-filter.html">Free Courses</a>
-                                </li>
-                                <li>
-                                    <a href="contact-us.html">Addmition</a>
-                                </li>
-                                <li>
-                                    <a href="contact-us.html">Request A Demo</a>
-                                </li>
-                                <li>
-                                    <a href="blog-with-sidebar.html">Media Relations</a>
-                                </li>
-                                <li>
-                                    <a href="about-us.html">Students</a>
+                                    <a href="#0">News & Blogs</a>
                                 </li>
                             </ul>
                         </div>
                     </div>
+
                     <div class="col-lg-4 col-md-6 footer-item">
                         <div class="f-item newsletter">
                             <h4 class="widget-title">Contact Info</h4>
@@ -233,24 +210,24 @@
                                     </div>
                                 </li>
                             </ul>
-                            <h4>Download TIITVTApp</h4>
+                            {{-- <h4>Download TIITVT App</h4>
                             <ul class="app-store">
                                 <li>
-                                    <a href="#">
+                                    <a href="#0">
                                         <img src="{{ asset('frontend/img/icon/4.png') }}" alt="Image Not Found">
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#">
+                                    <a href="#0">
                                         <img src="{{ asset('frontend/img/icon/5.png') }}" alt="Image Not Found">
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#">
+                                    <a href="#0">
                                         <img src="{{ asset('frontend/img/icon/6.png') }}" alt="Image Not Found">
                                     </a>
                                 </li>
-                            </ul>
+                            </ul> --}}
                         </div>
                     </div>
                 </div>
@@ -264,20 +241,20 @@
                         <p>
                             &copy; Copyright {{ date('Y') }}. All Rights Reserved by
                             <a href="{{ route('frontend.index') }}">
-                                {{ config('app.name') }}
+                                {{ getWebsiteSettings()->meta_author }}
                             </a>
                         </p>
                     </div>
                     <div class="col-lg-6 text-end">
                         <ul class="link-list">
                             <li>
-                                <a href="#">Terms</a>
+                                <a href="#0">Terms</a>
                             </li>
                             <li>
-                                <a href="#">Privacy</a>
+                                <a href="#0">Privacy</a>
                             </li>
                             <li>
-                                <a href="#">Support</a>
+                                <a href="#0">Support</a>
                             </li>
                         </ul>
                     </div>

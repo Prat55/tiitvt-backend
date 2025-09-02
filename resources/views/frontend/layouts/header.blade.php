@@ -80,19 +80,19 @@
                              <li>
                                  <div class="content">
                                      <p>Address</p>
-                                     <strong>California, TX 70240</strong>
+                                     <strong>{{ getWebsiteSettings()->address }}</strong>
                                  </div>
                              </li>
                              <li>
                                  <div class="content">
                                      <p>Email</p>
-                                     <strong>support@validtheme.com</strong>
+                                     <strong>{{ getWebsiteSettings()->primary_email }}</strong>
                                  </div>
                              </li>
                              <li>
                                  <div class="content">
                                      <p>Contact</p>
-                                     <strong>+44-20-7328-4499</strong>
+                                     <strong>{{ getWebsiteSettings()->primary_phone }}</strong>
                                  </div>
                              </li>
                          </ul>
@@ -113,10 +113,14 @@
                  </div>
                  <div class="widget social">
                      <ul class="link">
-                         <li><a href="#"><i class="fab fa-facebook-f"></i></a></li>
-                         <li><a href="#"><i class="fab fa-twitter"></i></a></li>
-                         <li><a href="#"><i class="fab fa-linkedin-in"></i></a></li>
-                         <li><a href="#"><i class="fab fa-behance"></i></a></li>
+                         <li><a href="{{ getWebsiteSettings()->facebook_url }}"><i class="fab fa-facebook-f"></i></a>
+                         </li>
+                         <li><a href="{{ getWebsiteSettings()->twitter_url }}"><i class="fab fa-twitter"></i></a>
+                         </li>
+                         <li><a href="{{ getWebsiteSettings()->linkedin_url }}"><i class="fab fa-linkedin-in"></i></a>
+                         </li>
+                         <li><a href="{{ getWebsiteSettings()->instagram_url }}"><i class="fab fa-instagram"></i></a>
+                         </li>
                      </ul>
                  </div>
 
