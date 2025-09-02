@@ -378,24 +378,40 @@
                                     <img src="{{ $blog->image ? asset('storage/' . $blog->image) : 'https://placehold.co/600x350' }}"
                                         alt="{{ $blog->title }}">
                                     <ul class="blog-meta">
-                                        <li><a href="#">Courses</a></li>
-                                        <li><i class="fas fa-calendar-alt"></i> October 18, 2025</li>
+                                        {{-- <li><a href="#">Courses</a></li> --}}
+                                        <li>
+                                            <i class="fas fa-calendar-alt"></i> {{ $blog->created_at->format('F d, Y') }}
+                                        </li>
                                     </ul>
                                 </div>
                                 <div class="info">
                                     <h3 class="blog-title">
-                                        <a href="blog-single-with-sidebar.html">{{ $blog->title }}</a>
+                                        <a href="{{ route('frontend.blog.show', $blog->slug) }}">{{ $blog->title }}</a>
                                     </h3>
+
                                     <p>
-                                        {{ $blog->content }}
+                                        {{ Str::limit($blog->meta_description, 100) }}
                                     </p>
-                                    <a href="blog-single-with-sidebar.html" class="btn-read-more">
+
+                                    <a href="{{ route('frontend.blog.show', $blog->slug) }}" class="btn-read-more">
                                         Read More <i class="fas fa-long-arrow-right"></i>
                                     </a>
                                 </div>
                             </div>
                         </div>
                     @endforeach
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="text-center">
+                            <a href="{{ route('frontend.blog.index') }}">
+                                <button>
+                                    View All Blog <i class="fas fa-long-arrow-right"></i>
+                                </button>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

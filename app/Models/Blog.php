@@ -6,15 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Blog extends Model
 {
-    protected $fillable = ['title', 'slug', 'content', 'image', 'is_active'];
+    protected $fillable = ['title', 'slug', 'content', 'meta_description', 'image', 'is_active'];
 
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    public function categories()
+    public function tags()
     {
-        return $this->hasMany(BlogCategory::class);
+        return $this->belongsToMany(Tag::class, 'blog_tags');
     }
 }

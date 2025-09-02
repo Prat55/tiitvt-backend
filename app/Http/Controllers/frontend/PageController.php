@@ -47,4 +47,23 @@ class PageController extends Controller
 
         return redirect()->back()->with('success', 'Response captured successfully');
     }
+
+    public function blogIndex()
+    {
+        if (request()->has('tag')) {
+            $blogs = Blog::active()->whereHas('tags', function ($query) {
+                $query->where('slug', request()->tag);
+            })->latest()->paginate(6);
+        } else {
+            $blogs = Blog::active()->latest()->paginate(6);
+        }
+
+        return view('frontend.blog.index', compact('blogs'));
+    }
+
+    public function blogShow($slug)
+    {
+        $blog = Blog::with('tags')->where('slug', $slug)->where('is_active', true)->firstOrFail();
+        return view('frontend.blog.show', compact('blog'));
+    }
 }

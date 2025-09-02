@@ -63,6 +63,7 @@
                         link="{{ route('admin.question.index') }}" />
                 </x-menu-sub>
 
+                <x-menu-item title="Blog" icon="o-document-text" link="{{ route('admin.blog.index') }}" />
                 <x-menu-item title="Website Settings" icon="o-cog"
                     link="{{ route('admin.website-setting.index') }}" />
                 <x-menu-item title="Testimonials" icon="o-star" link="{{ route('admin.testimonial.index') }}" />

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\{Blog, Tag};
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -11,16 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('blogs', function (Blueprint $table) {
+        Schema::create('blog_tags', function (Blueprint $table) {
             $table->id();
 
-            $table->string('title');
-            $table->string('slug')->unique();
-            $table->string('meta_description')->nullable();
-            $table->longText('content');
-            $table->string('image')->nullable();
-
-            $table->boolean('is_active')->default(true);
+            $table->foreignIdFor(Blog::class);
+            $table->foreignIdFor(Tag::class);
 
             $table->timestamps();
         });
@@ -31,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('blogs');
+        Schema::dropIfExists('blog_tags');
     }
 };
