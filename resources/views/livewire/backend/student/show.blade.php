@@ -20,6 +20,9 @@ new class extends Component {
     public $selectedInstallments = [];
     public $bulkStatus = '';
     public $bulkNotes = '';
+    public $showPartialPaymentModal = false;
+    public $partialPaymentAmount = '';
+    public $partialPaymentNotes = '';
 
     public function mount($student)
     {
@@ -61,6 +64,22 @@ new class extends Component {
     {
         $this->showBulkUpdateModal = false;
         $this->selectedInstallments = [];
+    }
+
+    public function openPartialPaymentModal($installmentId)
+    {
+        $this->selectedInstallment = Installment::findOrFail($installmentId);
+        $this->partialPaymentAmount = '';
+        $this->partialPaymentNotes = '';
+        $this->showPartialPaymentModal = true;
+    }
+
+    public function closePartialPaymentModal()
+    {
+        $this->showPartialPaymentModal = false;
+        $this->selectedInstallment = null;
+        $this->partialPaymentAmount = '';
+        $this->partialPaymentNotes = '';
     }
 
     public function toggleInstallmentSelection($installmentId)
@@ -173,6 +192,34 @@ new class extends Component {
         }
     }
 
+    public function addPartialPayment()
+    {
+        if (!$this->selectedInstallment) {
+            return;
+        }
+
+        $this->validate([
+            'partialPaymentAmount' => 'required|numeric|min:0.01|max:' . $this->selectedInstallment->getRemainingAmount(),
+            'partialPaymentNotes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $installment = $this->selectedInstallment;
+            $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes);
+
+            $this->success('Partial payment added successfully!', position: 'toast-bottom');
+
+            // Refresh the student data
+            $this->student->refresh();
+            $this->closePartialPaymentModal();
+
+            // Recalculate overdue status after update
+            $this->checkAndMarkOverdueInstallments();
+        } catch (\Exception $e) {
+            $this->error('Failed to add partial payment. Please try again.', position: 'toast-bottom');
+        }
+    }
+
     public function getStatusOptions()
     {
         return collect(InstallmentStatusEnum::all())
@@ -186,22 +233,29 @@ new class extends Component {
     {
         $installments = $this->student->installments;
         $total = $installments->sum('amount');
-        $paid = $installments->filter(fn($installment) => $installment->status->isPaid())->sum('paid_amount');
+
+        // Calculate total paid amount (including partial payments)
+        $totalPaid = $installments->sum('paid_amount');
 
         // Calculate overdue amount more comprehensively using new model methods
         $overdueAmount = 0;
         $overdueCount = 0;
+        $partialCount = 0;
+        $partialAmount = 0;
 
         foreach ($installments as $installment) {
             if ($installment->status->isOverdue()) {
-                $overdueAmount += $installment->amount;
+                $overdueAmount += $installment->getRemainingAmount();
                 $overdueCount++;
             } elseif ($installment->shouldBeOverdue()) {
-                // Include installments that should be overdue (past due date but not paid)
+                // Include installments that should be overdue (past due date but not fully paid)
                 $overdueAmount += $installment->getOverdueAmount();
                 if ($installment->getOverdueAmount() > 0) {
                     $overdueCount++;
                 }
+            } elseif ($installment->status->isPartial()) {
+                $partialCount++;
+                $partialAmount += $installment->getRemainingAmount();
             }
         }
 
@@ -210,12 +264,14 @@ new class extends Component {
 
         return [
             'total' => $total,
-            'paid' => $paid,
+            'paid' => $totalPaid,
             'pending' => $pending,
+            'partial' => $partialAmount,
             'overdue' => $overdueAmount,
             'pendingCount' => $pendingCount,
+            'partialCount' => $partialCount,
             'overdueCount' => $overdueCount,
-            'paymentProgress' => $total > 0 ? ($paid / $total) * 100 : 0,
+            'paymentProgress' => $total > 0 ? ($totalPaid / $total) * 100 : 0,
         ];
     }
 
@@ -601,16 +657,17 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Installment Details</h3>
                     <div class="flex gap-2">
                         <x-button label="Refresh Overdue" icon="o-arrow-path" class="btn-sm btn-outline btn-info"
-                            wire:click="refreshOverdueStatus" />
+                            wire:click="refreshOverdueStatus" tooltip="Refresh overdue status" responsive />
                         <x-button label="Mark Overdue" icon="o-exclamation-triangle"
-                            class="btn-sm btn-outline btn-warning" wire:click="markOverdueInstallments" />
-                        <x-button label="Bulk Update" icon="o-arrow-path" class="btn-sm btn-outline btn-primary"
-                            wire:click="openBulkUpdateModal" />
+                            class="btn-sm btn-outline btn-warning" wire:click="markOverdueInstallments"
+                            tooltip="Mark overdue installments" responsive />
+                        <x-button label="Bulk Update" icon="o-squares-plus" class="btn-sm btn-outline btn-primary"
+                            wire:click="openBulkUpdateModal" tooltip="Bulk update installment status" responsive />
                     </div>
                 </div>
 
                 <!-- Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Total Amount</div>
                         <div class="stat-value text-primary text-lg">₹{{ number_format($summary['total'], 2) }}</div>
@@ -618,6 +675,14 @@ new class extends Component {
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Paid Amount</div>
                         <div class="stat-value text-success text-lg">₹{{ number_format($summary['paid'], 2) }}</div>
+                    </div>
+                    <div class="stat bg-base-200 rounded-lg">
+                        <div class="stat-title">Partial Amount</div>
+                        <div class="stat-value text-info text-lg">₹{{ number_format($summary['partial'], 2) }}
+                            @if ($summary['partial'] > 0)
+                                <div class="text-xs text-info mt-1">({{ $summary['partialCount'] }} partial)</div>
+                            @endif
+                        </div>
                     </div>
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Pending Amount</div>
@@ -636,10 +701,14 @@ new class extends Component {
                 </div>
 
                 <!-- Additional Summary Info -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Pending Count</div>
                         <div class="stat-value text-warning text-lg">{{ $summary['pendingCount'] }}</div>
+                    </div>
+                    <div class="stat bg-base-200 rounded-lg">
+                        <div class="stat-title">Partial Count</div>
+                        <div class="stat-value text-info text-lg">{{ $summary['partialCount'] }}</div>
                     </div>
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Overdue Count</div>
@@ -737,9 +806,6 @@ new class extends Component {
                                 </div>
                                 <span class="badge {{ $installment->status_badge_class }} text-xs">
                                     {{ $installment->status->label() }}
-                                    @if ($installment->shouldBeOverdue() && !$installment->status->isOverdue())
-                                        <span class="text-error">(OVERDUE)</span>
-                                    @endif
                                 </span>
                             </div>
 
@@ -763,6 +829,13 @@ new class extends Component {
                                         Amount: ₹{{ number_format($installment->paid_amount, 2) }}
                                     </div>
                                 @endif
+                            @elseif ($installment->status->isPartial())
+                                <div class="text-xs text-info mt-1">
+                                    Partial: ₹{{ number_format($installment->paid_amount, 2) }} paid
+                                </div>
+                                <div class="text-xs text-warning mt-1">
+                                    Remaining: ₹{{ number_format($installment->getRemainingAmount(), 2) }}
+                                </div>
                             @endif
 
                             @if ($installment->notes)
@@ -772,11 +845,17 @@ new class extends Component {
                             @endif
 
                             <div class="mt-3">
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 flex-wrap">
                                     <button wire:click="openStatusModal({{ $installment->id }})"
                                         class="btn btn-sm btn-outline btn-primary flex-1">
                                         Update Status
                                     </button>
+                                    @if (($installment->status->isPending() || $installment->status->isPartial()) && $installment->getRemainingAmount() > 0)
+                                        <button wire:click="openPartialPaymentModal({{ $installment->id }})"
+                                            class="btn btn-sm btn-outline btn-info">
+                                            Add Payment
+                                        </button>
+                                    @endif
                                     @if ($installment->status->isPending() && $installment->shouldBeOverdue())
                                         <button wire:click="markSpecificInstallmentAsOverdue({{ $installment->id }})"
                                             class="btn btn-sm btn-outline btn-error">
@@ -874,6 +953,42 @@ new class extends Component {
             <x-button label="Cancel" @click="$wire.showBulkUpdateModal = false" />
             <x-button label="Update All Selected" class="btn-primary" wire:click="bulkUpdateInstallmentStatus"
                 :disabled="!empty($bulkStatus)" />
+        </x-slot:actions>
+    </x-modal>
+
+    <!-- Partial Payment Modal -->
+    <x-modal wire:model="showPartialPaymentModal" title="Add Partial Payment" class="backdrop-blur">
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-lg font-bold text-primary">Installment
+                    {{ $selectedInstallment?->installment_no }}</span>
+                <div class="text-right">
+                    <div class="text-lg font-bold text-primary">₹{{ number_format($selectedInstallment?->amount, 2) }}
+                    </div>
+                    @if ($selectedInstallment?->status->isPartial())
+                        <div class="text-sm text-info">Already paid:
+                            ₹{{ number_format($selectedInstallment?->paid_amount, 2) }}</div>
+                        <div class="text-sm text-warning">Remaining:
+                            ₹{{ number_format($selectedInstallment?->getRemainingAmount(), 2) }}</div>
+                    @endif
+                </div>
+            </div>
+
+            <x-input label="Payment Amount" type="number" wire:model.live="partialPaymentAmount" step="0.01"
+                min="0.01" :max="$selectedInstallment?->getRemainingAmount()" placeholder="Enter payment amount"
+                hint="Max: ₹{{ number_format($selectedInstallment?->getRemainingAmount(), 2) }}" />
+
+            <x-textarea label="Notes (Optional)" wire:model="partialPaymentNotes"
+                class="textarea textarea-bordered w-full" rows="3"
+                placeholder="Add any notes about this payment..."></x-textarea>
+
+            <x-alert class="alert-info" icon="o-information-circle" title="Info"
+                description="If the payment amount equals or exceeds the remaining amount, the installment will be marked as fully paid." />
+        </div>
+
+        <x-slot:actions>
+            <x-button label="Cancel" @click="$wire.showPartialPaymentModal = false" />
+            <x-button label="Add Payment" class="btn-primary" wire:click="addPartialPayment" :disabled="empty($partialPaymentAmount) || $partialPaymentAmount <= 0" />
         </x-slot:actions>
     </x-modal>
 </div>

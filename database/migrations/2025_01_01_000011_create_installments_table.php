@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('installment_no');
             $table->decimal('amount', 10, 2);
             $table->date('due_date');
-            $table->enum('status', ['pending', 'paid', 'overdue'])->default('pending');
+            $table->enum('status', ['pending', 'partial', 'paid', 'overdue'])->default('pending');
             $table->date('paid_date')->nullable();
             $table->decimal('paid_amount', 10, 2)->nullable();
             $table->text('notes')->nullable();

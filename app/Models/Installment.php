@@ -99,6 +99,45 @@ class Installment extends Model
     }
 
     /**
+     * Add partial payment to installment.
+     */
+    public function addPartialPayment(float $partialAmount, string $notes = null): void
+    {
+        $currentPaidAmount = $this->paid_amount ?? 0;
+        $newPaidAmount = $currentPaidAmount + $partialAmount;
+
+        // If the new paid amount equals or exceeds the installment amount, mark as fully paid
+        if ($newPaidAmount >= $this->amount) {
+            $this->markAsPaid($newPaidAmount, $notes);
+        } else {
+            // Otherwise, mark as partial
+            $this->update([
+                'status' => InstallmentStatusEnum::Partial,
+                'paid_date' => now(),
+                'paid_amount' => $newPaidAmount,
+                'notes' => $notes,
+            ]);
+        }
+    }
+
+    /**
+     * Get remaining amount for this installment.
+     */
+    public function getRemainingAmount(): float
+    {
+        $paidAmount = $this->paid_amount ?? 0;
+        return max(0, $this->amount - $paidAmount);
+    }
+
+    /**
+     * Check if installment is fully paid.
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->status->isPaid() && ($this->paid_amount ?? 0) >= $this->amount;
+    }
+
+    /**
      * Mark installment as overdue.
      */
     public function markAsOverdue(): void

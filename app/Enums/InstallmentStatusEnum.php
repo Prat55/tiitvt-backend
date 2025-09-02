@@ -5,6 +5,7 @@ namespace App\Enums;
 enum InstallmentStatusEnum: string
 {
     case Pending = 'pending';
+    case Partial = 'partial';
     case Paid = 'paid';
     case Overdue = 'overdue';
 
@@ -12,6 +13,7 @@ enum InstallmentStatusEnum: string
     {
         return match ($this) {
             self::Pending => 'Pending',
+            self::Partial => 'Partial',
             self::Paid => 'Paid',
             self::Overdue => 'Overdue',
         };
@@ -21,6 +23,7 @@ enum InstallmentStatusEnum: string
     {
         return match ($this) {
             self::Paid => 'badge-success',
+            self::Partial => 'badge-info',
             self::Overdue => 'badge-error',
             self::Pending => 'badge-warning',
         };
@@ -36,6 +39,11 @@ enum InstallmentStatusEnum: string
         return $this === self::Pending;
     }
 
+    public function isPartial(): bool
+    {
+        return $this === self::Partial;
+    }
+
     public function isOverdue(): bool
     {
         return $this === self::Overdue;
@@ -48,6 +56,7 @@ enum InstallmentStatusEnum: string
     {
         return [
             self::Pending,
+            self::Partial,
             self::Paid,
             self::Overdue,
         ];
