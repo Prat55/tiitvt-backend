@@ -49,7 +49,7 @@ new class extends Component {
         $view->examStudents = ExamStudent::with(['student', 'exam.course', 'examResult'])
             ->when($this->search, function ($query) {
                 $query->whereHas('student', function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')->orWhere('email', 'like', '%' . $this->search . '%');
+                    $q->search($this->search);
                 });
             })
             ->when($this->statusFilter, function ($query) {
