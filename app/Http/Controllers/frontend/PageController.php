@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\frontend;
 
-use App\Http\Controllers\Controller;
-use App\Models\Category;
-use App\Models\ContactForm;
-use App\Models\Course;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Models\{Category, ContactForm, Course, Testimonial, Blog};
 
 class PageController extends Controller
 {
@@ -14,7 +12,10 @@ class PageController extends Controller
     {
         $categories = Category::active()->latest()->get();
         $courses = Course::active()->latest()->get();
-        return view('frontend.index', compact('categories', 'courses'));
+        $testimonials = Testimonial::active()->latest()->get();
+        $blogs = Blog::active()->latest()->get();
+
+        return view('frontend.index', compact('categories', 'courses', 'testimonials', 'blogs'));
     }
 
     public function about()

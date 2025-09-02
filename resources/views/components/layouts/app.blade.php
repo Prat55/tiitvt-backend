@@ -65,6 +65,7 @@
 
                 <x-menu-item title="Website Settings" icon="o-cog"
                     link="{{ route('admin.website-setting.index') }}" />
+                <x-menu-item title="Testimonials" icon="o-star" link="{{ route('admin.testimonial.index') }}" />
             </x-menu>
         </x-slot:sidebar>
 

@@ -291,321 +291,116 @@
     </div>
     <!-- End Certificate -->
 
-    <!-- Start Testimonial -->
-    <div class="testimonial-style-two-area default-padding">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-6 offset-xl-3 col-lg-8 offset-lg-2">
-                    <div class="site-heading text-center">
-                        <h4 class="sub-title">Student Feedback</h4>
-                        <h2 class="title split-text">Best review from our successful student</h2>
+    @if ($testimonials->count() > 0)
+        <!-- Start Testimonial -->
+        <div class="testimonial-style-two-area default-padding">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-6 offset-xl-3 col-lg-8 offset-lg-2">
+                        <div class="site-heading text-center">
+                            <h4 class="sub-title">Student Feedback</h4>
+                            <h2 class="title split-text">Best review from our successful student</h2>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="testimonial-style-two-carousel swiper">
-                        <!-- Additional required wrapper -->
-                        <div class="swiper-wrapper">
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Great Quality</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste of perfection.
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m3.jpg') }}"
+
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="testimonial-style-two-carousel swiper">
+                            <!-- Additional required wrapper -->
+                            <div class="swiper-wrapper">
+                                <!-- Single Item -->
+                                @foreach ($testimonials as $testimonial)
+                                    <div class="swiper-slide">
+                                        <div class="testimonial-style-two">
+                                            <div class="top-info">
+                                                <div class="icon">
+                                                    <img src="{{ asset('frontend/img/shape/quote.png') }}"
                                                         alt="Image Not Found">
                                                 </div>
-                                                <div class="info">
-                                                    <h4>Michel Dark</h4>
-                                                    <div class="ratings">
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star-half-alt"></i>
+                                                <h5>{{ $testimonial->subject }}</h5>
+                                            </div>
+                                            <div class="content">
+                                                <p>
+                                                    {{ $testimonial->description }}
+                                                </p>
+                                                <div class="bottom-info">
+                                                    <div class="provider">
+                                                        <div class="thumb">
+                                                            <img src="{{ $testimonial->student_image ? asset('storage/' . $testimonial->student_image) : 'https://placehold.co/600x400?text=' . $testimonial->student_name }}"
+                                                                alt="Image Not Found">
+                                                        </div>
+                                                        <div class="info">
+                                                            <h4>{{ $testimonial->student_name }}</h4>
+                                                            <div class="ratings">
+                                                                @for ($i = 1; $i <= $testimonial->rating; $i++)
+                                                                    <i class="fas fa-star"></i>
+                                                                @endfor
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endforeach
+                                <!-- Single Item -->
                             </div>
-                            <!-- Single Item -->
-
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Best Course Ever</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love to purse a best
-                                            education platform. Plan upon yet way get cold spot its week. Almost do am
-                                            or limits hearts. Resolve parties but why she shewing. She sang know now
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m4.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Kennsual Martin</h4>
-                                                    <div class="ratings">
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Very Easy Course</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love.
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m5.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Amanulla Joey</h4>
-                                                    <span>React Batch - 28</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star-half-alt"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Exellent Quality</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Learning is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love. The best
-                                            educaiton system i love this. Plan upon yet way get cold spot its week.
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m6.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Kamal Abraham</h4>
-                                                    <span>PHP Course</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Best Course Ever</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love to purse a best
-                                            education platform. Plan upon yet way get cold spot its week. Almost do am
-                                            or limits hearts. Resolve parties but why she shewing. She sang know now
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m1.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Kennsual Martin</h4>
-                                                    <span>Laravel Batch - 11</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- End Testimonial -->
+        <!-- End Testimonial -->
+    @endif
 
-    <!-- Start Blog -->
-    <div class="blog-area home-blog-style-two bg-gray-gradient-secondary default-padding bottom-less">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-6 offset-xl-3 col-lg-8 offset-lg-2">
-                    <div class="site-heading text-center">
-                        <h4 class="sub-title">Blog Insight</h4>
-                        <h2 class="title split-text">Valuable insights to change your startup idea</h2>
+    @if ($blogs->count() > 0)
+        <!-- Start Blog -->
+        <div class="blog-area home-blog-style-two bg-gray-gradient-secondary default-padding bottom-less">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-6 offset-xl-3 col-lg-8 offset-lg-2">
+                        <div class="site-heading text-center">
+                            <h4 class="sub-title">Blog Insight</h4>
+                            <h2 class="title split-text">Valuable insights to change your startup idea</h2>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="container">
-            <div class="row">
-                <!-- Single Item -->
-                <div class="col-xl-4 col-md-6 col-lg-6 mb-30">
-                    <div class="home-blog-style-two-item wow fadeInUp">
-                        <div class="thumb">
-                            <img src="{{ asset('frontend/img/blog/5.jpg') }}" alt="Image not Found">
-                            <ul class="blog-meta">
-                                <li><a href="#">Courses</a></li>
-                                <li><i class="fas fa-calendar-alt"></i> October 18, 2025</li>
-                            </ul>
+            <div class="container">
+                <div class="row">
+                    @foreach ($blogs as $blog)
+                        <div class="col-xl-4 col-md-6 col-lg-6 mb-30">
+                            <div class="home-blog-style-two-item wow fadeInUp">
+                                <div class="thumb">
+                                    <img src="{{ $blog->image ? asset('storage/' . $blog->image) : 'https://placehold.co/600x350' }}"
+                                        alt="{{ $blog->title }}">
+                                    <ul class="blog-meta">
+                                        <li><a href="#">Courses</a></li>
+                                        <li><i class="fas fa-calendar-alt"></i> October 18, 2025</li>
+                                    </ul>
+                                </div>
+                                <div class="info">
+                                    <h3 class="blog-title">
+                                        <a href="blog-single-with-sidebar.html">{{ $blog->title }}</a>
+                                    </h3>
+                                    <p>
+                                        {{ $blog->content }}
+                                    </p>
+                                    <a href="blog-single-with-sidebar.html" class="btn-read-more">
+                                        Read More <i class="fas fa-long-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                        <div class="info">
-                            <h3 class="blog-title">
-                                <a href="blog-single-with-sidebar.html">Drefabrice passive are house most
-                                    memorable</a>
-                            </h3>
-                            <p>
-                                Plan upon yet way get cold spot its week almost do am or limits hearts resolve parties.
-                            </p>
-                            <a href="blog-single-with-sidebar.html" class="btn-read-more">Read More <i
-                                    class="fas fa-long-arrow-right"></i></a>
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
-                <!-- End Single Item -->
-                <!-- Single Item -->
-                <div class="col-xl-4 col-md-6 col-lg-6 mb-30">
-                    <div class="home-blog-style-two-item wow fadeInUp" data-wow-delay="200ms">
-                        <div class="thumb">
-                            <img src="{{ asset('frontend/img/blog/3.jpg') }}" alt="Image not Found">
-                            <ul class="blog-meta">
-                                <li><a href="#">Laravel</a></li>
-                                <li><i class="fas fa-calendar-alt"></i> November 15, 2025</li>
-                            </ul>
-                        </div>
-                        <div class="info">
-                            <h3 class="blog-title">
-                                <a href="blog-single-with-sidebar.html">Announcing attachment resolution perform</a>
-                            </h3>
-                            <p>
-                                Taking upon yet way get cold spot its week almost do am or limits hearts resolve
-                                parties.
-                            </p>
-                            <a href="blog-single-with-sidebar.html" class="btn-read-more">Read More <i
-                                    class="fas fa-long-arrow-right"></i></a>
-                        </div>
-                    </div>
-                </div>
-                <!-- End Single Item -->
-
-                <!-- Single Item -->
-                <div class="col-xl-4 col-md-6 col-lg-6 mb-30">
-                    <div class="home-blog-style-two-item wow fadeInUp" data-wow-delay="400ms">
-                        <div class="thumb">
-                            <img src="{{ asset('frontend/img/blog/4.jpg') }}" alt="Image not Found">
-                            <ul class="blog-meta">
-                                <li><a href="#">WordPress</a></li>
-                                <li><i class="fas fa-calendar-alt"></i> December 13, 2025</li>
-                            </ul>
-                        </div>
-                        <div class="info">
-                            <h3 class="blog-title">
-                                <a href="blog-single-with-sidebar.html">Resolution performing the regular sentim.</a>
-                            </h3>
-                            <p>
-                                Media upon yet way get cold spot its week almost do am or limits hearts resolve parties.
-                            </p>
-                            <a href="blog-single-with-sidebar.html" class="btn-read-more">Read More <i
-                                    class="fas fa-long-arrow-right"></i></a>
-                        </div>
-                    </div>
-                </div>
-                <!-- End Single Item -->
             </div>
         </div>
-    </div>
-    <!-- End Blog -->
+        <!-- End Blog -->
+    @endif
 
     <!-- Start Newsletter -->
     <div class="newsletter-area default-padding-bottom bg-gray-gradient-secondary">

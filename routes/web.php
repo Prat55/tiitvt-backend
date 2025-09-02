@@ -62,6 +62,10 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('website-setting')->name('website-setting.')->group(function () {
                 Volt::route('/', 'backend.website-setting.index')->name('index');
             });
+
+            Route::prefix('testimonial')->name('testimonial.')->group(function () {
+                Volt::route('/', 'backend.testimonial.index')->name('index');
+            });
         });
     });
 });
