@@ -8,10 +8,9 @@ Route::get('/', function () {
 });
 
 Route::middleware(['admin.auth'])->group(function () {
-    Route::redirect('/admin', '/dashboard');
-    Route::redirect('/admin/dashboard', '/dashboard');
+    Route::redirect('/admin', '/admin/dashboard');
 
-    Route::name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->group(function () {
         Route::group(['middleware' => ['role:admin|center']], function () {
             Volt::route('/dashboard', 'backend.dashboard.index')->name('index');
             Volt::route('/profile', 'backend.profile.index')->name('profile');
@@ -59,17 +58,17 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/{question}/edit', 'backend.question.edit')->name('edit');
             });
 
+            Route::prefix('blog')->name('blog.')->group(function () {
+                Volt::route('/', 'backend.blog.index')->name('index');
+                Volt::route('/{blog}/edit', 'backend.blog.edit')->name('edit');
+            });
+
             Route::prefix('website-setting')->name('website-setting.')->group(function () {
                 Volt::route('/', 'backend.website-setting.index')->name('index');
             });
 
             Route::prefix('testimonial')->name('testimonial.')->group(function () {
                 Volt::route('/', 'backend.testimonial.index')->name('index');
-            });
-
-            Route::prefix('blog')->name('blog.')->group(function () {
-                Volt::route('/', 'backend.blog.index')->name('index');
-                Volt::route('/{blog}/edit', 'backend.blog.edit')->name('edit');
             });
         });
     });
