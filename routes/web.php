@@ -9,9 +9,8 @@ Route::get('/', function () {
 
 Route::middleware(['admin.auth'])->group(function () {
     Route::redirect('/admin', '/dashboard');
-    Route::redirect('/admin/dashboard', '/dashboard');
 
-    Route::name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->group(function () {
         Route::group(['middleware' => ['role:admin|center']], function () {
             Volt::route('/dashboard', 'backend.dashboard.index')->name('index');
             Volt::route('/profile', 'backend.profile.index')->name('profile');
