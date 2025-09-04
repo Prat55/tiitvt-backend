@@ -403,6 +403,51 @@ class MailHelper
     }
 
     /**
+     * Send center creation notification email
+     *
+     * @param string $email
+     * @param string $centerOwnerName
+     * @param array $centerData
+     * @param string|null $password
+     * @param bool $queue
+     * @return bool
+     */
+    public static function sendCenterCreationNotification(string $email, string $centerOwnerName, array $centerData, ?string $password = null, bool $queue = true): bool
+    {
+        try {
+            $subject = 'Welcome to TIITVT - Center Registration Successful!';
+
+            // Get the center ID from the database (it should be created by now)
+            $center = \App\Models\Center::where('email', $email)->first();
+            $centerId = $center ? $center->uid : 'N/A';
+
+            $body = view('mail.notification.center.registration-success', [
+                'centerOwnerName' => $centerOwnerName,
+                'centerName' => $centerData['name'],
+                'centerId' => $centerId,
+                'email' => $email,
+                'phone' => $centerData['phone'],
+                'address' => $centerData['address'],
+                'state' => $centerData['state'],
+                'country' => $centerData['country'],
+                'registrationDate' => now()->format('d M Y, h:i A'),
+                'password' => $password ?: 'Please check with admin for your password'
+            ])->render();
+
+            return self::sendNotification($email, $subject, $body, [], [], $queue);
+        } catch (\Exception $e) {
+            Log::error("Failed to send center creation notification", [
+                'email' => $email,
+                'center_name' => $centerData['name'] ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
      * Get email statistics
      *
      * @return array

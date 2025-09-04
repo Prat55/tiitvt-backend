@@ -66,13 +66,15 @@ new class extends Component {
 
         try {
             $user = User::where('email', $this->email)->first();
+            $generatedPassword = null;
 
             if (!$user) {
+                $generatedPassword = Str::random(10);
                 $user = User::create([
                     'name' => $this->owner_name,
                     'email' => $this->email,
                     'phone' => $this->phone,
-                    'password' => bcrypt(Str::random(10)),
+                    'password' => bcrypt($generatedPassword),
                 ]);
 
                 $user->assignRole(RolesEnum::Center->value);
@@ -104,6 +106,9 @@ new class extends Component {
             }
 
             Center::create($data);
+
+            // Send notification email with login credentials
+            MailHelper::sendCenterCreationNotification($user->email, $user->name, $data, $generatedPassword);
 
             $this->success('Center created successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.center.index'));
