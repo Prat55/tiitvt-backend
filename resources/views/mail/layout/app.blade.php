@@ -215,9 +215,7 @@
                 alt="{{ getWebsiteSettings()->meta_author }}">
         </div>
         <div class="main">
-
             @yield('content')
-
         </div>
         <div class="footer" style="font-size:11px;color:#000;">
             <img src="{{ asset('default/tiitvt_logo.png') }}" class="logo" width="50"
