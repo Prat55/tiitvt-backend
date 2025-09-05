@@ -5,10 +5,10 @@ use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
-use App\Enums\InstallmentStatusEnum;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\{Layout, Title};
 use App\Models\{Course, Center, Student};
+use App\Enums\{RolesEnum, InstallmentStatusEnum};
 
 new class extends Component {
     use WithFileUploads, Toast;
@@ -18,6 +18,10 @@ new class extends Component {
         // Initialize with default values and calculate installments if needed
         if ($this->course_fees > 0) {
             $this->calculateInstallments();
+        }
+
+        if (hasAuthRole(RolesEnum::Center->value)) {
+            $this->center_id = auth()->user()->center->id;
         }
     }
 
@@ -101,7 +105,7 @@ new class extends Component {
 
     // Relationships
     public int $center_id = 0;
-    public int $course_id = 0;
+    public $course_id = 0;
 
     // File uploads
     public $student_signature_image;
@@ -452,6 +456,20 @@ new class extends Component {
         }
     }
 
+    public function updatedCourseId(): void
+    {
+        if ($this->course_id) {
+            $course = Course::find($this->course_id);
+            if ($course && $course->price) {
+                $this->course_fees = $course->price;
+                $this->calculateInstallments();
+            }
+        } else {
+            $this->course_fees = 0;
+            $this->calculateInstallments();
+        }
+    }
+
     public function rendering(View $view)
     {
         // Auto-generate TIITVT registration number if empty
@@ -464,16 +482,13 @@ new class extends Component {
             $this->enrollment_date = now()->format('Y-m-d');
         }
 
-        // Don't recalculate installments here as it's handled in mount() and updated* methods
-        // This prevents conflicts with the initial calculation
-
         $view->centers = Center::active()
             ->latest()
             ->get(['id', 'name']);
 
         $view->courses = Course::active()
             ->latest()
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'price']);
     }
 }; ?>
 @section('cdn')
@@ -537,6 +552,27 @@ new class extends Component {
                 <x-input label="Surname" wire:model="surname" placeholder="Enter surname (optional)" icon="o-user" />
             </div>
 
+            <!-- Course and Batch Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                    <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
+                </div>
+
+                @role(RolesEnum::Admin->value)
+                    <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
+                        icon="o-building-office" :options="$centers" single searchable clearable />
+                @endrole
+
+                <x-choices-offline label="Course" wire:model.live="course_id" placeholder="Select course"
+                    icon="o-academic-cap" :options="$courses" single searchable clearable
+                    hint="Course price will be automatically loaded when a course is selected" />
+
+                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
+
+                <x-textarea label="Scheme Given" wire:model="scheme_given" placeholder="Enter scheme details (optional)"
+                    icon="o-document-text" rows="3" />
+            </div>
+
             <!-- Contact Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
@@ -572,8 +608,8 @@ new class extends Component {
                 <x-datepicker label="Date of Birth" wire:model.live="date_of_birth" icon="o-calendar"
                     :config="$dateConfig" />
 
-                <x-input label="Age" wire:model="age" type="number" placeholder="Auto-calculated" icon="o-user"
-                    readonly />
+                <x-input label="Age" wire:model="age" type="number" placeholder="Auto-calculated"
+                    icon="o-user" readonly />
             </div>
 
             <!-- Academic Information -->
@@ -592,24 +628,6 @@ new class extends Component {
                     icon="o-user-group" />
             </div>
 
-            <!-- Course and Batch Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div class="md:col-span-2">
-                    <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
-                </div>
-
-                <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
-                    icon="o-building-office" :options="$centers" single searchable clearable />
-
-                <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
-                    icon="o-academic-cap" :options="$courses" single searchable clearable />
-
-                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
-
-                <x-textarea label="Scheme Given" wire:model="scheme_given"
-                    placeholder="Enter scheme details (optional)" icon="o-document-text" rows="3" />
-            </div>
-
             <!-- Fees Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
@@ -621,10 +639,10 @@ new class extends Component {
                 </div>
 
                 <x-input label="Course Fees" wire:model.live="course_fees" placeholder="Enter course fees"
-                    icon="o-currency-rupee" money />
+                    icon="o-currency-rupee" />
 
                 <x-input label="Down Payment" wire:model.live="down_payment"
-                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" money
+                    placeholder="Enter down payment (optional)" icon="o-currency-rupee"
                     hint="Cannot exceed course fees" />
 
                 <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"

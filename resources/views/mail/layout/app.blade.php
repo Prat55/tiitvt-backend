@@ -35,7 +35,7 @@
         }
 
         .bg-blue {
-            background-color: #1C57D7;
+            background-color: #040408;
             color: #fff;
         }
 
@@ -52,7 +52,7 @@
         }
 
         .color-blue {
-            color: #1C57D7;
+            color: #040408;
         }
 
         .text-center {
@@ -61,7 +61,7 @@
 
         a,
         .link {
-            color: #1C57D7;
+            color: #040408;
             text-decoration: underline;
         }
 
@@ -80,7 +80,7 @@
         }
 
         .header {
-            background-color: #1C57D7;
+            background-color: #040408;
             color: #fff;
             padding: 20px;
             text-align: center;
@@ -101,7 +101,7 @@
             padding: 20px;
             margin-top: 20px;
             text-align: center;
-            background: #353C49;
+            background: #dfdfe0;
             border-radius: 40px 40px 0px 0px;
         }
 
@@ -123,7 +123,7 @@
         }
 
         .btn-primary {
-            background-color: #1C57D7;
+            background-color: #040408;
             color: #fff;
         }
 
@@ -211,29 +211,24 @@
 <body>
     <div class="mail">
         <div class="header">
-            <img src="{{ asset('dashboard-assets/logo/white-full-logo.png') }}" class="logo" width="250"
-                alt="Quicky Site">
+            <img src="{{ asset('default/tiitvt_logo.png') }}" class="logo" width="50"
+                alt="{{ getWebsiteSettings()->meta_author }}">
         </div>
         <div class="main">
-
             @yield('content')
-
         </div>
-        <div class="footer" style="font-size:11px;color:#bababa;">
-            <img src="{{ asset('dashboard-assets/logo/white-full-logo.png') }}" class="logo" width="150"
-                alt="Quicky Site">
+        <div class="footer" style="font-size:11px;color:#000;">
+            <img src="{{ asset('default/tiitvt_logo.png') }}" class="logo" width="50"
+                alt="{{ getWebsiteSettings()->meta_author }}">
             <p>
-                © {{ date('Y') }} Quicky Site by
-                <a style="color:#bababa;" href="https://acsinsights.com/">
-                    Arise Consultancy Services
-                </a>.
+                © {{ date('Y') }} {{ getWebsiteSettings()->meta_author }}
                 All Rights Reserved.
                 <br>
                 <span>
                     version {{ config('app.version') }}
                     |
-                    <a style="color:#bababa;" href="https://quickysite.com/privacy-policy">Privacy Policy</a> |
-                    <a style="color:#bababa;" href="https://quickysite.com/terms-and-conditions">Terms & Conditions</a>
+                    <a style="color:#000;" href="{{ config('app.url') }}/privacy-policy">Privacy Policy</a> |
+                    <a style="color:#000;" href="{{ config('app.url') }}/terms-and-conditions">Terms & Conditions</a>
                 </span>
             </p>
         </div>

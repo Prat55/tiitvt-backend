@@ -123,7 +123,7 @@ new class extends Component {
             <x-card class="lg:col-span-1 mt-3">
                 <x-slot:title>
                     <div class="flex items-center gap-2">
-                        <x-icon name="o-phone" class="w-5 h-5" />
+                        <x-icon name="o-user" class="w-5 h-5" />
                         Contact Information
                     </div>
                 </x-slot:title>

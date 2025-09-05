@@ -9,6 +9,7 @@ Route::get('/', function () {
 
 Route::middleware(['admin.auth'])->group(function () {
     Route::redirect('/admin', '/admin/dashboard');
+    Route::redirect('/admin', '/dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::group(['middleware' => ['role:admin|center']], function () {
@@ -22,14 +23,6 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/create', 'backend.center.create')->name('create');
                 Volt::route('/{uid}/edit', 'backend.center.edit')->name('edit');
                 Volt::route('/{uid}/show', 'backend.center.show')->name('show');
-            });
-
-            Route::prefix('student')->name('student.')->group(function () {
-                Volt::route('/', 'backend.student.index')->name('index');
-                Volt::route('/create', 'backend.student.create')->name('create');
-                Volt::route('/{student}/show', 'backend.student.show')->name('show');
-                Volt::route('/{student}/edit', 'backend.student.edit')->name('edit');
-                Volt::route('/{student}/delete', 'backend.student.delete')->name('delete');
             });
 
             Route::prefix('category')->name('category.')->group(function () {
@@ -69,6 +62,16 @@ Route::middleware(['admin.auth'])->group(function () {
 
             Route::prefix('testimonial')->name('testimonial.')->group(function () {
                 Volt::route('/', 'backend.testimonial.index')->name('index');
+            });
+        });
+
+        Route::group(['middleware' => ['role:admin|center']], function () {
+            Route::prefix('student')->name('student.')->group(function () {
+                Volt::route('/', 'backend.student.index')->name('index');
+                Volt::route('/create', 'backend.student.create')->name('create');
+                Volt::route('/{student}/show', 'backend.student.show')->name('show');
+                Volt::route('/{student}/edit', 'backend.student.edit')->name('edit');
+                Volt::route('/{student}/delete', 'backend.student.delete')->name('delete');
             });
         });
     });

@@ -782,6 +782,27 @@ new class extends Component {
                 <x-input label="Surname" wire:model="surname" placeholder="Enter surname (optional)" icon="o-user" />
             </div>
 
+            <!-- Course and Batch Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                    <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
+                </div>
+
+                <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
+                    icon="o-building-office" :options="$centers" single searchable clearable />
+
+                <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
+                    icon="o-academic-cap" :options="$courses" single searchable clearable />
+
+                <x-input label="Course Taken" wire:model="course_taken" placeholder="Enter course taken (optional)"
+                    icon="o-book-open" />
+
+                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
+
+                <x-textarea label="Scheme Given" wire:model="scheme_given" placeholder="Enter scheme details (optional)"
+                    icon="o-document-text" rows="3" />
+            </div>
+
             <!-- Contact Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
@@ -817,8 +838,8 @@ new class extends Component {
                 <x-datepicker label="Date of Birth" wire:model.live="date_of_birth" icon="o-calendar"
                     :config="$dateConfig" />
 
-                <x-input label="Age" wire:model="age" type="number" placeholder="Auto-calculated" icon="o-user"
-                    readonly />
+                <x-input label="Age" wire:model="age" type="number" placeholder="Auto-calculated"
+                    icon="o-user" readonly />
             </div>
 
             <!-- Academic Information -->
@@ -835,27 +856,6 @@ new class extends Component {
 
                 <x-input label="Reference" wire:model="reference" placeholder="Enter reference (optional)"
                     icon="o-user-group" />
-            </div>
-
-            <!-- Course and Batch Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div class="md:col-span-2">
-                    <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
-                </div>
-
-                <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
-                    icon="o-building-office" :options="$centers" single searchable clearable />
-
-                <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
-                    icon="o-academic-cap" :options="$courses" single searchable clearable />
-
-                <x-input label="Course Taken" wire:model="course_taken" placeholder="Enter course taken (optional)"
-                    icon="o-book-open" />
-
-                <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
-
-                <x-textarea label="Scheme Given" wire:model="scheme_given"
-                    placeholder="Enter scheme details (optional)" icon="o-document-text" rows="3" />
             </div>
 
             <!-- Fees Information -->

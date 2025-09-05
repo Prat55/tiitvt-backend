@@ -1,14 +1,13 @@
 <?php
 
-use App\Models\User;
-use App\Models\Center;
 use Mary\Traits\Toast;
 use App\Enums\RolesEnum;
 use Illuminate\Support\Str;
+use App\Helpers\MailHelper;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Storage;
-use Livewire\Attributes\{Layout, Title};
+use App\Models\{User, Center};
+use Livewire\Attributes\Title;
 
 new class extends Component {
     use WithFileUploads, Toast;
@@ -66,13 +65,15 @@ new class extends Component {
 
         try {
             $user = User::where('email', $this->email)->first();
+            $generatedPassword = null;
 
             if (!$user) {
+                $generatedPassword = Str::random(10);
                 $user = User::create([
                     'name' => $this->owner_name,
                     'email' => $this->email,
                     'phone' => $this->phone,
-                    'password' => bcrypt(Str::random(10)),
+                    'password' => bcrypt($generatedPassword),
                 ]);
 
                 $user->assignRole(RolesEnum::Center->value);
@@ -104,6 +105,9 @@ new class extends Component {
             }
 
             Center::create($data);
+
+            // Send notification email with login credentials
+            MailHelper::sendCenterCreationNotification($user->email, $user->name, $data, $generatedPassword);
 
             $this->success('Center created successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.center.index'));
