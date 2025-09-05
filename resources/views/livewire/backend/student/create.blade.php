@@ -5,10 +5,10 @@ use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
-use App\Enums\InstallmentStatusEnum;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\{Layout, Title};
 use App\Models\{Course, Center, Student};
+use App\Enums\{RolesEnum, InstallmentStatusEnum};
 
 new class extends Component {
     use WithFileUploads, Toast;
@@ -18,6 +18,10 @@ new class extends Component {
         // Initialize with default values and calculate installments if needed
         if ($this->course_fees > 0) {
             $this->calculateInstallments();
+        }
+
+        if (hasAuthRole(RolesEnum::Center->value)) {
+            $this->center_id = auth()->user()->center->id;
         }
     }
 
@@ -101,7 +105,7 @@ new class extends Component {
 
     // Relationships
     public int $center_id = 0;
-    public int $course_id = 0;
+    public $course_id = 0;
 
     // File uploads
     public $student_signature_image;
@@ -452,6 +456,20 @@ new class extends Component {
         }
     }
 
+    public function updatedCourseId(): void
+    {
+        if ($this->course_id) {
+            $course = Course::find($this->course_id);
+            if ($course && $course->price) {
+                $this->course_fees = $course->price;
+                $this->calculateInstallments();
+            }
+        } else {
+            $this->course_fees = 0;
+            $this->calculateInstallments();
+        }
+    }
+
     public function rendering(View $view)
     {
         // Auto-generate TIITVT registration number if empty
@@ -470,7 +488,7 @@ new class extends Component {
 
         $view->courses = Course::active()
             ->latest()
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'price']);
     }
 }; ?>
 @section('cdn')
@@ -540,11 +558,14 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
                 </div>
 
-                <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
-                    icon="o-building-office" :options="$centers" single searchable clearable />
+                @role(RolesEnum::Admin->value)
+                    <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
+                        icon="o-building-office" :options="$centers" single searchable clearable />
+                @endrole
 
-                <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
-                    icon="o-academic-cap" :options="$courses" single searchable clearable />
+                <x-choices-offline label="Course" wire:model.live="course_id" placeholder="Select course"
+                    icon="o-academic-cap" :options="$courses" single searchable clearable
+                    hint="Course price will be automatically loaded when a course is selected" />
 
                 <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
 
@@ -618,10 +639,10 @@ new class extends Component {
                 </div>
 
                 <x-input label="Course Fees" wire:model.live="course_fees" placeholder="Enter course fees"
-                    icon="o-currency-rupee" money />
+                    icon="o-currency-rupee" />
 
                 <x-input label="Down Payment" wire:model.live="down_payment"
-                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" money
+                    placeholder="Enter down payment (optional)" icon="o-currency-rupee"
                     hint="Cannot exceed course fees" />
 
                 <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"

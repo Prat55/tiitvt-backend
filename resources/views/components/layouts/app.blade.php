@@ -50,23 +50,27 @@
                 </a>
 
                 <x-menu-item title="Dashboard" icon="o-home" link="{{ route('admin.index') }}" />
-                <x-menu-item title="Center" icon="o-building-office" link="{{ route('admin.center.index') }}" />
+                @role($role::Admin->value)
+                    <x-menu-item title="Center" icon="o-building-office" link="{{ route('admin.center.index') }}" />
+                @endrole
                 <x-menu-item title="Student" icon="o-user" link="{{ route('admin.student.index') }}" />
-                <x-menu-item title="Category" icon="o-tag" link="{{ route('admin.category.index') }}" />
-                <x-menu-item title="Course" icon="o-book-open" link="{{ route('admin.course.index') }}" />
+                @role($role::Admin->value)
+                    <x-menu-item title="Category" icon="o-tag" link="{{ route('admin.category.index') }}" />
+                    <x-menu-item title="Course" icon="o-book-open" link="{{ route('admin.course.index') }}" />
 
-                <x-menu-sub title="Exam" icon="o-square-2-stack">
-                    <x-menu-item title="Schedule" icon="o-calendar" link="{{ route('admin.exam.schedule') }}" />
-                    <x-menu-item title="Exam" icon="o-book-open" link="{{ route('admin.exam.index') }}" />
-                    <x-menu-item title="Results" icon="o-chart-bar" link="{{ route('admin.exam.results') }}" />
-                    <x-menu-item title="Question" icon="o-question-mark-circle"
-                        link="{{ route('admin.question.index') }}" />
-                </x-menu-sub>
+                    <x-menu-sub title="Exam" icon="o-square-2-stack">
+                        <x-menu-item title="Schedule" icon="o-calendar" link="{{ route('admin.exam.schedule') }}" />
+                        <x-menu-item title="Exam" icon="o-book-open" link="{{ route('admin.exam.index') }}" />
+                        <x-menu-item title="Results" icon="o-chart-bar" link="{{ route('admin.exam.results') }}" />
+                        <x-menu-item title="Question" icon="o-question-mark-circle"
+                            link="{{ route('admin.question.index') }}" />
+                    </x-menu-sub>
 
-                <x-menu-item title="Blog" icon="o-document-text" link="{{ route('admin.blog.index') }}" />
-                <x-menu-item title="Website Settings" icon="o-cog"
-                    link="{{ route('admin.website-setting.index') }}" />
-                <x-menu-item title="Testimonials" icon="o-star" link="{{ route('admin.testimonial.index') }}" />
+                    <x-menu-item title="Blog" icon="o-document-text" link="{{ route('admin.blog.index') }}" />
+                    <x-menu-item title="Website Settings" icon="o-cog"
+                        link="{{ route('admin.website-setting.index') }}" />
+                    <x-menu-item title="Testimonials" icon="o-star" link="{{ route('admin.testimonial.index') }}" />
+                @endrole
             </x-menu>
         </x-slot:sidebar>
 

@@ -24,14 +24,6 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/{uid}/show', 'backend.center.show')->name('show');
             });
 
-            Route::prefix('student')->name('student.')->group(function () {
-                Volt::route('/', 'backend.student.index')->name('index');
-                Volt::route('/create', 'backend.student.create')->name('create');
-                Volt::route('/{student}/show', 'backend.student.show')->name('show');
-                Volt::route('/{student}/edit', 'backend.student.edit')->name('edit');
-                Volt::route('/{student}/delete', 'backend.student.delete')->name('delete');
-            });
-
             Route::prefix('category')->name('category.')->group(function () {
                 Volt::route('/', 'backend.category.index')->name('index');
             });
@@ -69,6 +61,16 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('blog')->name('blog.')->group(function () {
                 Volt::route('/', 'backend.blog.index')->name('index');
                 Volt::route('/{blog}/edit', 'backend.blog.edit')->name('edit');
+            });
+        });
+
+        Route::group(['middleware' => ['role:admin|center']], function () {
+            Route::prefix('student')->name('student.')->group(function () {
+                Volt::route('/', 'backend.student.index')->name('index');
+                Volt::route('/create', 'backend.student.create')->name('create');
+                Volt::route('/{student}/show', 'backend.student.show')->name('show');
+                Volt::route('/{student}/edit', 'backend.student.edit')->name('edit');
+                Volt::route('/{student}/delete', 'backend.student.delete')->name('delete');
             });
         });
     });
