@@ -108,7 +108,7 @@ new class extends Component {
         }
 
         $this->validate([
-            'newStatus' => 'required|in:' . implode(',', InstallmentStatusEnum::values()),
+            'newStatus' => 'required',
             'paidAmount' => 'required_if:newStatus,' . InstallmentStatusEnum::Paid->value . '|numeric|min:0',
             'notes' => 'nullable|string|max:500',
         ]);
