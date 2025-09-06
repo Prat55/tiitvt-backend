@@ -10,17 +10,18 @@ class PageController extends Controller
 {
     public function index()
     {
-        $categories = Category::active()->latest()->get();
-        $courses = Course::active()->latest()->get();
-        $testimonials = Testimonial::active()->latest()->get();
-        $blogs = Blog::active()->latest()->get();
+        $categories = Category::active()->latest()->take(10)->get();
+        $courses = Course::active()->latest()->take(10)->get();
+        $testimonials = Testimonial::active()->latest()->take(10)->get();
+        $blogs = Blog::active()->latest()->take(10)->get();
 
         return view('frontend.index', compact('categories', 'courses', 'testimonials', 'blogs'));
     }
 
     public function about()
     {
-        return view('frontend.about');
+        $testimonials = Testimonial::active()->latest()->take(10)->get();
+        return view('frontend.about', compact('testimonials'));
     }
 
     public function contact()

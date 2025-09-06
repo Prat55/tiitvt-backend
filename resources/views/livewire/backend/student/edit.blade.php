@@ -788,8 +788,10 @@ new class extends Component {
                     <h3 class="text-lg font-semibold text-primary">Course and Batch Information</h3>
                 </div>
 
-                <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
-                    icon="o-building-office" :options="$centers" single searchable clearable />
+                @role(RolesEnum::Admin->value)
+                    <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
+                        icon="o-building-office" :options="$centers" single searchable clearable />
+                @endrole
 
                 <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
                     icon="o-academic-cap" :options="$courses" single searchable clearable />

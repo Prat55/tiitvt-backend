@@ -169,18 +169,16 @@
                                                         <ul>
                                                             <li>
                                                                 <div class="course-rating">
-                                                                    <i class="fas fa-star"></i>
-                                                                    <i class="fas fa-star"></i>
-                                                                    <i class="fas fa-star"></i>
-                                                                    <i class="fas fa-star"></i>
-                                                                    <i class="fas fa-star-half-alt"></i>
-                                                                    <span>(4.8)</span>
+                                                                    @for ($i = 1; $i <= $course->rating; $i++)
+                                                                        <i class="fas fa-star"></i>
+                                                                    @endfor
+                                                                    <span>({{ $course->rating }})</span>
                                                                 </div>
                                                             </li>
                                                         </ul>
-                                                        <div class="bookmark">
+                                                        {{-- <div class="bookmark">
                                                             <a href="#"><i class="fas fa-bookmark"></i></a>
-                                                        </div>
+                                                        </div> --}}
                                                     </div>
 
                                                     <div class="info">
