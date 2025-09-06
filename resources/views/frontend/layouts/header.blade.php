@@ -69,9 +69,9 @@
                          <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo">
                      </div>
                      <p>
-                         Arrived compass prepare an on as. Reasonable particular on my it in sympathize. Size now
-                         easy eat hand how. Unwilling he departure elsewhere dejection at. Heart large seems may
-                         purse means few blind.
+                         With a strong vision to make technical and vocational training accessible to all, TIITVT not
+                         only supports students in building successful careers but also promotes local entrepreneurs to
+                         establish training centers that contribute to skill development and economic growth.
                      </p>
                  </div>
                  <div class="widget address">
@@ -113,13 +113,28 @@
                  </div>
                  <div class="widget social">
                      <ul class="link">
-                         <li><a href="{{ getWebsiteSettings()->facebook_url }}"><i class="fab fa-facebook-f"></i></a>
+                         <li>
+                             <a href="{{ getWebsiteSettings()->facebook_url }}">
+                                 <i class="fab fa-facebook-f"></i>
+                             </a>
                          </li>
-                         <li><a href="{{ getWebsiteSettings()->twitter_url }}"><i class="fab fa-twitter"></i></a>
+
+                         <li>
+                             <a href="{{ getWebsiteSettings()->twitter_url }}">
+                                 <i class="fab fa-twitter"></i>
+                             </a>
                          </li>
-                         <li><a href="{{ getWebsiteSettings()->linkedin_url }}"><i class="fab fa-linkedin-in"></i></a>
+
+                         <li>
+                             <a href="{{ getWebsiteSettings()->linkedin_url }}">
+                                 <i class="fab fa-linkedin-in"></i>
+                             </a>
                          </li>
-                         <li><a href="{{ getWebsiteSettings()->instagram_url }}"><i class="fab fa-instagram"></i></a>
+
+                         <li>
+                             <a href="{{ getWebsiteSettings()->instagram_url }}">
+                                 <i class="fab fa-instagram"></i>
+                             </a>
                          </li>
                      </ul>
                  </div>

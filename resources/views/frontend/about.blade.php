@@ -403,227 +403,69 @@
     <!-- End Join Us -->
 
     <!-- Start Testimonial -->
-    <div class="testimonial-style-two-area default-padding">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-6 offset-xl-3 col-lg-8 offset-lg-2">
-                    <div class="site-heading text-center">
-                        <h4 class="sub-title">Student Feedback</h4>
-                        <h2 class="title split-text">Best review from our successful student</h2>
+    @if ($testimonials->count() > 0)
+        <!-- Start Testimonial -->
+        <div class="testimonial-style-two-area default-padding">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-6 offset-xl-3 col-lg-8 offset-lg-2">
+                        <div class="site-heading text-center">
+                            <h4 class="sub-title">Student Feedback</h4>
+                            <h2 class="title split-text">Best review from our successful student</h2>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="testimonial-style-two-carousel swiper">
-                        <!-- Additional required wrapper -->
-                        <div class="swiper-wrapper">
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Great Quality</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste of perfection.
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m3.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Michel Dark</h4>
-                                                    <div class="ratings">
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star-half-alt"></i>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
 
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Best Course Ever</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love to purse a best
-                                            education platform. Plan upon yet way get cold spot its week. Almost do am
-                                            or limits hearts. Resolve parties but why she shewing. She sang know now
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m4.jpg') }}"
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="testimonial-style-two-carousel swiper">
+                            <!-- Additional required wrapper -->
+                            <div class="swiper-wrapper">
+                                <!-- Single Item -->
+                                @foreach ($testimonials as $testimonial)
+                                    <div class="swiper-slide">
+                                        <div class="testimonial-style-two">
+                                            <div class="top-info">
+                                                <div class="icon">
+                                                    <img src="{{ asset('frontend/img/shape/quote.png') }}"
                                                         alt="Image Not Found">
                                                 </div>
-                                                <div class="info">
-                                                    <h4>Kennsual Martin</h4>
-                                                    <div class="ratings">
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
-                                                        <i class="fas fa-star"></i>
+                                                <h5>{{ $testimonial->subject }}</h5>
+                                            </div>
+                                            <div class="content">
+                                                <p>
+                                                    {{ $testimonial->description }}
+                                                </p>
+                                                <div class="bottom-info">
+                                                    <div class="provider">
+                                                        <div class="thumb">
+                                                            <img src="{{ $testimonial->student_image ? asset('storage/' . $testimonial->student_image) : 'https://placehold.co/600x400?text=' . $testimonial->student_name }}"
+                                                                alt="Image Not Found">
+                                                        </div>
+                                                        <div class="info">
+                                                            <h4>{{ $testimonial->student_name }}</h4>
+                                                            <div class="ratings">
+                                                                @for ($i = 1; $i <= $testimonial->rating; $i++)
+                                                                    <i class="fas fa-star"></i>
+                                                                @endfor
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endforeach
+                                <!-- Single Item -->
                             </div>
-                            <!-- Single Item -->
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Very Easy Course</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love.
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m5.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Amanulla Joey</h4>
-                                                    <span>React Batch - 28</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star-half-alt"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Exellent Quality</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Learning is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love. The best
-                                            educaiton system i love this. Plan upon yet way get cold spot its week.
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m6.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Kamal Abraham</h4>
-                                                    <span>PHP Course</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
-                            <!-- Single Item -->
-                            <div class="swiper-slide">
-                                <div class="testimonial-style-two">
-                                    <div class="top-info">
-                                        <div class="icon">
-                                            <img src="{{ asset('frontend/img/shape/quote.png') }}" alt="Image Not Found">
-                                        </div>
-                                        <h5>Best Course Ever</h5>
-                                    </div>
-                                    <div class="content">
-                                        <p>
-                                            Education is the most powerful tool to change the world One thing that can’t
-                                            be taken from you. A mind is a terrible thing to waste. Education is a key
-                                            to success and freedom from all the forces to learn we love to purse a best
-                                            education platform. Plan upon yet way get cold spot its week. Almost do am
-                                            or limits hearts. Resolve parties but why she shewing. She sang know now
-                                        </p>
-                                        <div class="bottom-info">
-                                            <div class="provider">
-                                                <div class="thumb">
-                                                    <img src="{{ asset('frontend/img/team/m1.jpg') }}"
-                                                        alt="Image Not Found">
-                                                </div>
-                                                <div class="info">
-                                                    <h4>Kennsual Martin</h4>
-                                                    <span>Laravel Batch - 11</span>
-                                                </div>
-                                            </div>
-                                            <div class="provider">
-                                                <div class="ratings">
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                    <i class="fas fa-star"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Single Item -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+        <!-- End Testimonial -->
+    @endif
     <!-- End Testimonial -->
 @endsection
