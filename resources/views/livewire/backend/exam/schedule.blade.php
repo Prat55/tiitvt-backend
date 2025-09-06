@@ -23,6 +23,17 @@ new class extends Component {
     public $students = [];
     public $dateConfig = ['altFormat' => 'd/m/Y'];
 
+    // Student search and selection properties
+    public $studentSearch = '';
+    public $selectAllStudents = false;
+    public $filteredStudents = [];
+
+    // Pagination properties
+    public $studentsPerPage = 10;
+    public $currentPage = 1;
+    public $totalStudents = 0;
+    public $hasMoreStudents = false;
+
     public function mount()
     {
         $this->date = now()->format('Y-m-d');
@@ -36,6 +47,163 @@ new class extends Component {
         // Reset selections when course changes
         $this->selectedStudents = [];
         $this->selectedCategories = [];
+        $this->studentSearch = '';
+        $this->selectAllStudents = false;
+        $this->filteredStudents = [];
+        $this->currentPage = 1;
+        $this->totalStudents = 0;
+        $this->hasMoreStudents = false;
+
+        // Load students for the selected course
+        if ($this->selectedCourse) {
+            $this->loadStudents();
+        }
+    }
+
+    public function updatedStudentSearch()
+    {
+        $this->currentPage = 1;
+
+        // If there's a search term, load all matching students
+        if (!empty($this->studentSearch)) {
+            $this->loadAllMatchingStudents();
+        } else {
+            // Reset to paginated view
+            $this->loadStudents();
+        }
+    }
+
+    public function loadAllMatchingStudents()
+    {
+        if (!$this->selectedCourse || empty($this->studentSearch)) {
+            $this->filteredStudents = [];
+            return;
+        }
+
+        $searchTerm = strtolower($this->studentSearch);
+
+        // Load all students that match the search criteria
+        $allStudents = Student::where('course_id', $this->selectedCourse)
+            ->get(['id', 'first_name', 'fathers_name', 'surname', 'tiitvt_reg_no'])
+            ->map(function ($student) {
+                $name = $student->first_name . ' ' . $student->fathers_name;
+                if ($student->surname) {
+                    $name .= ' ' . $student->surname;
+                }
+                $name .= ' - ' . $student->tiitvt_reg_no;
+                return [
+                    'id' => $student->id,
+                    'name' => $name,
+                ];
+            })
+            ->filter(function ($student) use ($searchTerm) {
+                return strpos(strtolower($student['name']), $searchTerm) !== false;
+            })
+            ->values()
+            ->toArray();
+
+        $this->students = $allStudents;
+        $this->filteredStudents = $allStudents;
+        $this->hasMoreStudents = false; // No pagination when searching
+    }
+
+    public function loadStudents()
+    {
+        if (!$this->selectedCourse) {
+            $this->students = [];
+            $this->filteredStudents = [];
+            return;
+        }
+
+        // Get total count
+        $this->totalStudents = Student::where('course_id', $this->selectedCourse)->count();
+
+        // Calculate offset
+        $offset = ($this->currentPage - 1) * $this->studentsPerPage;
+
+        // Load students for current page
+        $students = Student::where('course_id', $this->selectedCourse)
+            ->offset($offset)
+            ->limit($this->studentsPerPage)
+            ->get(['id', 'first_name', 'fathers_name', 'surname', 'tiitvt_reg_no'])
+            ->map(function ($student) {
+                $name = $student->first_name . ' ' . $student->fathers_name;
+                if ($student->surname) {
+                    $name .= ' ' . $student->surname;
+                }
+                $name .= ' - ' . $student->tiitvt_reg_no;
+                return [
+                    'id' => $student->id,
+                    'name' => $name,
+                ];
+            })
+            ->toArray();
+
+        // If it's the first page, replace students, otherwise append
+        if ($this->currentPage === 1) {
+            $this->students = $students;
+        } else {
+            $this->students = array_merge($this->students, $students);
+        }
+
+        // Check if there are more students to load
+        $this->hasMoreStudents = $offset + $this->studentsPerPage < $this->totalStudents;
+
+        // Filter students
+        $this->filterStudents();
+    }
+
+    public function loadMoreStudents()
+    {
+        if ($this->hasMoreStudents) {
+            $this->currentPage++;
+            $this->loadStudents();
+        }
+    }
+
+    public function updatedSelectAllStudents()
+    {
+        if ($this->selectAllStudents) {
+            // Select all visible students
+            $this->selectedStudents = collect($this->filteredStudents)->pluck('id')->toArray();
+        } else {
+            // Deselect all students
+            $this->selectedStudents = [];
+        }
+    }
+
+    public function updatedSelectedStudents()
+    {
+        // Update select all checkbox based on current selection
+        if (empty($this->filteredStudents)) {
+            $this->selectAllStudents = false;
+        } else {
+            $visibleStudentIds = collect($this->filteredStudents)->pluck('id')->toArray();
+            $this->selectAllStudents = count($this->selectedStudents) === count($visibleStudentIds) && !empty(array_intersect($this->selectedStudents, $visibleStudentIds));
+        }
+    }
+
+    public function filterStudents()
+    {
+        if (empty($this->students)) {
+            $this->filteredStudents = [];
+            return;
+        }
+
+        if (empty($this->studentSearch)) {
+            $this->filteredStudents = $this->students;
+        } else {
+            $searchTerm = strtolower($this->studentSearch);
+            $this->filteredStudents = array_filter($this->students, function ($student) use ($searchTerm) {
+                return strpos(strtolower($student['name']), $searchTerm) !== false;
+            });
+        }
+    }
+
+    public function removeStudent($studentId)
+    {
+        $this->selectedStudents = array_diff($this->selectedStudents, [$studentId]);
+        $this->updatedSelectedStudents();
     }
 
     public function calculateEndTime()
@@ -121,7 +289,7 @@ new class extends Component {
 
     public function resetForm(): void
     {
-        $this->reset(['selectedCourse', 'selectedStudents', 'selectedCategories', 'duration', 'date', 'startTime', 'endTime']);
+        $this->reset(['selectedCourse', 'selectedStudents', 'selectedCategories', 'duration', 'date', 'startTime', 'endTime', 'studentSearch', 'selectAllStudents', 'filteredStudents', 'currentPage', 'totalStudents', 'hasMoreStudents']);
         $this->resetValidation();
         $this->success('Form reset successfully!', position: 'toast-bottom');
     }
@@ -131,20 +299,8 @@ new class extends Component {
         if ($this->selectedCourse) {
             $view->categories = Course::find($this->selectedCourse)->categories->toArray();
 
-            $view->students = Student::where('course_id', $this->selectedCourse)
-                ->get(['id', 'first_name', 'fathers_name', 'surname', 'tiitvt_reg_no'])
-                ->map(function ($student) {
-                    $name = $student->first_name . ' ' . $student->fathers_name;
-                    if ($student->surname) {
-                        $name .= ' ' . $student->surname;
-                    }
-                    $name .= ' - ' . $student->tiitvt_reg_no;
-                    return [
-                        'id' => $student->id,
-                        'name' => $name,
-                    ];
-                })
-                ->toArray();
+            // Students are loaded via loadStudents() method when course changes
+            // No need to load them here as it's handled in updatedSelectedCourse()
         }
     }
 }; ?>
@@ -208,10 +364,97 @@ new class extends Component {
                 <div>
                     <h3 class="text-lg font-semibold text-primary mb-4">Student Selection</h3>
 
-                    <x-choices-offline label="Select Students" wire:model="selectedStudents" :options="$students"
-                        placeholder="Choose students..." icon="o-users" :disabled="!$selectedCourse || empty($students)"
-                        no-result-text="Ops! Nothing here ..." searchable clearable
-                        hint="You can select multiple students. All students will take the same exam but with individual user IDs and passwords." />
+                    <x-card class="bg-base-300" shadow>
+                        <div class="space-y-4">
+                            <!-- Search Input -->
+                            <div class="relative">
+                                <x-input label="Search Students" wire:model.live="studentSearch"
+                                    placeholder="Type to search students..." icon="o-magnifying-glass" :disabled="!$selectedCourse || empty($students)"
+                                    class="pr-10" hint="You can search by name or registration number" />
+                            </div>
+
+                            <!-- Select All Checkbox -->
+                            @if (!empty($filteredStudents))
+                                <div class="flex items-center gap-2 p-3 bg-base-200 rounded-lg">
+                                    <x-checkbox wire:model.live="selectAllStudents"
+                                        label="Select All ({{ count($filteredStudents) }} students)" />
+                                </div>
+                            @endif
+
+                            <!-- Selected Students Display -->
+                            @if (!empty($selectedStudents))
+                                <div class="space-y-2">
+                                    <h4 class="text-sm font-semibold text-primary">Selected Students
+                                        ({{ count($selectedStudents) }})</h4>
+                                    <div class="max-h-32 overflow-y-auto space-y-1">
+                                        @foreach ($selectedStudents as $selectedId)
+                                            @php
+                                                $selectedStudent = collect($students)->firstWhere('id', $selectedId);
+                                            @endphp
+                                            @if ($selectedStudent)
+                                                <div
+                                                    class="flex items-center justify-between p-2 bg-primary/10 rounded-lg">
+                                                    <span class="text-sm">{{ $selectedStudent['name'] }}</span>
+                                                    <button type="button"
+                                                        wire:click="removeStudent({{ $selectedId }})"
+                                                        class="btn btn-xs btn-circle btn-error">
+                                                        <x-icon name="o-x-mark" class="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Student List -->
+                            @if (!empty($filteredStudents))
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <h4 class="text-sm font-semibold text-primary">Available Students</h4>
+                                        @if ($totalStudents > 0)
+                                            <span class="text-xs text-base-content/60">
+                                                Showing {{ count($filteredStudents) }} of {{ $totalStudents }} students
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="max-h-64 overflow-y-auto space-y-1 border rounded-lg p-2">
+                                        @foreach ($filteredStudents as $student)
+                                            <div
+                                                class="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg {{ in_array($student['id'], $selectedStudents) ? 'bg-primary/5' : '' }}">
+                                                <x-checkbox wire:model.live="selectedStudents"
+                                                    value="{{ $student['id'] }}" label="{{ $student['name'] }}" />
+                                            </div>
+                                        @endforeach
+                                    </div>
+
+                                    <!-- Load More Button -->
+                                    @if ($hasMoreStudents && empty($studentSearch))
+                                        <div class="flex justify-center pt-2">
+                                            <x-button label="Load More Students" icon="o-arrow-down"
+                                                class="btn-outline btn-sm" wire:click="loadMoreStudents"
+                                                spinner="loadMoreStudents" />
+                                        </div>
+                                    @endif
+                                </div>
+                            @elseif($selectedCourse && empty($students))
+                                <div class="text-center py-8 text-base-content/60">
+                                    <x-icon name="o-users" class="w-12 h-12 mx-auto mb-2" />
+                                    <p>No students found for this course.</p>
+                                </div>
+                            @elseif($selectedCourse && !empty($students) && empty($filteredStudents))
+                                <div class="text-center py-8 text-base-content/60">
+                                    <x-icon name="o-magnifying-glass" class="w-12 h-12 mx-auto mb-2" />
+                                    <p>No students match your search criteria.</p>
+                                </div>
+                            @elseif(!$selectedCourse)
+                                <div class="text-center py-8 text-base-content/60">
+                                    <x-icon name="o-academic-cap" class="w-12 h-12 mx-auto mb-2" />
+                                    <p>Please select a course first to view students.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </x-card>
                 </div>
             </div>
 
@@ -235,8 +478,8 @@ new class extends Component {
             <div class="flex justify-end gap-3 pt-6 border-t">
                 <x-button label="Cancel" icon="o-x-mark" class="btn-error btn-soft btn-sm"
                     link="{{ route('admin.exam.index') }}" />
-                <x-button label="Schedule Exams" icon="o-calendar" class="btn-primary btn-sm btn-soft" type="submit"
-                    spinner="scheduleExam" />
+                <x-button label="Schedule Exams" icon="o-calendar" class="btn-primary btn-sm btn-soft"
+                    type="submit" spinner="scheduleExam" />
             </div>
         </form>
     </x-card>
