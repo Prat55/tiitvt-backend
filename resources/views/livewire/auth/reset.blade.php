@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Password;
 
 new class extends Component {
     use Toast;
-    #[Layout('components.layouts.empty')]
-    #[Title('Admin Reset Password | Roposo Clout')]
+    #[Layout('components.layouts.auth')]
+    #[Title('Reset Password | TIITVT')]
     public $token;
     public $email;
     public $password;
@@ -53,43 +53,35 @@ new class extends Component {
 
         $this->addError('email', __($status));
     }
-}; ?>
+};
+?>
 
-<div class="mx-auto max-w-120">
-    <div class="text-end">
-        <x-theme-toggle />
-    </div>
-    <div class="flex flex-col items-stretch p-2 md:p-8 lg:p-16">
-        <div class="mx-auto w-50">
-            <a href="/dashboards/ecommerce" data-discover="true">
-                <img alt="Roposo Clout" class="block w-full dark:hidden"
-                    src="{{ asset('frontend-assets/images/nav-long-dark.svg') }}">
-                <img alt="Roposo Clout" class="hidden w-full dark:block"
-                    src="{{ asset('frontend-assets/images/nav-long-white.svg') }}">
-            </a>
-        </div>
-
-        <h3 class="mt-12 text-xl font-semibold text-center lg:mt-24">
+<div>
+    <div class="mt-5 select-none">
+        <h3 class="text-2xl font-semibold text-center">
             Reset Password
         </h3>
 
-        <x-form wire:submit.prevent='resetPassword'>
-            <div class="mb-4">
-                <x-input label="E-mail" readonly wire:model="email" icon="o-envelope" />
-            </div>
-            <div class="mb-4">
-                <x-password label="Password" wire:model="password" />
-            </div>
-            <div class="mb-4">
-                <x-password label="Confirm Password" wire:model="password_confirmation" />
-            </div>
-            <div class="mb-5 text-end">
-                <a href="{{ route('login') }}">Go to Login</a>
-            </div>
-            <hr>
-            <div class="mt-4">
-                <x-button label="Reset Password" type="submit" icon="o-paper-airplane" class="w-full btn-primary" />
-            </div>
-        </x-form>
+        <div class="mx-auto mt-10 md:w-96">
+            <x-form wire:submit.prevent='resetPassword'>
+                <div class="mb-4">
+                    <x-input label="E-mail" readonly wire:model="email" icon="o-envelope" />
+                </div>
+                <div class="mb-4">
+                    <x-password label="Password" wire:model="password" />
+                </div>
+                <div class="mb-4">
+                    <x-password label="Confirm Password" wire:model="password_confirmation" />
+                </div>
+                <div class="mb-5 text-end">
+                    <a href="{{ route('login') }}">Go to Login</a>
+                </div>
+                <hr>
+                <div class="mt-4">
+                    <x-button label="Reset Password" type="submit" icon="o-paper-airplane"
+                        class="w-full btn-primary" />
+                </div>
+            </x-form>
+        </div>
     </div>
 </div>
