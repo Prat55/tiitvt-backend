@@ -214,18 +214,16 @@ new class extends Component {
             {{-- Enrolled Students Column --}}
             @scope('cell_enrolled_students_count', $exam)
                 <div class="flex items-center gap-2">
-                    <x-badge :label="$exam->enrolled_students_count ?? 0" icon="o-users" class="badge-soft badge-primary" />
+                    <x-badge value="{{ $exam->enrolled_students_count ?? 0 }}" icon="o-users"
+                        class="badge-soft badge-primary" />
                 </div>
             @endscope
 
             {{-- Completed Students Column --}}
             @scope('cell_completed_students_count', $exam)
                 <div class="flex items-center gap-2">
-                    @if (($exam->completed_students_count ?? 0) > 0)
-                        <x-badge :label="$exam->completed_students_count ?? 0" icon="o-check-circle" class="badge-soft badge-success" />
-                    @else
-                        <span class="text-gray-500 text-sm">0</span>
-                    @endif
+                    <x-badge value="{{ $exam->completed_students_count ?? 0 }}" icon="o-check-circle"
+                        class="badge-soft badge-success" />
                 </div>
             @endscope
 
@@ -247,10 +245,13 @@ new class extends Component {
             @scope('cell_time', $exam)
                 <div class="flex flex-col">
                     @if ($exam->start_time && $exam->end_time)
-                        <div class="flex items-center gap-1">
-                            <x-icon name="o-clock" class="w-3 h-3 text-gray-500" />
-                            <span class="text-sm font-medium">
-                                {{ $exam->start_time->format('g:i A') }} - {{ $exam->end_time->format('g:i A') }}
+                        <div class="flex items-center gap-1 flex-col">
+                            <span class="text-sm font-medium block">
+                                {{ $exam->start_time->format('g:i A') }}
+                            </span>
+
+                            <span class="text-sm font-medium block">
+                                {{ $exam->end_time->format('g:i A') }}
                             </span>
                         </div>
                     @else
