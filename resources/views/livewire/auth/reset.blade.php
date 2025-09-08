@@ -47,7 +47,7 @@ new class extends Component {
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            $this->success('Password reset successfully. Now you can login with new password', redirectTo: route('admin.login'));
+            $this->success('Password reset successfully. Now you can login with new password', redirectTo: route('login'));
             return;
         }
 
