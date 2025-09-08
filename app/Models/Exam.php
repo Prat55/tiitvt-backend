@@ -18,7 +18,6 @@ class Exam extends Model
     use HasFactory;
 
     protected $fillable = [
-        'exam_id',
         'course_id',
         'duration',
         'date',
@@ -46,19 +45,6 @@ class Exam extends Model
     // BOOT METHOD
     // =========================================================================
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Exam $exam): void {
-            if (empty($exam->exam_id)) {
-                $exam->exam_id = self::generateUniqueExamId();
-            }
-            if (empty($exam->password)) {
-                $exam->password = self::generatePassword();
-            }
-        });
-    }
 
     // =========================================================================
     // RELATIONSHIPS
@@ -207,25 +193,6 @@ class Exam extends Model
     // METHODS
     // =========================================================================
 
-    /**
-     * Generate a unique exam ID.
-     */
-    public static function generateUniqueExamId(): string
-    {
-        do {
-            $examId = 'EXAM' . strtoupper(Str::random(8));
-        } while (self::where('exam_id', $examId)->exists());
-
-        return $examId;
-    }
-
-    /**
-     * Generate a random password for exam access.
-     */
-    public static function generatePassword(): string
-    {
-        return Str::random(6);
-    }
 
     /**
      * Check if a student is enrolled in this exam.

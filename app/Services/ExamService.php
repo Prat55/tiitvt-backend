@@ -25,7 +25,7 @@ class ExamService
             ]);
 
             Log::info('Exam scheduled successfully', [
-                'exam_id' => $exam->exam_id,
+                'exam_id' => $exam->id,
                 'course_id' => $exam->course_id,
                 'scheduled_date' => $exam->date,
                 'scheduled_time' => $exam->start_time . ' - ' . $exam->end_time
@@ -61,18 +61,20 @@ class ExamService
                 }
             }
 
-            // Create ExamStudent records for each student
+            // Create ExamStudent records for each student with individual credentials
             if (!empty($data['student_ids'])) {
                 foreach ($data['student_ids'] as $studentId) {
                     ExamStudent::create([
                         'exam_id' => $exam->id,
                         'student_id' => $studentId,
+                        'exam_user_id' => ExamStudent::generateUniqueExamUserId(),
+                        'exam_password' => ExamStudent::generatePassword(),
                     ]);
                 }
             }
 
             Log::info('Exam scheduled successfully with categories and students', [
-                'exam_id' => $exam->exam_id,
+                'exam_id' => $exam->id,
                 'course_id' => $exam->course_id,
                 'category_ids' => $data['category_ids'] ?? [],
                 'student_ids' => $data['student_ids'] ?? [],

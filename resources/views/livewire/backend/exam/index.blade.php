@@ -31,7 +31,7 @@ new class extends Component {
 
     public function boot(): void
     {
-        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-16'], ['key' => 'exam_id', 'label' => 'Exam ID', 'class' => 'w-32'], ['key' => 'course.name', 'label' => 'Course', 'class' => 'w-48'], ['key' => 'enrolled_students_count', 'label' => 'Enrolled', 'class' => 'w-24'], ['key' => 'completed_students_count', 'label' => 'Completed', 'class' => 'w-24'], ['key' => 'date', 'label' => 'Date', 'class' => 'w-32'], ['key' => 'time', 'label' => 'Time', 'class' => 'w-32'], ['key' => 'duration', 'label' => 'Duration', 'class' => 'w-24'], ['key' => 'status', 'label' => 'Status', 'class' => 'w-32']];
+        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-16'], ['key' => 'course.name', 'label' => 'Course', 'class' => 'w-48'], ['key' => 'enrolled_students_count', 'label' => 'Enrolled', 'class' => 'w-24'], ['key' => 'completed_students_count', 'label' => 'Completed', 'class' => 'w-24'], ['key' => 'date', 'label' => 'Date', 'class' => 'w-32'], ['key' => 'time', 'label' => 'Time', 'class' => 'w-32'], ['key' => 'duration', 'label' => 'Duration', 'class' => 'w-24'], ['key' => 'status', 'label' => 'Status', 'class' => 'w-32']];
     }
 
     public function rendering(View $view): void
@@ -123,43 +123,16 @@ new class extends Component {
                             Dashboard
                         </a>
                     </li>
-                    <li class="text-gray-400">/</li>
                     <li class="font-medium">All Exams</li>
                 </ul>
             </div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3">
-            <x-button label="{{ $showFilters ? 'Hide Filters' : 'Show Filters' }}"
-                icon="{{ $showFilters ? 'o-eye-slash' : 'o-funnel' }}" class="btn-outline btn-sm"
-                wire:click="toggleFilters" />
             <x-button label="Schedule Exam" icon="o-calendar" class="btn-primary btn-sm"
-                link="{{ route('admin.exam.schedule') }}" />
+                link="{{ route('admin.exam.schedule') }}" tooltip-left="Schedule Exam" responsive />
         </div>
     </div>
-
-    {{-- Filters Section --}}
-    @if ($showFilters)
-        <div class="bg-base-100 rounded-lg border p-4 mb-6 shadow-sm">
-            <div class="flex flex-col lg:flex-row gap-4 items-end">
-                <div class="flex-1">
-                    <x-input placeholder="Search by course name..." icon="o-magnifying-glass"
-                        wire:model.live.debounce.300ms="search" class="w-full" />
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <x-select label="Status" :options="$this->getStatusOptions()" wire:model.live="statusFilter" class="w-40" />
-
-                    <x-select label="Date" :options="$this->getDateFilterOptions()" wire:model.live="dateFilter" class="w-40" />
-
-                    <x-select label="Per Page" :options="$this->getPerPageOptions()" wire:model.live="perPage" class="w-24" />
-                </div>
-
-                <x-button label="Clear" icon="o-x-mark" class="btn-outline btn-sm" wire:click="clearFilters" />
-            </div>
-        </div>
-    @endif
-
     <hr class="mb-6">
 
     {{-- Stats Cards --}}
@@ -216,17 +189,6 @@ new class extends Component {
     {{-- Main Table --}}
     <x-card shadow>
         <x-table :headers="$headers" :rows="$exams" with-pagination :sort-by="$sortBy">
-            {{-- Exam ID Column --}}
-            @scope('cell_exam_id', $exam)
-                <div class="flex items-center gap-2">
-                    <span class="font-mono text-sm bg-base-200 px-3 py-1.5 rounded-lg border">
-                        {{ $exam->exam_id }}
-                    </span>
-                    <x-button icon="o-clipboard" class="btn-xs btn-ghost hover:btn-primary transition-colors"
-                        title="Copy Exam ID" wire:click="$dispatch('copyToClipboard', { text: '{{ $exam->exam_id }}' })" />
-                </div>
-            @endscope
-
             {{-- Course Column --}}
             @scope('cell_course', $exam)
                 <div class="flex items-center gap-3">
@@ -253,10 +215,6 @@ new class extends Component {
             @scope('cell_enrolled_students_count', $exam)
                 <div class="flex items-center gap-2">
                     <x-badge :label="$exam->enrolled_students_count ?? 0" icon="o-users" class="badge-soft badge-primary" />
-                    @if (($exam->enrolled_students_count ?? 0) > 0)
-                        <x-button icon="o-eye" class="btn-xs btn-ghost" title="View Enrolled Students"
-                            link="{{ route('admin.exam.results', $exam->id) }}#students" />
-                    @endif
                 </div>
             @endscope
 
@@ -265,8 +223,6 @@ new class extends Component {
                 <div class="flex items-center gap-2">
                     @if (($exam->completed_students_count ?? 0) > 0)
                         <x-badge :label="$exam->completed_students_count ?? 0" icon="o-check-circle" class="badge-soft badge-success" />
-                        <x-button icon="o-chart-bar" class="btn-xs btn-ghost" title="View Results"
-                            link="{{ route('admin.exam.results', $exam->id) }}#results" />
                     @else
                         <span class="text-gray-500 text-sm">0</span>
                     @endif
@@ -294,12 +250,9 @@ new class extends Component {
                         <div class="flex items-center gap-1">
                             <x-icon name="o-clock" class="w-3 h-3 text-gray-500" />
                             <span class="text-sm font-medium">
-                                {{ $exam->start_time->format('H:i') }} - {{ $exam->end_time->format('H:i') }}
+                                {{ $exam->start_time->format('g:i A') }} - {{ $exam->end_time->format('g:i A') }}
                             </span>
                         </div>
-                        <span class="text-xs text-gray-500">
-                            {{ $exam->duration }} min
-                        </span>
                     @else
                         <span class="text-gray-500 text-sm">N/A</span>
                     @endif
@@ -335,8 +288,10 @@ new class extends Component {
             {{-- Actions Column --}}
             @scope('actions', $exam)
                 <div class="flex items-center gap-1">
-                    <x-button icon="o-eye" link="{{ route('admin.exam.results', $exam->id) }}"
-                        class="btn-xs btn-ghost hover:btn-primary transition-colors" tooltip="View Results" />
+                    <x-button icon="o-eye" link="{{ route('admin.exam.show', $exam->id) }}"
+                        class="btn-xs btn-ghost hover:btn-primary transition-colors" tooltip="View Details" />
+                    <x-button icon="o-chart-bar" link="{{ route('admin.exam.results', $exam->id) }}"
+                        class="btn-xs btn-ghost hover:btn-info transition-colors" tooltip="View Results" />
                     <x-button icon="o-pencil" link="{{ route('admin.exam.edit', $exam->id) }}"
                         class="btn-xs btn-ghost hover:btn-warning transition-colors" tooltip="Edit Exam" />
                     <x-button icon="o-trash" class="btn-xs btn-ghost hover:btn-error transition-colors"
@@ -357,8 +312,8 @@ new class extends Component {
                         @endif
                     </p>
                     @if (!$search && !$statusFilter && !$dateFilter)
-                        <x-button label="Schedule Exam" icon="o-calendar" class="btn-primary"
-                            tooltip="Schedule Exam" link="{{ route('admin.exam.schedule') }}" responsive />
+                        <x-button label="Schedule Exam" icon="o-calendar" class="btn-primary" tooltip="Schedule Exam"
+                            link="{{ route('admin.exam.schedule') }}" responsive />
                     @endif
                 </div>
             </x-slot>
