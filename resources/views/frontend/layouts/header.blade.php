@@ -38,7 +38,13 @@
                          <li><a href="{{ route('frontend.about') }}">About</a></li>
                          <li><a href="{{ route('frontend.index') }}">Courses</a></li>
                          <li><a href="{{ route('frontend.contact') }}">Contact</a></li>
-                         <li><a href="{{ route('login') }}">Login</a></li>
+                         @guest
+                             <li><a href="{{ route('login') }}">Login</a></li>
+                         @endguest
+
+                         @auth
+                             <li><a href="{{ route('admin.index') }}">Dashboard</a></li>
+                         @endauth
                      </ul>
                  </div><!-- /.navbar-collapse -->
 
