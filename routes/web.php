@@ -39,6 +39,7 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('exam')->name('exam.')->group(function () {
                 Volt::route('/', 'backend.exam.index')->name('index');
                 Volt::route('/create', 'backend.exam.create')->name('create');
+                Volt::route('/{exam}/show', 'backend.exam.show')->name('show');
                 Volt::route('/{exam}/edit', 'backend.exam.edit')->name('edit');
                 Volt::route('/schedule', 'backend.exam.schedule')->name('schedule');
                 Volt::route('/results', 'backend.exam.results')->name('results');

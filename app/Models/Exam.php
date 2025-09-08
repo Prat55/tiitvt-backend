@@ -18,7 +18,6 @@ class Exam extends Model
     use HasFactory;
 
     protected $fillable = [
-        'exam_id',
         'course_id',
         'duration',
         'date',
@@ -37,8 +36,6 @@ class Exam extends Model
 
     protected $appends = [
         'category_names',
-        'enrolled_students_count',
-        'completed_students_count',
         'exam_statistics',
     ];
 
@@ -46,19 +43,6 @@ class Exam extends Model
     // BOOT METHOD
     // =========================================================================
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Exam $exam): void {
-            if (empty($exam->exam_id)) {
-                $exam->exam_id = self::generateUniqueExamId();
-            }
-            if (empty($exam->password)) {
-                $exam->password = self::generatePassword();
-            }
-        });
-    }
 
     // =========================================================================
     // RELATIONSHIPS
@@ -160,23 +144,6 @@ class Exam extends Model
             ->toArray();
     }
 
-    /**
-     * Get the count of enrolled students.
-     */
-    public function getEnrolledStudentsCountAttribute(): int
-    {
-        return $this->examStudents()->count();
-    }
-
-    /**
-     * Get the count of completed students.
-     */
-    public function getCompletedStudentsCountAttribute(): int
-    {
-        return $this->examResults()
-            ->whereNotIn('result_status', [ExamResultStatusEnum::NotDeclared])
-            ->count();
-    }
 
     /**
      * Get exam statistics.
@@ -194,7 +161,7 @@ class Exam extends Model
         $scores = $results->pluck('score')->filter();
 
         return [
-            'total_students' => $this->enrolled_students_count,
+            'total_students' => $this->enrolled_students_count ?? 0,
             'completed_students' => $results->count(),
             'average_score' => round($scores->avg(), 2),
             'pass_rate' => $this->calculatePassRate($scores),
@@ -207,25 +174,6 @@ class Exam extends Model
     // METHODS
     // =========================================================================
 
-    /**
-     * Generate a unique exam ID.
-     */
-    public static function generateUniqueExamId(): string
-    {
-        do {
-            $examId = 'EXAM' . strtoupper(Str::random(8));
-        } while (self::where('exam_id', $examId)->exists());
-
-        return $examId;
-    }
-
-    /**
-     * Generate a random password for exam access.
-     */
-    public static function generatePassword(): string
-    {
-        return Str::random(6);
-    }
 
     /**
      * Check if a student is enrolled in this exam.
@@ -360,8 +308,8 @@ class Exam extends Model
     public function scopeWithStudentCounts(Builder $query): Builder
     {
         return $query->withCount([
-            'examStudents as enrolled_count',
-            'examResults as completed_count' => function (Builder $query) {
+            'examStudents as enrolled_students_count',
+            'examResults as completed_students_count' => function (Builder $query) {
                 $query->whereNotIn('result_status', [ExamResultStatusEnum::NotDeclared]);
             }
         ]);
