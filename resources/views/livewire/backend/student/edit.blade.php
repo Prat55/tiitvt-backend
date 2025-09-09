@@ -885,7 +885,7 @@ new class extends Component {
 
                 <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"
                     placeholder="Enter number of installments (optional)" icon="o-calculator" min="0"
-                    hint="Leave empty if no installments" />
+                    hint="Leave empty if no installments" min="{{ $paid_installments_count + 1 }}" />
 
                 <x-datepicker label="Installment Date (optional)" wire:model.live="installment_date"
                     icon="o-calendar" :config="$dateConfig" />
@@ -978,8 +978,14 @@ new class extends Component {
                                             <div
                                                 class="bg-base-100 rounded-lg p-3 border {{ $installment['status'] === 'paid' ? 'border-success' : ($installment['status'] === 'overdue' ? 'border-error' : 'border-warning') }}">
                                                 <div class="flex justify-between items-start mb-2">
-                                                    <div class="text-sm text-gray-600">Installment
-                                                        {{ $installment['installment_no'] }}</div>
+                                                    <div class="flex gap-2 items-center">
+                                                        <div class="text-sm text-gray-600">
+                                                            Installment {{ $installment['installment_no'] }}
+                                                        </div>
+                                                        @if (isset($installment['is_existing']) && $installment['is_existing'])
+                                                            <div class="text-xs text-info">Existing</div>
+                                                        @endif
+                                                    </div>
                                                     @if (isset($installment['status']))
                                                         <span
                                                             class="badge badge-sm {{ $installment['status'] === 'paid' ? 'badge-success' : ($installment['status'] === 'overdue' ? 'badge-error' : 'badge-warning') }}">
@@ -990,15 +996,15 @@ new class extends Component {
                                                 <div class="font-bold text-lg">
                                                     {{ $this->formatCurrency($installment['amount']) }}
                                                 </div>
-                                                <div class="text-xs text-gray-500">Due: {{ $installment['due_date'] }}
+                                                <div class="flex gap-2 items-center">
+                                                    <div class="text-xs text-gray-500">
+                                                        Due: {{ $installment['due_date'] }}
+                                                    </div>
+                                                    @if (isset($installment['paid_date']) && $installment['paid_date'])
+                                                        <div class="text-xs text-success">Paid:
+                                                            {{ $installment['paid_date'] }}</div>
+                                                    @endif
                                                 </div>
-                                                @if (isset($installment['paid_date']) && $installment['paid_date'])
-                                                    <div class="text-xs text-success mt-1">Paid:
-                                                        {{ $installment['paid_date'] }}</div>
-                                                @endif
-                                                @if (isset($installment['is_existing']) && $installment['is_existing'])
-                                                    <div class="text-xs text-info mt-1">Existing</div>
-                                                @endif
                                             </div>
                                         @endforeach
                                     </div>
