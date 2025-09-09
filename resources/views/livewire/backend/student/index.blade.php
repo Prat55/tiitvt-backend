@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Student;
+use App\Enums\RolesEnum;
 use Illuminate\View\View;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
@@ -20,21 +21,21 @@ new class extends Component {
     // boot
     public function boot(): void
     {
-        $this->headers = [['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32'], ['key' => 'center_name', 'label' => 'Center', 'class' => 'w-40'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40']];
+        $this->headers = [['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32'], ['key' => 'center_name', 'label' => 'Center', 'class' => 'w-40', 'sortable' => false], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40', 'sortable' => false]];
     }
 
     public function rendering(View $view): void
     {
-        $view->students = Student::with(['center', 'course'])
-            ->orderBy(...array_values($this->sortBy))
-            ->whereAny(['tiitvt_reg_no', 'first_name', 'fathers_name', 'mobile', 'email', 'telephone_no'], 'like', "%$this->search%")
-            ->orWhereHas('center', function ($query) {
-                $query->where('name', 'like', "%$this->search%");
-            })
-            ->orWhereHas('course', function ($query) {
-                $query->where('name', 'like', "%$this->search%");
-            })
-            ->paginate(20);
+        $query = Student::with(['center', 'course']);
+
+        if (hasAuthRole(RolesEnum::Center->value)) {
+            $query->where('center_id', auth()->user()->center->id);
+        }
+
+        $view->students = $query->orderBy(...array_values($this->sortBy))->search($this->search)->paginate(20);
+
+        // dd($view->students);
+
         $view->title('All Students');
     }
 };
@@ -63,7 +64,7 @@ new class extends Component {
             <x-input placeholder="Search students, registration no, phone, email..." icon="o-magnifying-glass"
                 wire:model.live.debounce="search" />
             <x-button label="Add Student" icon="o-plus" class="btn-primary inline-flex" responsive
-                link="{{ route('admin.student.create') }}" />
+                link="{{ route('admin.student.create') }}" tooltip-left="Add Student" />
         </div>
     </div>
     <hr class="mb-5">

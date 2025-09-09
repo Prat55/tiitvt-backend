@@ -1,6 +1,7 @@
 <?php
 
 use Mary\Traits\Toast;
+use App\Enums\RolesEnum;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
@@ -876,10 +877,10 @@ new class extends Component {
                 </div>
 
                 <x-input label="Course Fees" wire:model.live="course_fees" step="0.01"
-                    placeholder="Enter course fees" icon="o-currency-rupee" money />
+                    placeholder="Enter course fees" icon="o-currency-rupee" />
 
                 <x-input label="Down Payment" wire:model.live="down_payment" step="0.01"
-                    placeholder="Enter down payment (optional)" icon="o-currency-rupee" money
+                    placeholder="Enter down payment (optional)" icon="o-currency-rupee"
                     hint="Cannot exceed course fees" />
 
                 <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"

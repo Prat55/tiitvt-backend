@@ -412,6 +412,10 @@ new class extends Component {
 
     public function updatedDownPayment(): void
     {
+        if ($this->down_payment == 0 || $this->down_payment == null) {
+            $this->down_payment = 0;
+        }
+
         // Ensure down payment doesn't exceed course fees
         if ($this->down_payment > $this->course_fees) {
             $this->down_payment = $this->course_fees;

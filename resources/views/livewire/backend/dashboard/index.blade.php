@@ -611,13 +611,12 @@ new class extends Component {
                     <x-button label="Category" icon="o-tag" link="{{ route('admin.category.index') }}"
                         class="btn-info" responsive />
                 @elseif($user->isCenter())
-                    <x-button label="Add Student" icon="o-user-plus" link="{{ route('center.student.create') }}"
+                    <x-button label="Add Student" icon="o-user-plus" link="{{ route('admin.student.create') }}"
                         class="btn-primary" responsive />
-                    <x-button label="View Students" icon="o-user-group" link="{{ route('center.student.index') }}"
+                    <x-button label="View Students" icon="o-user-group" link="{{ route('admin.student.index') }}"
                         class="btn-secondary" responsive />
-                    <x-button label="Invoices" icon="o-document-text" link="{{ route('center.invoice.index') }}"
-                        class="btn-accent" responsive />
-                    <x-button label="Profile" icon="o-user" link="{{ route('center.profile') }}" class="btn-info"
+                    <x-button label="Invoices" icon="o-document-text" link="#000" class="btn-accent" responsive />
+                    <x-button label="Profile" icon="o-user" link="{{ route('admin.profile') }}" class="btn-info"
                         responsive />
                 @elseif($user->isStudent())
                     <x-button label="My Courses" icon="o-book-open" link="{{ route('student.course.index') }}"
