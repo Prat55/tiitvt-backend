@@ -21,9 +21,18 @@ new class extends Component {
     public $selectedInstallments = [];
     public $bulkStatus = '';
     public $bulkNotes = '';
+    public $bulkPaymentMethod = '';
+    public $bulkChequeNumber = '';
+    public $bulkWithdrawnDate = '';
     public $showPartialPaymentModal = false;
     public $partialPaymentAmount = '';
     public $partialPaymentNotes = '';
+    public $paymentMethod = '';
+    public $chequeNumber = '';
+    public $withdrawnDate = '';
+    public $partialPaymentMethod = '';
+    public $partialChequeNumber = '';
+    public $partialWithdrawnDate = '';
 
     public function mount($student)
     {
@@ -43,6 +52,9 @@ new class extends Component {
         $this->newStatus = $this->selectedInstallment->status;
         $this->paidAmount = $this->selectedInstallment->amount;
         $this->notes = $this->selectedInstallment->notes ?? '';
+        $this->paymentMethod = $this->selectedInstallment->payment_method?->value ?? '';
+        $this->chequeNumber = $this->selectedInstallment->cheque_number ?? '';
+        $this->withdrawnDate = $this->selectedInstallment->withdrawn_date?->format('Y-m-d') ?? '';
         $this->showStatusModal = true;
     }
 
@@ -53,6 +65,9 @@ new class extends Component {
         $this->newStatus = '';
         $this->paidAmount = '';
         $this->notes = '';
+        $this->paymentMethod = '';
+        $this->chequeNumber = '';
+        $this->withdrawnDate = '';
     }
 
     public function openBulkUpdateModal()
@@ -64,6 +79,11 @@ new class extends Component {
     {
         $this->showBulkUpdateModal = false;
         $this->selectedInstallments = [];
+        $this->bulkStatus = '';
+        $this->bulkNotes = '';
+        $this->bulkPaymentMethod = '';
+        $this->bulkChequeNumber = '';
+        $this->bulkWithdrawnDate = '';
     }
 
     public function openPartialPaymentModal($installmentId)
@@ -71,6 +91,9 @@ new class extends Component {
         $this->selectedInstallment = Installment::findOrFail($installmentId);
         $this->partialPaymentAmount = '';
         $this->partialPaymentNotes = '';
+        $this->partialPaymentMethod = '';
+        $this->partialChequeNumber = '';
+        $this->partialWithdrawnDate = '';
         $this->showPartialPaymentModal = true;
     }
 
@@ -80,6 +103,9 @@ new class extends Component {
         $this->selectedInstallment = null;
         $this->partialPaymentAmount = '';
         $this->partialPaymentNotes = '';
+        $this->partialPaymentMethod = '';
+        $this->partialChequeNumber = '';
+        $this->partialWithdrawnDate = '';
     }
 
     public function toggleInstallmentSelection($installmentId)
@@ -89,11 +115,6 @@ new class extends Component {
         } else {
             $this->selectedInstallments[] = $installmentId;
         }
-    }
-
-    public function selectAllInstallments()
-    {
-        $this->selectedInstallments = $this->student->installments->pluck('id')->toArray();
     }
 
     public function clearInstallmentSelection()
@@ -107,19 +128,78 @@ new class extends Component {
             return;
         }
 
+        // Custom validation for paid amount when status is partial
+        if ($this->isStatusPartial($this->newStatus)) {
+            if (empty($this->paidAmount) || !is_numeric($this->paidAmount) || $this->paidAmount <= 0) {
+                $this->addError('paidAmount', 'Paid amount is required and must be a valid positive number when status is partial.');
+                return;
+            }
+            if ($this->paidAmount >= $this->selectedInstallment->amount) {
+                $this->addError('paidAmount', 'For partial payment, the amount must be less than the full installment amount.');
+                return;
+            }
+        }
+
         $this->validate([
             'newStatus' => 'required',
-            'paidAmount' => 'required_if:newStatus,' . InstallmentStatusEnum::Paid->value . '|numeric|min:0',
             'notes' => 'nullable|string|max:500',
+            'paymentMethod' => 'nullable|in:cash,cheque',
+            'chequeNumber' => 'required_if:paymentMethod,cheque|nullable|string|max:50',
+            'withdrawnDate' => 'required_if:paymentMethod,cheque|nullable|date',
         ]);
 
         try {
             $installment = $this->selectedInstallment;
 
-            if ($this->newStatus === InstallmentStatusEnum::Paid->value) {
-                $installment->markAsPaid($this->paidAmount, $this->notes);
-                $this->success('Installment marked as paid successfully!', position: 'toast-bottom');
-            } elseif ($this->newStatus === InstallmentStatusEnum::Overdue->value) {
+            if ($this->isStatusPartial($this->newStatus)) {
+                $paymentMethod = null;
+                if ($this->paymentMethod) {
+                    try {
+                        $paymentMethod = \App\Enums\PaymentMethodEnum::from($this->paymentMethod);
+                    } catch (\ValueError $e) {
+                        $this->addError('paymentMethod', 'Invalid payment method selected.');
+                        return;
+                    }
+                }
+
+                // Convert withdrawnDate to Carbon instance if provided
+                $withdrawnDate = null;
+                if ($this->withdrawnDate) {
+                    try {
+                        $withdrawnDate = \Carbon\Carbon::parse($this->withdrawnDate);
+                    } catch (\Exception $e) {
+                        $this->addError('withdrawnDate', 'Invalid withdrawn date format.');
+                        return;
+                    }
+                }
+
+                $installment->addPartialPayment($this->paidAmount, $this->notes, $paymentMethod, $this->chequeNumber, $withdrawnDate);
+                $this->success('Partial payment added successfully!', position: 'toast-bottom');
+            } elseif ($this->isStatusPaid($this->newStatus)) {
+                $paymentMethod = null;
+                if ($this->paymentMethod) {
+                    try {
+                        $paymentMethod = \App\Enums\PaymentMethodEnum::from($this->paymentMethod);
+                    } catch (\ValueError $e) {
+                        $this->addError('paymentMethod', 'Invalid payment method selected.');
+                        return;
+                    }
+                }
+
+                // Convert withdrawnDate to Carbon instance if provided
+                $withdrawnDate = null;
+                if ($this->withdrawnDate) {
+                    try {
+                        $withdrawnDate = \Carbon\Carbon::parse($this->withdrawnDate);
+                    } catch (\Exception $e) {
+                        $this->addError('withdrawnDate', 'Invalid withdrawn date format.');
+                        return;
+                    }
+                }
+
+                $installment->markAsPaid($installment->amount, $this->notes, $paymentMethod, $this->chequeNumber, $withdrawnDate);
+                $this->success('Installment marked as fully paid!', position: 'toast-bottom');
+            } elseif ($this->isStatusOverdue($this->newStatus)) {
                 $installment->markAsOverdue();
                 $installment->update(['notes' => $this->notes]);
                 $this->success('Installment marked as overdue!', position: 'toast-bottom');
@@ -141,7 +221,16 @@ new class extends Component {
             // Recalculate overdue status after update
             $this->checkAndMarkOverdueInstallments();
         } catch (\Exception $e) {
-            $this->error('Failed to update installment status. Please try again.', position: 'toast-bottom');
+            // Log the actual error for debugging
+            \Log::error('Installment status update failed: ' . $e->getMessage(), [
+                'installment_id' => $this->selectedInstallment?->id,
+                'newStatus' => $this->newStatus,
+                'paidAmount' => $this->paidAmount,
+                'paymentMethod' => $this->paymentMethod,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->error('Failed to update installment status: ' . $e->getMessage(), position: 'toast-bottom');
         }
     }
 
@@ -155,6 +244,9 @@ new class extends Component {
         $this->validate([
             'bulkStatus' => 'required|in:' . implode(',', InstallmentStatusEnum::values()),
             'bulkNotes' => 'nullable|string|max:500',
+            'bulkPaymentMethod' => 'nullable|in:cash,cheque',
+            'bulkChequeNumber' => 'required_if:bulkPaymentMethod,cheque|nullable|string|max:50',
+            'bulkWithdrawnDate' => 'required_if:bulkPaymentMethod,cheque|nullable|date',
         ]);
 
         try {
@@ -162,9 +254,22 @@ new class extends Component {
             $installments = Installment::whereIn('id', $this->selectedInstallments)->get();
 
             foreach ($installments as $installment) {
-                if ($this->bulkStatus === InstallmentStatusEnum::Paid->value) {
-                    $installment->markAsPaid($installment->amount, $this->bulkNotes);
-                } elseif ($this->bulkStatus === InstallmentStatusEnum::Overdue->value) {
+                if ($this->isStatusPaid($this->bulkStatus)) {
+                    $paymentMethod = $this->bulkPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->bulkPaymentMethod) : null;
+
+                    // Convert withdrawnDate to Carbon instance if provided
+                    $withdrawnDate = null;
+                    if ($this->bulkWithdrawnDate) {
+                        try {
+                            $withdrawnDate = \Carbon\Carbon::parse($this->bulkWithdrawnDate);
+                        } catch (\Exception $e) {
+                            // Skip this installment if date is invalid
+                            continue;
+                        }
+                    }
+
+                    $installment->markAsPaid($installment->amount, $this->bulkNotes, $paymentMethod, $this->bulkChequeNumber, $withdrawnDate);
+                } elseif ($this->isStatusOverdue($this->bulkStatus)) {
                     $installment->markAsOverdue();
                     $installment->update(['notes' => $this->bulkNotes]);
                 } else {
@@ -201,11 +306,15 @@ new class extends Component {
         $this->validate([
             'partialPaymentAmount' => 'required|numeric|min:0.01|max:' . $this->selectedInstallment->getRemainingAmount(),
             'partialPaymentNotes' => 'nullable|string|max:500',
+            'partialPaymentMethod' => 'nullable|in:cash,cheque',
+            'partialChequeNumber' => 'required_if:partialPaymentMethod,cheque|nullable|string|max:50',
+            'partialWithdrawnDate' => 'required_if:partialPaymentMethod,cheque|nullable|date',
         ]);
 
         try {
             $installment = $this->selectedInstallment;
-            $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes);
+            $paymentMethod = $this->partialPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->partialPaymentMethod) : null;
+            $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
 
             $this->success('Partial payment added successfully!', position: 'toast-bottom');
 
@@ -227,6 +336,67 @@ new class extends Component {
                 return ['id' => $status->value, 'name' => $status->label()];
             })
             ->toArray();
+    }
+
+    public function getBulkStatusOptions()
+    {
+        return collect(InstallmentStatusEnum::all())
+            ->filter(function ($status) {
+                // Exclude partial status from bulk update options
+                return $status !== InstallmentStatusEnum::Partial;
+            })
+            ->map(function ($status) {
+                return ['id' => $status->value, 'name' => $status->label()];
+            })
+            ->toArray();
+    }
+
+    public function getPaymentMethodOptions()
+    {
+        return collect(\App\Enums\PaymentMethodEnum::cases())
+            ->map(function ($method) {
+                return ['id' => $method->value, 'name' => $method->label()];
+            })
+            ->toArray();
+    }
+
+    public function isStatusPaid($status)
+    {
+        if (is_string($status)) {
+            return $status === 'paid';
+        }
+
+        if (is_object($status) && isset($status->value)) {
+            return $status->value === 'paid';
+        }
+
+        return false;
+    }
+
+    public function isStatusOverdue($status)
+    {
+        if (is_string($status)) {
+            return $status === 'overdue';
+        }
+
+        if (is_object($status) && isset($status->value)) {
+            return $status->value === 'overdue';
+        }
+
+        return false;
+    }
+
+    public function isStatusPartial($status)
+    {
+        if (is_string($status)) {
+            return $status === 'partial';
+        }
+
+        if (is_object($status) && isset($status->value)) {
+            return $status->value === 'partial';
+        }
+
+        return false;
     }
 
     public function getInstallmentSummary()
@@ -661,8 +831,6 @@ new class extends Component {
                         <x-button label="Mark Overdue" icon="o-exclamation-triangle"
                             class="btn-sm btn-outline btn-warning" wire:click="markOverdueInstallments"
                             tooltip="Mark overdue installments" responsive />
-                        <x-button label="Bulk Update" icon="o-squares-plus" class="btn-sm btn-outline btn-primary"
-                            wire:click="openBulkUpdateModal" tooltip="Bulk update installment status" responsive />
                     </div>
                 </div>
 
@@ -800,7 +968,8 @@ new class extends Component {
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" class="checkbox checkbox-sm checkbox-primary"
                                         wire:click="toggleInstallmentSelection({{ $installment->id }})"
-                                        @if (in_array($installment->id, $selectedInstallments)) checked @endif>
+                                        @if (in_array($installment->id, $selectedInstallments)) checked @endif
+                                        @if ($installment->status->isPaid()) disabled @endif>
                                     <span class="text-sm font-medium text-gray-600">Installment
                                         {{ $installment->installment_no }}</span>
                                 </div>
@@ -829,6 +998,21 @@ new class extends Component {
                                         Amount: ₹{{ number_format($installment->paid_amount, 2) }}
                                     </div>
                                 @endif
+                                @if ($installment->payment_method)
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        Method: {{ $installment->payment_method->label() }}
+                                    </div>
+                                @endif
+                                @if ($installment->cheque_number)
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        Cheque: {{ $installment->cheque_number }}
+                                    </div>
+                                @endif
+                                @if ($installment->withdrawn_date)
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        Withdrawn: {{ $installment->withdrawn_date->format('d/m/Y') }}
+                                    </div>
+                                @endif
                             @elseif ($installment->status->isPartial())
                                 <div class="text-xs text-info mt-1">
                                     Partial: ₹{{ number_format($installment->paid_amount, 2) }} paid
@@ -836,6 +1020,21 @@ new class extends Component {
                                 <div class="text-xs text-warning mt-1">
                                     Remaining: ₹{{ number_format($installment->getRemainingAmount(), 2) }}
                                 </div>
+                                @if ($installment->payment_method)
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        Method: {{ $installment->payment_method->label() }}
+                                    </div>
+                                @endif
+                                @if ($installment->cheque_number)
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        Cheque: {{ $installment->cheque_number }}
+                                    </div>
+                                @endif
+                                @if ($installment->withdrawn_date)
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        Withdrawn: {{ $installment->withdrawn_date->format('d/m/Y') }}
+                                    </div>
+                                @endif
                             @endif
 
                             @if ($installment->notes)
@@ -911,12 +1110,33 @@ new class extends Component {
                     class="text-lg font-bold text-primary">₹{{ number_format($selectedInstallment?->amount, 2) }}</span>
             </div>
 
-            <x-select label="Status" wire:model="newStatus" class="select select-bordered w-full"
+            <x-select label="Status" wire:model.live="newStatus" class="select select-bordered w-full"
                 :options="$this->getStatusOptions()" />
 
-            @if ($newStatus === InstallmentStatusEnum::Paid->value)
-                <x-input label="Paid Amount" type="number" wire:model="paidAmount" step="0.01" min="0"
-                    class="input input-bordered w-full" placeholder="Enter paid amount"></x-input>
+            @if ($this->isStatusPartial($newStatus))
+                <x-input label="Paid Amount" type="number" wire:model="paidAmount" step="0.01" min="0.01"
+                    :max="$selectedInstallment?->amount" class="input input-bordered w-full" placeholder="Enter partial payment amount"
+                    hint="Maximum: ₹{{ number_format($selectedInstallment?->amount, 2) }}"></x-input>
+
+                <x-select label="Payment Method" wire:model.live="paymentMethod"
+                    class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
+
+                @if ($paymentMethod === 'cheque')
+                    <x-input label="Cheque Number" wire:model="chequeNumber" class="input input-bordered w-full"
+                        placeholder="Enter cheque number" />
+                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate"
+                        class="input input-bordered w-full" />
+                @endif
+            @elseif ($this->isStatusPaid($newStatus))
+                <x-select label="Payment Method" wire:model.live="paymentMethod"
+                    class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
+
+                @if ($paymentMethod === 'cheque')
+                    <x-input label="Cheque Number" wire:model="chequeNumber" class="input input-bordered w-full"
+                        placeholder="Enter cheque number" />
+                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate"
+                        class="input input-bordered w-full" />
+                @endif
             @endif
 
             <x-textarea label="Notes (Optional)" wire:model="notes" class="textarea textarea-bordered w-full"
@@ -936,9 +1156,27 @@ new class extends Component {
                 description="You have selected {{ count($selectedInstallments) }} installment(s) for bulk update." />
 
             <div>
-                <x-select label="New Status" wire:model="bulkStatus" class="select select-bordered w-full"
-                    :options="$this->getStatusOptions()" />
+                <x-select label="New Status" wire:model.live="bulkStatus" class="select select-bordered w-full"
+                    :options="$this->getBulkStatusOptions()" />
             </div>
+
+            @if ($this->isStatusPaid($bulkStatus))
+                <div>
+                    <x-select label="Payment Method" wire:model.live="bulkPaymentMethod"
+                        class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
+                </div>
+
+                @if ($bulkPaymentMethod === 'cheque')
+                    <div>
+                        <x-input label="Cheque Number" wire:model="bulkChequeNumber"
+                            class="input input-bordered w-full" placeholder="Enter cheque number" />
+                    </div>
+                    <div>
+                        <x-input label="Withdrawn Date" type="date" wire:model="bulkWithdrawnDate"
+                            class="input input-bordered w-full" />
+                    </div>
+                @endif
+            @endif
 
             <div>
                 <x-textarea label="Notes (Optional)" wire:model="bulkNotes" class="textarea textarea-bordered w-full"
@@ -977,6 +1215,14 @@ new class extends Component {
             <x-input label="Payment Amount" type="number" wire:model.live="partialPaymentAmount" step="0.01"
                 min="0.01" :max="$selectedInstallment?->getRemainingAmount()" placeholder="Enter payment amount"
                 hint="Max: ₹{{ number_format($selectedInstallment?->getRemainingAmount(), 2) }}" />
+
+            <x-select label="Payment Method" wire:model="partialPaymentMethod" class="select select-bordered w-full"
+                :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
+
+            @if ($partialPaymentMethod === 'cheque')
+                <x-input label="Cheque Number" wire:model="partialChequeNumber" placeholder="Enter cheque number" />
+                <x-input label="Withdrawn Date" type="date" wire:model="partialWithdrawnDate" />
+            @endif
 
             <x-textarea label="Notes (Optional)" wire:model="partialPaymentNotes"
                 class="textarea textarea-bordered w-full" rows="3"
