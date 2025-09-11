@@ -21,7 +21,14 @@ new class extends Component {
     // boot
     public function boot(): void
     {
-        $this->headers = [['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32'], ['key' => 'center_name', 'label' => 'Center', 'class' => 'w-40', 'sortable' => false], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40', 'sortable' => false]];
+        $this->headers = [['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32']];
+
+        // Only show center column to admin users
+        if (hasAuthRole(RolesEnum::Admin->value)) {
+            $this->headers[] = ['key' => 'center_name', 'label' => 'Center', 'class' => 'w-40', 'sortable' => false];
+        }
+
+        $this->headers[] = ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40', 'sortable' => false];
     }
 
     public function rendering(View $view): void
@@ -89,13 +96,15 @@ new class extends Component {
                 <span class="text-xs text-gray-400">-</span>
             @endif
         @endscope
-        @scope('cell_center_name', $student)
-            @if ($student->center)
-                <span class="text-sm font-medium">{{ $student->center->name }}</span>
-            @else
-                <span class="text-xs text-gray-400">-</span>
-            @endif
-        @endscope
+        @if (hasAuthRole(RolesEnum::Admin->value))
+            @scope('cell_center_name', $student)
+                @if ($student->center)
+                    <span class="text-sm font-medium">{{ $student->center->name }}</span>
+                @else
+                    <span class="text-xs text-gray-400">-</span>
+                @endif
+            @endscope
+        @endif
         @scope('cell_course_name', $student)
             @if ($student->course)
                 <span class="text-sm font-medium">{{ $student->course->name }}</span>

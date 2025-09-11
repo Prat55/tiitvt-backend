@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
 use App\Enums\InstallmentStatusEnum;
+use App\Enums\PaymentMethodEnum;
+use App\Helpers\MailHelper;
+use Illuminate\Support\Facades\Log;
 
 class Installment extends Model
 {
@@ -20,15 +23,20 @@ class Installment extends Model
         'status',
         'paid_date',
         'paid_amount',
+        'payment_method',
+        'cheque_number',
+        'withdrawn_date',
         'notes',
     ];
 
     protected $casts = [
         'due_date' => 'date',
         'paid_date' => 'date',
+        'withdrawn_date' => 'date',
         'amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'status' => InstallmentStatusEnum::class,
+        'payment_method' => PaymentMethodEnum::class,
     ];
 
     /**
@@ -88,35 +96,47 @@ class Installment extends Model
     /**
      * Mark installment as paid.
      */
-    public function markAsPaid(float $paidAmount = null, string $notes = null): void
+    public function markAsPaid(float $paidAmount = null, string $notes = null, PaymentMethodEnum $paymentMethod = null, string $chequeNumber = null, $withdrawnDate = null): void
     {
         $this->update([
             'status' => InstallmentStatusEnum::Paid,
             'paid_date' => now(),
             'paid_amount' => $paidAmount ?? $this->amount,
+            'payment_method' => $paymentMethod,
+            'cheque_number' => $chequeNumber,
+            'withdrawn_date' => $withdrawnDate,
             'notes' => $notes,
         ]);
+
+        // Send payment notification email
+        $this->sendPaymentNotification('full');
     }
 
     /**
      * Add partial payment to installment.
      */
-    public function addPartialPayment(float $partialAmount, string $notes = null): void
+    public function addPartialPayment(float $partialAmount, string $notes = null, PaymentMethodEnum $paymentMethod = null, string $chequeNumber = null, $withdrawnDate = null): void
     {
         $currentPaidAmount = $this->paid_amount ?? 0;
         $newPaidAmount = $currentPaidAmount + $partialAmount;
 
         // If the new paid amount equals or exceeds the installment amount, mark as fully paid
         if ($newPaidAmount >= $this->amount) {
-            $this->markAsPaid($newPaidAmount, $notes);
+            $this->markAsPaid($newPaidAmount, $notes, $paymentMethod, $chequeNumber, $withdrawnDate);
         } else {
             // Otherwise, mark as partial
             $this->update([
                 'status' => InstallmentStatusEnum::Partial,
                 'paid_date' => now(),
                 'paid_amount' => $newPaidAmount,
+                'payment_method' => $paymentMethod,
+                'cheque_number' => $chequeNumber,
+                'withdrawn_date' => $withdrawnDate,
                 'notes' => $notes,
             ]);
+
+            // Send partial payment notification email
+            $this->sendPaymentNotification('partial');
         }
     }
 
@@ -201,5 +221,58 @@ class Installment extends Model
     public function isOverdue(): bool
     {
         return $this->status->isOverdue();
+    }
+
+    /**
+     * Send payment notification email
+     */
+    private function sendPaymentNotification(string $paymentType = 'full'): void
+    {
+        try {
+            $student = $this->student;
+
+            // Prepare data for the email template
+            $data = [
+                'student' => $student,
+                'amount' => $this->paid_amount ?? $this->amount,
+                'amount_in_words' => numberToWords($this->paid_amount ?? $this->amount),
+                'payment_type' => $paymentType,
+                'payment_method' => $this->payment_method?->value ?? 'cash',
+                'cheque_number' => $this->cheque_number,
+                'withdrawn_date' => $this->withdrawn_date?->format('Y-m-d'),
+                'total_fees' => $student->installments->sum('amount'),
+                'previous_paid' => $this->calculatePreviousPaid($student),
+                'balance_amount' => $this->calculateBalanceAmount($student),
+            ];
+
+            // Generate email body using the payment receipt template
+            $body = view('mail.notification.installment.payment', $data)->render();
+            $subject = 'Payment Receipt - ' . $student->tiitvt_reg_no;
+
+            // Use existing MailHelper
+            MailHelper::sendNotification($student->email, $subject, $body);
+        } catch (\Exception $e) {
+            Log::error("Failed to send payment notification for installment {$this->id}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Calculate previous paid amount (excluding current installment)
+     */
+    private function calculatePreviousPaid(Student $student): float
+    {
+        return $student->installments
+            ->where('id', '!=', $this->id)
+            ->sum('paid_amount');
+    }
+
+    /**
+     * Calculate balance amount after current payment
+     */
+    private function calculateBalanceAmount(Student $student): float
+    {
+        $totalFees = $student->installments->sum('amount');
+        $totalPaid = $student->installments->sum('paid_amount');
+        return max(0, $totalFees - $totalPaid);
     }
 }

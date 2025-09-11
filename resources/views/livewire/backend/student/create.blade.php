@@ -127,7 +127,7 @@ new class extends Component {
             'address.pincode' => 'required|string|max:10',
             'address.country' => 'required|string|max:100',
             'telephone_no' => 'nullable|string|max:20',
-            'email' => 'required|email|max:180|unique:students,email',
+            'email' => 'required|email|max:180',
             'mobile' => 'nullable|string|max:15',
             'date_of_birth' => 'required|date',
             'age' => 'required|integer|min:0|max:150',
@@ -156,7 +156,6 @@ new class extends Component {
             'first_name.required' => 'First name is required.',
             'fathers_name.required' => 'Father\'s name is required.',
             'email.required' => 'Email is required.',
-            'email.unique' => 'This email already exists.',
             'email.email' => 'Please enter a valid email address.',
             'course_fees.required' => 'Course fees is required.',
             'down_payment.lte' => 'Down payment cannot exceed course fees.',
@@ -252,7 +251,7 @@ new class extends Component {
     // Reset form
     public function resetForm(): void
     {
-        $this->reset();
+        $this->reset(['first_name', 'fathers_name', 'surname', 'address', 'telephone_no', 'email', 'mobile', 'date_of_birth', 'age', 'qualification', 'additional_qualification', 'reference', 'batch_time', 'scheme_given', 'course_fees', 'down_payment', 'no_of_installments', 'installment_date', 'enrollment_date', 'incharge_name', 'center_id', 'course_id', 'student_signature_image', 'student_image']);
         $this->resetValidation();
         $this->address = [
             'street' => '',
