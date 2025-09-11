@@ -1,6 +1,7 @@
 <?php
 
 use Mary\Traits\Toast;
+use App\Enums\RolesEnum;
 use Livewire\Volt\Component;
 use App\Enums\InstallmentStatusEnum;
 use App\Models\{Student, Installment};
@@ -26,11 +27,10 @@ new class extends Component {
 
     public function mount($student)
     {
-        // If $student is a string (ID), fetch the model
-        if (is_string($student)) {
+        if (hasAuthRole(RolesEnum::Admin->value)) {
             $this->student = Student::findOrFail($student);
         } else {
-            $this->student = $student;
+            $this->student = Student::where('center_id', auth()->user()->center->id)->findOrFail($student);
         }
 
         // Automatically check for overdue installments when component loads
