@@ -252,7 +252,7 @@ new class extends Component {
     // Reset form
     public function resetForm(): void
     {
-        $this->reset();
+        $this->reset(['first_name', 'fathers_name', 'surname', 'address', 'telephone_no', 'email', 'mobile', 'date_of_birth', 'age', 'qualification', 'additional_qualification', 'reference', 'batch_time', 'scheme_given', 'course_fees', 'down_payment', 'no_of_installments', 'installment_date', 'enrollment_date', 'incharge_name', 'center_id', 'course_id', 'student_signature_image', 'student_image']);
         $this->resetValidation();
         $this->address = [
             'street' => '',

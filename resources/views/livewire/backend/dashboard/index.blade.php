@@ -25,6 +25,8 @@ new class extends Component {
     public $coursePopularityChart = [];
     public $studentDistributionChart = [];
 
+    public $studentsHeaders = [['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40']];
+
     public function mount()
     {
         $this->user = auth()->user();
@@ -300,44 +302,16 @@ new class extends Component {
             [$center->id, $center->id, $center->id],
         )[0];
 
+        // Get students data for the table - filtered by center ID for security
+        $students = Student::with('course:id,name')->where('center_id', $center->id)->orderBy('tiitvt_reg_no', 'desc')->limit(10)->get();
+
         return [
             'total_students' => $stats->total_students,
             'total_revenue' => $stats->total_revenue,
             'pending_payments' => $stats->pending_payments,
             'total_certificates' => $stats->total_certificates,
             'current_year_enrollments' => $stats->current_year_enrollments,
-        ];
-    }
-
-    private function getStudentStatistics()
-    {
-        $student = $this->user->students()->first();
-        if (!$student) {
-            return [];
-        }
-
-        // Single optimized query for student statistics
-        $stats = DB::select(
-            "
-            SELECT
-                COUNT(er.id) as total_exams,
-                COUNT(c.id) as total_certificates,
-                COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount ELSE 0 END), 0) as total_revenue,
-                COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0) as pending_payments
-            FROM students s
-            LEFT JOIN exam_results er ON s.id = er.student_id
-            LEFT JOIN certificates c ON s.id = c.student_id
-            LEFT JOIN invoices i ON s.id = i.student_id
-            WHERE s.id = ?
-        ",
-            [$student->id],
-        )[0];
-
-        return [
-            'total_exams' => $stats->total_exams,
-            'total_certificates' => $stats->total_certificates,
-            'total_revenue' => $stats->total_revenue,
-            'pending_payments' => $stats->pending_payments,
+            'students' => $students,
         ];
     }
 
@@ -359,8 +333,6 @@ new class extends Component {
             $activities = $this->getAdminRecentActivities();
         } elseif ($this->user->isCenter()) {
             $activities = $this->getCenterRecentActivities();
-        } elseif ($this->user->isStudent()) {
-            $activities = $this->getStudentRecentActivities();
         }
 
         return $activities;
@@ -632,8 +604,8 @@ new class extends Component {
         </x-card>
 
         {{-- Statistics Cards --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            @if ($user->isAdmin())
+        @if ($user->isAdmin())
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 {{-- Centers Card --}}
                 <x-card shadow>
                     <div class="flex items-center justify-between">
@@ -723,7 +695,9 @@ new class extends Component {
                         </div>
                     </div>
                 </x-card>
-            @elseif($user->isCenter())
+            </div>
+        @elseif($user->isCenter())
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {{-- Students Card --}}
                 <x-card shadow>
                     <div class="flex items-center justify-between">
@@ -792,54 +766,64 @@ new class extends Component {
                         </div>
                     </div>
                 </x-card>
-            @elseif($user->isStudent())
-                {{-- Exams Taken Card --}}
-                <x-card shadow>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Exams Taken</p>
-                            <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_exams'] ?? 0) }}
-                            </p>
-                        </div>
-                        <div class="p-4 bg-primary/10 rounded-full">
-                            <x-icon name="o-clipboard-document-check" class="w-8 h-8 text-primary" />
-                        </div>
-                    </div>
-                </x-card>
 
-                {{-- Certificates Card --}}
-                <x-card shadow>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Certificates Earned</p>
-                            <p class="text-3xl font-bold mt-1">
-                                {{ number_format($statistics['total_certificates'] ?? 0) }}</p>
-                        </div>
-                        <div class="p-4 bg-success/10 rounded-full">
-                            <x-icon name="o-document-check" class="w-8 h-8 text-success" />
-                        </div>
-                    </div>
-                </x-card>
+                {{-- Students List --}}
 
-                {{-- Payments Card --}}
-                <x-card shadow>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Total Paid</p>
-                            <p class="text-3xl font-bold mt-1">₹{{ number_format($statistics['total_revenue'] ?? 0) }}
-                            </p>
-                            <p class="text-sm text-warning mt-2">
-                                <x-icon name="o-clock" class="w-4 h-4 inline" />
-                                ₹{{ number_format($statistics['pending_payments'] ?? 0) }} pending
-                            </p>
-                        </div>
-                        <div class="p-4 bg-info/10 rounded-full">
-                            <x-icon name="o-currency-rupee" class="w-8 h-8 text-info" />
-                        </div>
-                    </div>
+                <x-card shadow class="col-span-full" title="Students List"
+                    subtitle="List of students in your center">
+                    <x-slot:menu>
+                        <x-button icon="o-plus" class="btn-primary" responsive
+                            link="{{ route('admin.student.create') }}" tooltip-left="Add Student" />
+
+                        <x-button icon="o-users" class="btn-primary" responsive
+                            link="{{ route('admin.student.index') }}" tooltip-left="View All Students" />
+                    </x-slot:menu>
+
+                    <x-table :headers="$studentsHeaders" :rows="$statistics['students']">
+                        @scope('cell_tiitvt_reg_no', $student)
+                            <span class="font-mono text-sm font-medium">{{ $student->tiitvt_reg_no }}</span>
+                        @endscope
+
+                        @scope('cell_full_name', $student)
+                            <div class="flex items-center gap-2">
+                                <div>
+                                    <div class="font-medium">{{ $student->full_name }}</div>
+                                    @if ($student->fathers_name)
+                                        <div class="text-xs text-gray-500">{{ $student->fathers_name }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endscope
+
+                        @scope('cell_mobile', $student)
+                            @if ($student->mobile)
+                                <span class="text-sm">{{ $student->mobile }}</span>
+                            @else
+                                <span class="text-xs text-gray-400">-</span>
+                            @endif
+                        @endscope
+
+                        @scope('cell_course_name', $student)
+                            @if ($student->course)
+                                <span class="text-sm font-medium">{{ $student->course->name }}</span>
+                            @else
+                                <span class="text-xs text-gray-400">-</span>
+                            @endif
+                        @endscope
+
+                        @scope('actions', $student)
+                            <div class="flex gap-1">
+                                <x-button icon="o-eye" link="{{ route('admin.student.show', $student->id) }}"
+                                    class="btn-xs btn-ghost" title="View Details" />
+                                <x-button icon="o-pencil" link="{{ route('admin.student.edit', $student->id) }}"
+                                    class="btn-xs btn-ghost" title="Edit Student" />
+                            </div>
+                        @endscope
+                    </x-table>
                 </x-card>
-            @endif
-        </div>
+            </div>
+        @endif
+
 
         {{-- Charts Section (Admin Only) - Auto Loaded --}}
         @if ($user->isAdmin() && !empty($chartsData))
