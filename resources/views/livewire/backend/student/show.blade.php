@@ -5,6 +5,7 @@ use App\Enums\RolesEnum;
 use Livewire\Volt\Component;
 use App\Enums\InstallmentStatusEnum;
 use App\Models\{Student, Installment};
+use App\Services\StudentQRService;
 use Livewire\Attributes\{Layout, Title};
 
 new class extends Component {
@@ -23,23 +24,25 @@ new class extends Component {
     public $bulkNotes = '';
     public $bulkPaymentMethod = '';
     public $bulkChequeNumber = '';
-    public $bulkWithdrawnDate = '';
+    public $bulkWithdrawnDate;
     public $showPartialPaymentModal = false;
     public $partialPaymentAmount = '';
     public $partialPaymentNotes = '';
     public $paymentMethod = '';
     public $chequeNumber = '';
-    public $withdrawnDate = '';
+    public $withdrawnDate;
     public $partialPaymentMethod = '';
     public $partialChequeNumber = '';
-    public $partialWithdrawnDate = '';
+    public $partialWithdrawnDate;
 
     public function mount($student)
     {
         if (hasAuthRole(RolesEnum::Admin->value)) {
-            $this->student = Student::findOrFail($student);
+            $this->student = Student::with(['qrCode', 'center', 'course'])->findOrFail($student);
         } else {
-            $this->student = Student::where('center_id', auth()->user()->center->id)->findOrFail($student);
+            $this->student = Student::with(['qrCode', 'center', 'course'])
+                ->where('center_id', auth()->user()->center->id)
+                ->findOrFail($student);
         }
 
         // Automatically check for overdue installments when component loads
@@ -67,7 +70,7 @@ new class extends Component {
         $this->notes = '';
         $this->paymentMethod = '';
         $this->chequeNumber = '';
-        $this->withdrawnDate = '';
+        $this->withdrawnDate;
     }
 
     public function openBulkUpdateModal()
@@ -83,7 +86,7 @@ new class extends Component {
         $this->bulkNotes = '';
         $this->bulkPaymentMethod = '';
         $this->bulkChequeNumber = '';
-        $this->bulkWithdrawnDate = '';
+        $this->bulkWithdrawnDate;
     }
 
     public function openPartialPaymentModal($installmentId)
@@ -93,7 +96,7 @@ new class extends Component {
         $this->partialPaymentNotes = '';
         $this->partialPaymentMethod = '';
         $this->partialChequeNumber = '';
-        $this->partialWithdrawnDate = '';
+        $this->partialWithdrawnDate;
         $this->showPartialPaymentModal = true;
     }
 
@@ -105,7 +108,7 @@ new class extends Component {
         $this->partialPaymentNotes = '';
         $this->partialPaymentMethod = '';
         $this->partialChequeNumber = '';
-        $this->partialWithdrawnDate = '';
+        $this->partialWithdrawnDate;
     }
 
     public function toggleInstallmentSelection($installmentId)
@@ -311,22 +314,23 @@ new class extends Component {
             'partialWithdrawnDate' => 'required_if:partialPaymentMethod,cheque|nullable|date',
         ]);
 
-        try {
-            $installment = $this->selectedInstallment;
-            $paymentMethod = $this->partialPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->partialPaymentMethod) : null;
-            $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
+        $installment = $this->selectedInstallment;
+        $paymentMethod = $this->partialPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->partialPaymentMethod) : null;
+        $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
 
-            $this->success('Partial payment added successfully!', position: 'toast-bottom');
+        $this->success('Partial payment added successfully!', position: 'toast-bottom');
 
-            // Refresh the student data
-            $this->student->refresh();
-            $this->closePartialPaymentModal();
+        // Refresh the student data
+        $this->student->refresh();
+        $this->closePartialPaymentModal();
 
-            // Recalculate overdue status after update
-            $this->checkAndMarkOverdueInstallments();
-        } catch (\Exception $e) {
-            $this->error('Failed to add partial payment. Please try again.', position: 'toast-bottom');
-        }
+        // Recalculate overdue status after update
+        $this->checkAndMarkOverdueInstallments();
+
+        // try {
+        // } catch (\Exception $e) {
+        //     $this->error('Failed to add partial payment. Please try again.', position: 'toast-bottom');
+        // }
     }
 
     public function getStatusOptions()
@@ -552,6 +556,76 @@ new class extends Component {
             // Silently handle errors during automatic check
         }
     }
+
+    public function regenerateQRCode()
+    {
+        try {
+            if (!$this->student->qrCode) {
+                $this->error('No QR code found for this student.');
+                return;
+            }
+
+            $qrService = new StudentQRService();
+
+            // Delete the old QR code file if it exists
+            if ($this->student->qrCode->qr_code_path && \Storage::disk('public')->exists($this->student->qrCode->qr_code_path)) {
+                \Storage::disk('public')->delete($this->student->qrCode->qr_code_path);
+            }
+
+            // Generate new QR data with just the verification URL
+            $newQrData = $qrService->generateQrDataWithToken($this->student, $this->student->qrCode->qr_token);
+
+            // Regenerate the QR code with logo using the new data
+            $qrCodePath = $qrService->generateQrCodeWithLogo($newQrData, $this->student->qrCode->id);
+
+            // Update the QR code record with the new path and data
+            $this->student->qrCode->update([
+                'qr_code_path' => $qrCodePath,
+                'qr_data' => $newQrData,
+            ]);
+
+            // Refresh the student data
+            $this->student->refresh();
+
+            $this->success('QR Code regenerated successfully with logo and verification URL only!', position: 'toast-bottom');
+        } catch (\Exception $e) {
+            $this->error('Failed to regenerate QR code: ' . $e->getMessage(), position: 'toast-bottom');
+        }
+    }
+
+    public function downloadQRCode()
+    {
+        if (!$this->student->qrCode) {
+            $this->error('No QR code found for this student.');
+            return;
+        }
+
+        $qrCodePath = $this->student->qrCode->qr_code_path;
+
+        if ($qrCodePath && \Storage::disk('public')->exists($qrCodePath)) {
+            // Sanitize the filename by removing/replacing invalid characters
+            $safeRegNo = preg_replace('/[^a-zA-Z0-9_-]/', '_', $this->student->tiitvt_reg_no);
+            $filename = 'student_' . $safeRegNo . '_qr_code.png';
+
+            // Ensure filename is not too long (max 255 characters)
+            if (strlen($filename) > 255) {
+                $filename = 'student_' . substr($safeRegNo, 0, 200) . '_qr_code.png';
+            }
+
+            return \Storage::disk('public')->download($qrCodePath, $filename);
+        }
+
+        $this->error('QR Code file not found. Please generate it first.');
+    }
+
+    public function getQRCodeDataUri()
+    {
+        if ($this->student->qrCode) {
+            $qrService = new StudentQRService();
+            return $qrService->generateQRCodeDataUri($this->student->qrCode->qr_data);
+        }
+        return null;
+    }
 }; ?>
 
 <div>
@@ -592,7 +666,7 @@ new class extends Component {
     <!-- Student Information -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Basic Information -->
-        <x-card shadow class="lg:col-span-2">
+        <x-card shadow class="lg:col-span-2 h-fit">
             <div class="flex items-center gap-4 mb-6">
                 @if ($student->student_image)
                     <div class="avatar avatar-online avatar-placeholder">
@@ -701,52 +775,94 @@ new class extends Component {
             @endif
         </x-card>
 
-        <!-- Course & Fees Information -->
-        <x-card shadow>
-            <h3 class="text-lg font-semibold text-primary mb-4">Course & Fees</h3>
+        <div class="grid gap-6">
+            <!-- Course & Fees Information -->
+            <x-card shadow>
+                <h3 class="text-lg font-semibold text-primary mb-4">Course & Fees</h3>
 
-            <div class="space-y-4">
-                @if ($student->center)
+                <div class="space-y-4">
+                    @if ($student->center)
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Center</label>
+                            <p class="text-sm font-medium">{{ $student->center->name }}</p>
+                        </div>
+                    @endif
+
+                    @if ($student->course)
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Course</label>
+                            <p class="text-sm font-medium">{{ $student->course->name }}</p>
+                        </div>
+                    @endif
+
                     <div>
-                        <label class="text-sm font-medium text-gray-600">Center</label>
-                        <p class="text-sm font-medium">{{ $student->center->name }}</p>
+                        <label class="text-sm font-medium text-gray-600">Course Fees</label>
+                        <p class="text-lg font-bold text-primary">₹{{ number_format($student->course_fees, 2) }}</p>
                     </div>
-                @endif
 
-                @if ($student->course)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Course</label>
-                        <p class="text-sm font-medium">{{ $student->course->name }}</p>
-                    </div>
-                @endif
+                    @if ($student->down_payment)
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Down Payment</label>
+                            <p class="text-sm">₹{{ number_format($student->down_payment, 2) }}</p>
+                        </div>
+                    @endif
 
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Course Fees</label>
-                    <p class="text-lg font-bold text-primary">₹{{ number_format($student->course_fees, 2) }}</p>
+                    @if ($student->no_of_installments)
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Installments</label>
+                            <p class="text-sm">{{ $student->no_of_installments }} installments</p>
+                        </div>
+                    @endif
+
+                    @if ($student->enrollment_date)
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Enrollment Date</label>
+                            <p class="text-sm">{{ $student->enrollment_date->format('M d, Y') }}</p>
+                        </div>
+                    @endif
                 </div>
+            </x-card>
 
-                @if ($student->down_payment)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Down Payment</label>
-                        <p class="text-sm">₹{{ number_format($student->down_payment, 2) }}</p>
+            <!-- QR Code Section -->
+            <x-card shadow title="Student QR Code">
+                @if ($student->qrCode)
+                    <x-slot:menu>
+                        <x-button tooltip-left="Regenerate QR Code" icon="o-arrow-path"
+                            class="btn-sm btn-outline btn-warning" wire:click="regenerateQRCode" />
+                        <x-button tooltip-left="Download" icon="o-arrow-down-tray"
+                            class="btn-sm btn-outline btn-primary" wire:click="downloadQRCode" />
+                    </x-slot:menu>
+
+                    <div class="text-center">
+                        <div class="mb-4">
+                            <img src="{{ $this->getQRCodeDataUri() }}" alt="Student QR Code"
+                                class="mx-auto border-2 border-gray-200 rounded-lg shadow-sm"
+                                style="max-width: 200px; height: auto;">
+
+                            <div class="mt-3">
+                                <p class="text-sm text-gray-600">Registration No:
+                                    <strong>{{ $student->tiitvt_reg_no }}</strong>
+                                </p>
+                                <p class="text-xs text-gray-500">Generated:
+                                    {{ $student->qrCode->created_at->format('M d, Y H:i') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="text-center py-8">
+                        <div class="text-gray-400 mb-4">
+                            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                                </path>
+                            </svg>
+                        </div>
+                        <p class="text-gray-600 mb-2">No QR Code available</p>
+                        <p class="text-sm text-gray-500">QR codes are generated during student registration</p>
                     </div>
                 @endif
-
-                @if ($student->no_of_installments)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Installments</label>
-                        <p class="text-sm">{{ $student->no_of_installments }} installments</p>
-                    </div>
-                @endif
-
-                @if ($student->enrollment_date)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Enrollment Date</label>
-                        <p class="text-sm">{{ $student->enrollment_date->format('M d, Y') }}</p>
-                    </div>
-                @endif
-            </div>
-        </x-card>
+            </x-card>
+        </div>
     </div>
 
     <!-- Additional Information -->

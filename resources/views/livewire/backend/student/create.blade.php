@@ -5,6 +5,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
+use App\Services\StudentQRService;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\{Layout, Title};
 use App\Models\{Course, Center, Student};
@@ -197,55 +198,61 @@ new class extends Component {
 
         $this->validate();
 
-        try {
-            $data = [
-                'first_name' => $this->first_name,
-                'fathers_name' => $this->fathers_name,
-                'surname' => $this->surname,
-                'address' => $this->address,
-                'telephone_no' => $this->telephone_no,
-                'email' => $this->email,
-                'mobile' => $this->mobile,
-                'date_of_birth' => $this->date_of_birth ?: null,
-                'age' => $this->age ?: null,
-                'qualification' => $this->qualification,
-                'additional_qualification' => $this->additional_qualification,
-                'reference' => $this->reference,
-                'batch_time' => $this->batch_time,
-                'scheme_given' => $this->scheme_given,
-                'course_fees' => $this->course_fees,
-                'down_payment' => $this->down_payment ?: null,
-                'no_of_installments' => $this->no_of_installments ?: null,
-                'installment_date' => $this->installment_date ?: null,
-                'enrollment_date' => $this->enrollment_date ?: null,
-                'incharge_name' => $this->incharge_name,
-                'center_id' => $this->center_id,
-                'course_id' => $this->course_id,
-            ];
+        $data = [
+            'first_name' => $this->first_name,
+            'fathers_name' => $this->fathers_name,
+            'surname' => $this->surname,
+            'address' => $this->address,
+            'telephone_no' => $this->telephone_no,
+            'email' => $this->email,
+            'mobile' => $this->mobile,
+            'date_of_birth' => $this->date_of_birth ?: null,
+            'age' => $this->age ?: null,
+            'qualification' => $this->qualification,
+            'additional_qualification' => $this->additional_qualification,
+            'reference' => $this->reference,
+            'batch_time' => $this->batch_time,
+            'scheme_given' => $this->scheme_given,
+            'course_fees' => $this->course_fees,
+            'down_payment' => $this->down_payment ?: null,
+            'no_of_installments' => $this->no_of_installments ?: null,
+            'installment_date' => $this->installment_date ?: null,
+            'enrollment_date' => $this->enrollment_date ?: null,
+            'incharge_name' => $this->incharge_name,
+            'center_id' => $this->center_id,
+            'course_id' => $this->course_id,
+        ];
 
-            if ($this->student_signature_image) {
-                $data['student_signature_image'] = $this->student_signature_image->store('students/signatures', 'public');
-            }
-            if ($this->student_image) {
-                $data['student_image'] = $this->student_image->store('students/images', 'public');
-            }
-
-            $student = Student::create($data);
-
-            // Create installments if specified
-            if ($this->no_of_installments > 0 && $this->remaining_amount > 0 && $this->installment_date) {
-                $this->createInstallments($student);
-            }
-
-            if ($this->send_notification) {
-                $this->sendNotification($student);
-            }
-
-            $this->success('Student admitted successfully!', position: 'toast-bottom');
-            $this->redirect(route('admin.student.index'));
-        } catch (\Exception $e) {
-            $this->error('Failed to admit student. Please try again.', position: 'toast-bottom');
+        if ($this->student_signature_image) {
+            $data['student_signature_image'] = $this->student_signature_image->store('students/signatures', 'public');
         }
+        if ($this->student_image) {
+            $data['student_image'] = $this->student_image->store('students/images', 'public');
+        }
+
+        $student = Student::create($data);
+
+        // Generate QR code for the student
+        $studentQRService = new StudentQRService();
+        $studentQRService->generateStudentQR($student);
+
+        // Create installments if specified
+        if ($this->no_of_installments > 0 && $this->remaining_amount > 0 && $this->installment_date) {
+            $this->createInstallments($student);
+        }
+
+        if ($this->send_notification) {
+            $this->sendNotification($student);
+        }
+
+        $this->success('Student admitted successfully!', position: 'toast-bottom');
+        $this->redirect(route('admin.student.index'));
+
+        // try {
+
+        // } catch (\Exception $e) {
+        //     $this->error('Failed to admit student. Please try again.', position: 'toast-bottom');
+        // }
     }
 
     // Reset form
@@ -361,6 +368,11 @@ new class extends Component {
                 $monthlyInstallment = round($this->remaining_amount / $this->no_of_installments, 2);
             }
 
+            // Get student QR code
+            $studentQR = $student->qrCode;
+            $qrCodeUrl = $studentQR ? route('student.qr.verify', $studentQR->qr_token) : null;
+            $qrCodePath = $studentQR ? $studentQR->qr_code_path : null;
+
             // Prepare data for email
             $data = [
                 'studentName' => $student->first_name . ' ' . $student->surname,
@@ -372,6 +384,8 @@ new class extends Component {
                 'downPayment' => $this->down_payment ?: 0,
                 'noOfInstallments' => $this->no_of_installments ?: 0,
                 'monthlyInstallment' => $monthlyInstallment,
+                'qrCodeUrl' => $qrCodeUrl,
+                'qrCodePath' => $qrCodePath,
             ];
 
             // Send email using EmailNotificationHelper
