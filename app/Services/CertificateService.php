@@ -7,7 +7,12 @@ use App\Models\Student;
 use App\Models\Course;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Color\Color;
 
 class CertificateService
 {
@@ -72,14 +77,31 @@ class CertificateService
     private function generateQrCode(string $token, int $certificateId): string
     {
         $verificationUrl = route('certificate.verify', $token);
+        $logoPath = public_path('default/qr_logo.png');
 
-        $qrCode = QrCode::format('png')
+        $builder = Builder::create()
+            ->writer(new PngWriter())
+            ->writerOptions([])
+            ->data($verificationUrl)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::High)
             ->size(300)
             ->margin(10)
-            ->generate($verificationUrl);
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->foregroundColor(new Color(0, 0, 0))
+            ->backgroundColor(new Color(255, 255, 255));
+
+        // Add logo if it exists
+        if (file_exists($logoPath)) {
+            $builder->logoPath($logoPath)
+                ->logoResizeToWidth(50)
+                ->logoPunchoutBackground(true);
+        }
+
+        $result = $builder->build();
 
         $filename = "certificates/qr_codes/certificate_{$certificateId}.png";
-        Storage::disk('public')->put($filename, $qrCode);
+        $result->saveToFile(Storage::disk('public')->path($filename));
 
         return $filename;
     }
@@ -147,5 +169,70 @@ class CertificateService
     public function getCourseCertificates(Course $course): \Illuminate\Database\Eloquent\Collection
     {
         return $course->certificates()->with('student')->get();
+    }
+
+    /**
+     * Generate enhanced QR code for certificate with logo and label.
+     */
+    public function generateEnhancedCertificateQRCode(Certificate $certificate, ?string $logoPath = null, ?string $labelText = null): string
+    {
+        $verificationUrl = route('certificate.verify', $certificate->qr_token);
+
+        $builder = Builder::create()
+            ->writer(new PngWriter())
+            ->writerOptions([])
+            ->data($verificationUrl)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::High)
+            ->size(400)
+            ->margin(15)
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->foregroundColor(new Color(0, 0, 0))
+            ->backgroundColor(new Color(255, 255, 255));
+
+        // Add logo if provided
+        if ($logoPath && file_exists($logoPath)) {
+            $builder->logoPath($logoPath)
+                ->logoResizeToWidth(60)
+                ->logoPunchoutBackground(true);
+        }
+
+        // Add label if provided
+        if ($labelText) {
+            $builder->labelText($labelText)
+                ->labelFont(new \Endroid\QrCode\Label\Font\OpenSans(14))
+                ->labelAlignment(\Endroid\QrCode\Label\LabelAlignment::Center);
+        }
+
+        $result = $builder->build();
+
+        // Save the enhanced QR code
+        $filename = "certificates/qr_codes/enhanced_certificate_{$certificate->id}.png";
+        $result->saveToFile(Storage::disk('public')->path($filename));
+
+        return $filename;
+    }
+
+    /**
+     * Generate QR code data URI for inline display.
+     */
+    public function generateCertificateQRCodeDataUri(string $token): string
+    {
+        $verificationUrl = route('certificate.verify', $token);
+
+        $result = Builder::create()
+            ->writer(new PngWriter())
+            ->writerOptions([])
+            ->data($verificationUrl)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::High)
+            ->size(250)
+            ->margin(8)
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->foregroundColor(new Color(0, 0, 0))
+            ->backgroundColor(new Color(255, 255, 255))
+            ->build();
+
+        return $result->getDataUri();
     }
 }

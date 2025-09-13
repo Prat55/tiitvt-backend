@@ -6,6 +6,7 @@ use App\Models\Student;
 use App\Models\Center;
 use App\Models\Course;
 use App\Models\Installment;
+use App\Services\StudentQRService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -234,6 +235,10 @@ class StudentSeeder extends Seeder
                     'enrollment_date' => $studentData['enrollment_date'],
                     'incharge_name' => $studentData['incharge_name']
                 ]);
+
+                // Generate QR code for the student
+                $studentQRService = new StudentQRService();
+                $studentQRService->generateStudentQR($student);
 
                 // Create installments if specified (same logic as create page)
                 if ($noOfInstallments > 0 && $remainingAmount > 0 && $studentData['installment_date']) {

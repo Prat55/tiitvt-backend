@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Student extends Model
 {
@@ -125,6 +126,14 @@ class Student extends Model
     public function installments(): HasMany
     {
         return $this->hasMany(Installment::class);
+    }
+
+    /**
+     * Get the QR code for the student.
+     */
+    public function qrCode(): HasOne
+    {
+        return $this->hasOne(StudentQR::class);
     }
 
     /**

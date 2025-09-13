@@ -91,3 +91,6 @@ Route::get('/certificate/verify/{token}', function ($token) {
 
     return view('certificates.verify', compact('certificate'));
 })->name('certificate.verify');
+
+// Student QR verification route (public) - by QR token using Volt
+Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');

@@ -1,5 +1,6 @@
 <?php
 
+use Mary\Traits\Toast;
 use App\Models\Student;
 use App\Enums\RolesEnum;
 use Illuminate\View\View;
@@ -8,9 +9,10 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\{Layout};
+use Illuminate\Support\Facades\Storage;
 
 new class extends Component {
-    use WithPagination;
+    use WithPagination, Toast;
     #[Title('All Students')]
     public $headers;
     #[Url]
@@ -29,6 +31,30 @@ new class extends Component {
         }
 
         $this->headers[] = ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40', 'sortable' => false];
+    }
+
+    public function deleteStudent($id)
+    {
+        $student = Student::findOrFail($id);
+
+        // Delete student images
+        if ($student->student_signature_image) {
+            $imagePath = str_replace('/storage/', '', $student->student_signature_image);
+            Storage::disk('public')->delete($imagePath);
+        }
+
+        if ($student->student_image) {
+            $imagePath = str_replace('/storage/', '', $student->student_image);
+            Storage::disk('public')->delete($imagePath);
+        }
+
+        if ($student->student_qr_code) {
+            $qrCodePath = str_replace('/storage/', '', $student->student_qr_code);
+            Storage::disk('public')->delete($qrCodePath);
+        }
+
+        $student->delete();
+        $this->success('Student deleted successfully!', position: 'toast-bottom');
     }
 
     public function rendering(View $view): void
@@ -118,6 +144,9 @@ new class extends Component {
                     title="View Details" />
                 <x-button icon="o-pencil" link="{{ route('admin.student.edit', $student->id) }}" class="btn-xs btn-ghost"
                     title="Edit Student" />
+                <x-button icon="o-trash" class="btn-xs btn-error" title="Delete Student"
+                    wire:click="deleteStudent({{ $student->id }})"
+                    wire:confirm="Are you sure you want to delete this student?" />
             </div>
         @endscope
         <x-slot:empty>
