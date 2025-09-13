@@ -281,7 +281,7 @@ new class extends Component {
                             <x-button icon="o-x-mark" class="btn-circle btn-sm btn-error absolute -top-2 -right-2"
                                 wire:click="removeFile('institute_logo')" />
                         </div>
-                    @elseif ($existing_institute_logo)
+                    @elseif ($existing_institute_logo && Storage::disk('public')->exists($existing_institute_logo))
                         <div class="relative">
                             <img src="{{ asset('storage/' . $existing_institute_logo) }}" alt="Current Logo"
                                 class="w-32 h-32 object-cover rounded-lg">
@@ -310,7 +310,7 @@ new class extends Component {
                                 <x-button icon="o-x-mark" class="btn-circle btn-sm btn-error absolute -top-2 -right-2"
                                     wire:click="removeFile('front_office_photo')" />
                             </div>
-                        @elseif ($existing_front_office_photo)
+                        @elseif ($existing_front_office_photo && Storage::disk('public')->exists($existing_front_office_photo))
                             <div class="relative">
                                 <img src="{{ asset('storage/' . $existing_front_office_photo) }}"
                                     alt="Current Front Office" class="w-80 h-full object-cover rounded-lg">
@@ -335,7 +335,7 @@ new class extends Component {
                                 <x-button icon="o-x-mark" class="btn-circle btn-sm btn-error absolute -top-2 -right-2"
                                     wire:click="removeFile('back_office_photo')" />
                             </div>
-                        @elseif ($existing_back_office_photo)
+                        @elseif ($existing_back_office_photo && Storage::disk('public')->exists($existing_back_office_photo))
                             <div class="relative">
                                 <img src="{{ asset('storage/' . $existing_back_office_photo) }}"
                                     alt="Current Back Office" class="w-80 h-full object-cover rounded-lg">
