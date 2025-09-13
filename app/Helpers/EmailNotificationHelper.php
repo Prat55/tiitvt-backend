@@ -69,21 +69,21 @@ class EmailNotificationHelper
     public static function sendNotificationByType(string $type, string $email, array $data, array $options = []): bool
     {
         if (!isset(self::$notificationTypes[$type])) {
-            Log::error("Unknown notification type: {$type}");
+            Log::channel('mail')->error("Unknown notification type: {$type}");
             return false;
         }
 
         $config = self::$notificationTypes[$type];
 
         if (!$config['enabled']) {
-            Log::info("Notification type {$type} is disabled");
+            Log::channel('mail')->info("Notification type {$type} is disabled");
             return false;
         }
 
         try {
             // Check if user has opted out of this notification type
             if (self::isNotificationOptedOut($email, $type)) {
-                Log::info("User {$email} has opted out of {$type} notifications");
+                Log::channel('mail')->info("User {$email} has opted out of {$type} notifications");
                 return false;
             }
 
@@ -103,7 +103,7 @@ class EmailNotificationHelper
 
             return $result;
         } catch (\Exception $e) {
-            Log::error("Failed to send {$type} notification", [
+            Log::channel('mail')->error("Failed to send {$type} notification", [
                 'email' => $email,
                 'type' => $type,
                 'error' => $e->getMessage(),
@@ -178,7 +178,7 @@ class EmailNotificationHelper
         try {
             return view($template, $data)->render();
         } catch (\Exception $e) {
-            Log::error("Failed to render email template: {$template}", [
+            Log::channel('mail')->error("Failed to render email template: {$template}", [
                 'type' => $type,
                 'error' => $e->getMessage()
             ]);
@@ -256,14 +256,14 @@ class EmailNotificationHelper
         try {
             // This would typically insert into a database table
             // For now, we'll just log it
-            Log::info("Notification logged", [
+            Log::channel('mail')->info("Notification logged", [
                 'type' => $type,
                 'email' => $email,
                 'timestamp' => now()->toISOString(),
                 'data_keys' => array_keys($data)
             ]);
         } catch (\Exception $e) {
-            Log::error("Failed to log notification", [
+            Log::channel('mail')->error("Failed to log notification", [
                 'type' => $type,
                 'email' => $email,
                 'error' => $e->getMessage()
@@ -288,7 +288,7 @@ class EmailNotificationHelper
 
             \Illuminate\Support\Facades\Queue::later($sendAt, $job);
 
-            Log::info("Notification scheduled", [
+            Log::channel('mail')->info("Notification scheduled", [
                 'type' => $type,
                 'email' => $email,
                 'scheduled_for' => $sendAt->toISOString()
@@ -296,7 +296,7 @@ class EmailNotificationHelper
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to schedule notification", [
+            Log::channel('mail')->error("Failed to schedule notification", [
                 'type' => $type,
                 'email' => $email,
                 'scheduled_for' => $sendAt->toISOString(),
@@ -337,6 +337,11 @@ class EmailNotificationHelper
                     $results['failed']++;
                 }
             } catch (\Exception $e) {
+                Log::channel('mail')->error("Failed to send bulk personalized notification", [
+                    'type' => $type,
+                    'email' => $email,
+                    'error' => $e->getMessage()
+                ]);
                 $results['failed']++;
                 $results['errors'][] = [
                     'email' => $email,
@@ -345,7 +350,7 @@ class EmailNotificationHelper
             }
         }
 
-        Log::info("Bulk personalized notification completed", [
+        Log::channel('mail')->info("Bulk personalized notification completed", [
             'type' => $type,
             'total' => count($recipients),
             'success' => $results['success'],
@@ -396,7 +401,7 @@ class EmailNotificationHelper
 
         self::$notificationTypes[$type]['enabled'] = $enabled;
 
-        Log::info("Notification type status updated", [
+        Log::channel('mail')->info("Notification type status updated", [
             'type' => $type,
             'enabled' => $enabled
         ]);

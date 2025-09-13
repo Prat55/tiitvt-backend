@@ -37,26 +37,37 @@
                 </thead>
                 <tbody>
                     <tr style="border-bottom: 1px solid #e0e0e0;">
-                        <td style="padding: 15px; font-weight: 600; color: #333; border: none;">Total Course Fees</td>
-                        <td style="padding: 15px; text-align: right; color: #333; border: none;">{{ $total_fees ?? '0.00' }}
+                        <td style="padding: 15px; font-weight: 600; color: #333; border: none;">
+                            <span style="margin-left: 5px">Total Course Fees</span>
+                        </td>
+                        <td style="padding: 15px; text-align: right; color: #333; border: none;">
+                            <span style="margin-left: 5px">{{ $total_fees ?? '0.00' }}</span>
                         </td>
                     </tr>
                     <tr style="border-bottom: 1px solid #e0e0e0;">
-                        <td style="padding: 15px; font-weight: 600; color: #333; border: none;">Previously Paid</td>
+                        <td style="padding: 15px; font-weight: 600; color: #333; border: none;">
+                            <span style="margin-left: 5px">Previously Paid</span>
+                        </td>
                         <td style="padding: 15px; text-align: right; color: #2e7d32; border: none;">
-                            {{ $previous_paid ?? '0.00' }}</td>
+                            <span style="margin-left: 5px">{{ $previous_paid ?? '0.00' }}</span>
+                        </td>
                     </tr>
                     <tr style="border-bottom: 1px solid #e0e0e0;">
-                        <td style="padding: 15px; font-weight: 600; color: #333; border: none;">Current Payment</td>
-                        <td style="padding: 15px; text-align: right; color: #2e7d32; border: none;">{{ $amount }}
+                        <td style="padding: 15px; font-weight: 600; color: #333; border: none;">
+                            <span style="margin-left: 5px">Current Payment</span>
+                        </td>
+                        <td style="padding: 15px; text-align: right; color: #2e7d32; border: none;">
+                            <span style="margin-left: 5px">{{ $amount }}</span>
                         </td>
                     </tr>
                     <tr style="background-color: #ffebee;">
-                        <td style="padding: 15px; font-weight: 700; color: #d32f2f; border: none; font-size: 16px;">Balance
-                            Amount</td>
+                        <td style="padding: 15px; font-weight: 700; color: #d32f2f; border: none; font-size: 16px;">
+                            <span style="margin-left: 5px">Balance Amount</span>
+                        </td>
                         <td
                             style="padding: 15px; text-align: right; color: #d32f2f; border: none; font-weight: 700; font-size: 16px;">
-                            {{ $balance_amount ?? '0.00' }}</td>
+                            <span style="margin-left: 5px">{{ $balance_amount ?? '0.00' }}</span>
+                        </td>
                     </tr>
                 </tbody>
             </table>

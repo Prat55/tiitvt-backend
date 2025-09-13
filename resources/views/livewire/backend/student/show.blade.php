@@ -23,16 +23,16 @@ new class extends Component {
     public $bulkNotes = '';
     public $bulkPaymentMethod = '';
     public $bulkChequeNumber = '';
-    public $bulkWithdrawnDate = '';
+    public $bulkWithdrawnDate;
     public $showPartialPaymentModal = false;
     public $partialPaymentAmount = '';
     public $partialPaymentNotes = '';
     public $paymentMethod = '';
     public $chequeNumber = '';
-    public $withdrawnDate = '';
+    public $withdrawnDate;
     public $partialPaymentMethod = '';
     public $partialChequeNumber = '';
-    public $partialWithdrawnDate = '';
+    public $partialWithdrawnDate;
 
     public function mount($student)
     {
@@ -67,7 +67,7 @@ new class extends Component {
         $this->notes = '';
         $this->paymentMethod = '';
         $this->chequeNumber = '';
-        $this->withdrawnDate = '';
+        $this->withdrawnDate;
     }
 
     public function openBulkUpdateModal()
@@ -83,7 +83,7 @@ new class extends Component {
         $this->bulkNotes = '';
         $this->bulkPaymentMethod = '';
         $this->bulkChequeNumber = '';
-        $this->bulkWithdrawnDate = '';
+        $this->bulkWithdrawnDate;
     }
 
     public function openPartialPaymentModal($installmentId)
@@ -93,7 +93,7 @@ new class extends Component {
         $this->partialPaymentNotes = '';
         $this->partialPaymentMethod = '';
         $this->partialChequeNumber = '';
-        $this->partialWithdrawnDate = '';
+        $this->partialWithdrawnDate;
         $this->showPartialPaymentModal = true;
     }
 
@@ -105,7 +105,7 @@ new class extends Component {
         $this->partialPaymentNotes = '';
         $this->partialPaymentMethod = '';
         $this->partialChequeNumber = '';
-        $this->partialWithdrawnDate = '';
+        $this->partialWithdrawnDate;
     }
 
     public function toggleInstallmentSelection($installmentId)
@@ -311,22 +311,23 @@ new class extends Component {
             'partialWithdrawnDate' => 'required_if:partialPaymentMethod,cheque|nullable|date',
         ]);
 
-        try {
-            $installment = $this->selectedInstallment;
-            $paymentMethod = $this->partialPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->partialPaymentMethod) : null;
-            $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
+        $installment = $this->selectedInstallment;
+        $paymentMethod = $this->partialPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->partialPaymentMethod) : null;
+        $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
 
-            $this->success('Partial payment added successfully!', position: 'toast-bottom');
+        $this->success('Partial payment added successfully!', position: 'toast-bottom');
 
-            // Refresh the student data
-            $this->student->refresh();
-            $this->closePartialPaymentModal();
+        // Refresh the student data
+        $this->student->refresh();
+        $this->closePartialPaymentModal();
 
-            // Recalculate overdue status after update
-            $this->checkAndMarkOverdueInstallments();
-        } catch (\Exception $e) {
-            $this->error('Failed to add partial payment. Please try again.', position: 'toast-bottom');
-        }
+        // Recalculate overdue status after update
+        $this->checkAndMarkOverdueInstallments();
+
+        // try {
+        // } catch (\Exception $e) {
+        //     $this->error('Failed to add partial payment. Please try again.', position: 'toast-bottom');
+        // }
     }
 
     public function getStatusOptions()

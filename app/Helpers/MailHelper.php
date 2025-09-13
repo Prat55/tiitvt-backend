@@ -46,7 +46,7 @@ class MailHelper
                 $mail->send(new NotificationMail($subject, $body));
             }
 
-            Log::info("Installment reminder email sent successfully", [
+            Log::channel('mail')->info("Installment reminder email sent successfully", [
                 'email' => $email,
                 'subject' => $subject,
                 'installment_id' => $installment->id,
@@ -56,7 +56,7 @@ class MailHelper
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to send installment reminder email", [
+            Log::channel('mail')->error("Failed to send installment reminder email", [
                 'email' => $email,
                 'subject' => $subject,
                 'installment_id' => $installment->id,
@@ -100,7 +100,7 @@ class MailHelper
                 $mail->send(new NotificationMail($subject, $body));
             }
 
-            Log::info("Notification email sent successfully", [
+            Log::channel('mail')->info("Notification email sent successfully", [
                 'email' => $email,
                 'subject' => $subject,
                 'queued' => $queue
@@ -108,7 +108,7 @@ class MailHelper
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to send notification email", [
+            Log::channel('mail')->error("Failed to send notification email", [
                 'email' => $email,
                 'subject' => $subject,
                 'error' => $e->getMessage(),
@@ -138,7 +138,7 @@ class MailHelper
 
             return self::sendNotification($email, $subject, $body, [], [], $queue);
         } catch (\Exception $e) {
-            Log::error("Failed to send ticket notification", [
+            Log::channel('mail')->error("Failed to send ticket notification", [
                 'email' => $email,
                 'ticket_id' => $ticket->id ?? 'unknown',
                 'error' => $e->getMessage(),
@@ -172,7 +172,7 @@ class MailHelper
                 $mail->send(new NotificationMail($subject, $body));
             }
 
-            Log::info("Overdue installment reminder email sent successfully", [
+            Log::channel('mail')->info("Overdue installment reminder email sent successfully", [
                 'email' => $email,
                 'subject' => $subject,
                 'installment_id' => $installment->id,
@@ -182,7 +182,7 @@ class MailHelper
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to send overdue installment reminder email", [
+            Log::channel('mail')->error("Failed to send overdue installment reminder email", [
                 'email' => $email,
                 'subject' => $subject,
                 'installment_id' => $installment->id,
@@ -240,7 +240,7 @@ class MailHelper
                     'error' => $e->getMessage()
                 ];
 
-                Log::error("Failed to send bulk notification email", [
+                Log::channel('mail')->error("Failed to send bulk notification email", [
                     'email' => $email,
                     'subject' => $subject,
                     'error' => $e->getMessage()
@@ -248,7 +248,7 @@ class MailHelper
             }
         }
 
-        Log::info("Bulk notification completed", [
+        Log::channel('mail')->info("Bulk notification completed", [
             'total' => count($emails),
             'success' => $results['success'],
             'failed' => $results['failed']
@@ -277,7 +277,7 @@ class MailHelper
 
             return self::sendNotification($email, $subject, $body, [], [], $queue);
         } catch (\Exception $e) {
-            Log::error("Failed to send welcome email", [
+            Log::channel('mail')->error("Failed to send welcome email", [
                 'email' => $email,
                 'student_name' => $studentName,
                 'error' => $e->getMessage()
@@ -307,7 +307,7 @@ class MailHelper
 
             return self::sendNotification($email, $subject, $body, [], [], $queue);
         } catch (\Exception $e) {
-            Log::error("Failed to send payment confirmation email", [
+            Log::channel('mail')->error("Failed to send payment confirmation email", [
                 'email' => $email,
                 'student_name' => $studentName,
                 'error' => $e->getMessage()
@@ -337,7 +337,7 @@ class MailHelper
 
             return self::sendNotification($email, $subject, $body, [], [], $queue);
         } catch (\Exception $e) {
-            Log::error("Failed to send course completion notification", [
+            Log::channel('mail')->error("Failed to send course completion notification", [
                 'email' => $email,
                 'student_name' => $studentName,
                 'error' => $e->getMessage()
@@ -367,7 +367,7 @@ class MailHelper
 
             return self::sendBulkNotification($emails, $subject, $body, [], [], $queue ? 1 : 0);
         } catch (\Exception $e) {
-            Log::error("Failed to send maintenance notification", [
+            Log::channel('mail')->error("Failed to send maintenance notification", [
                 'emails_count' => count($emails),
                 'error' => $e->getMessage()
             ]);
@@ -436,7 +436,7 @@ class MailHelper
 
             return self::sendNotification($email, $subject, $body, [], [], $queue);
         } catch (\Exception $e) {
-            Log::error("Failed to send center creation notification", [
+            Log::channel('mail')->error("Failed to send center creation notification", [
                 'email' => $email,
                 'center_name' => $centerData['name'] ?? 'unknown',
                 'error' => $e->getMessage(),

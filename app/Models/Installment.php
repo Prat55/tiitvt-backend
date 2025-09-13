@@ -252,7 +252,7 @@ class Installment extends Model
             // Use existing MailHelper
             MailHelper::sendNotification($student->email, $subject, $body);
         } catch (\Exception $e) {
-            Log::error("Failed to send payment notification for installment {$this->id}: " . $e->getMessage());
+            Log::channel('mail')->error("Failed to send payment notification for installment {$this->id}: " . $e->getMessage());
         }
     }
 
