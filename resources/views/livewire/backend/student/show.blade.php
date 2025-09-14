@@ -642,13 +642,15 @@ new class extends Component {
                             Dashboard
                         </a>
                     </li>
+
                     <li>
                         <a href="{{ route('admin.student.index') }}" wire:navigate>
                             Students
                         </a>
                     </li>
+
                     <li>
-                        {{ $student->full_name }}
+                        <span class="text-primary">{{ $student->tiitvt_reg_no }}</span>
                     </li>
                 </ul>
             </div>
@@ -666,114 +668,132 @@ new class extends Component {
     <!-- Student Information -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Basic Information -->
-        <x-card shadow class="lg:col-span-2 h-fit">
-            <div class="flex items-center gap-4 mb-6">
-                @if ($student->student_image)
-                    <div class="avatar avatar-online avatar-placeholder">
-                        <div class="bg-neutral text-neutral-content w-16 rounded-md">
-                            <img src="{{ asset('storage/' . $student->student_image) }}" alt="Student Image"
-                                class="w-full h-full object-cover ">
+        <div class="lg:col-span-2">
+            <x-card shadow class="lg:col-span-2 h-fit">
+                <div class="flex items-center gap-4 mb-6">
+                    @if ($student->student_image)
+                        <div class="avatar avatar-online avatar-placeholder">
+                            <div class="bg-neutral text-neutral-content w-16 rounded-md">
+                                <img src="{{ asset('storage/' . $student->student_image) }}" alt="Student Image"
+                                    class="w-full h-full object-cover ">
+                            </div>
+                        </div>
+                    @else
+                        <div class="avatar avatar-online avatar-placeholder">
+                            <div class="bg-neutral text-neutral-content w-16 rounded-md">
+                                <span class="text-xl">{{ substr($student->first_name, 0, 1) }}</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div>
+                        <h2 class="text-2xl font-bold">{{ $student->full_name }}</h2>
+                        <p class="text-gray-600">{{ $student->tiitvt_reg_no }}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Basic Details -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-primary">Basic Information</h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Father's Name</label>
+                                <p class="text-sm">{{ $student->fathers_name }}</p>
+                            </div>
+
+                            @if ($student->surname)
+                                <div>
+                                    <label class="text-sm font-medium text-gray-600">Surname</label>
+                                    <p class="text-sm">{{ $student->surname }}</p>
+                                </div>
+                            @endif
+
+                            @if ($student->date_of_birth)
+                                <div>
+                                    <label class="text-sm font-medium text-gray-600">Date of Birth</label>
+                                    <p class="text-sm">{{ $student->date_of_birth->format('M d, Y') }}</p>
+                                </div>
+                            @endif
+
+                            @if ($student->age)
+                                <div>
+                                    <label class="text-sm font-medium text-gray-600">Age</label>
+                                    <p class="text-sm">{{ $student->age }} years</p>
+                                </div>
+                            @endif
                         </div>
                     </div>
-                @else
-                    <div class="avatar avatar-online avatar-placeholder">
-                        <div class="bg-neutral text-neutral-content w-16 rounded-md">
-                            <span class="text-xl">{{ substr($student->first_name, 0, 1) }}</span>
+
+                    <!-- Contact Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-primary">Contact Information</h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Email</label>
+                                <p class="text-sm">{{ $student->email }}</p>
+                            </div>
+
+                            @if ($student->mobile)
+                                <div>
+                                    <label class="text-sm font-medium text-gray-600">Mobile</label>
+                                    <p class="text-sm">{{ $student->mobile }}</p>
+                                </div>
+                            @endif
+
+                            @if ($student->telephone_no)
+                                <div>
+                                    <label class="text-sm font-medium text-gray-600">Telephone</label>
+                                    <p class="text-sm">{{ $student->telephone_no }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address -->
+                @if ($student->address && is_array($student->address))
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold text-primary mb-3">Address</h3>
+                        <div class="bg-base-200 p-4 rounded-lg">
+                            @if ($student->address['street'])
+                                <p class="text-sm">{{ $student->address['street'] }},</p>
+                            @endif
+                            @if ($student->address['city'])
+                                <p class="text-sm">{{ $student->address['city'] }},</p>
+                            @endif
+                            @if ($student->address['state'])
+                                <span class="text-sm">{{ $student->address['state'] }}</span>,
+                            @endif
+                            @if ($student->address['country'])
+                                <span class="text-sm">{{ $student->address['country'] }}</span>,
+                            @endif
+                            @if ($student->address['pincode'])
+                                <span class="text-sm">{{ $student->address['pincode'] }}</span>.
+                            @endif
                         </div>
                     </div>
                 @endif
+            </x-card>
 
-                <div>
-                    <h2 class="text-2xl font-bold">{{ $student->full_name }}</h2>
-                    <p class="text-gray-600">{{ $student->tiitvt_reg_no }}</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Basic Details -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-primary">Basic Information</h3>
-
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-sm font-medium text-gray-600">Father's Name</label>
-                            <p class="text-sm">{{ $student->fathers_name }}</p>
-                        </div>
-
-                        @if ($student->surname)
-                            <div>
-                                <label class="text-sm font-medium text-gray-600">Surname</label>
-                                <p class="text-sm">{{ $student->surname }}</p>
-                            </div>
-                        @endif
-
-                        @if ($student->date_of_birth)
-                            <div>
-                                <label class="text-sm font-medium text-gray-600">Date of Birth</label>
-                                <p class="text-sm">{{ $student->date_of_birth->format('M d, Y') }}</p>
-                            </div>
-                        @endif
-
-                        @if ($student->age)
-                            <div>
-                                <label class="text-sm font-medium text-gray-600">Age</label>
-                                <p class="text-sm">{{ $student->age }} years</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Contact Information -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-primary">Contact Information</h3>
-
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-sm font-medium text-gray-600">Email</label>
-                            <p class="text-sm">{{ $student->email }}</p>
-                        </div>
-
-                        @if ($student->mobile)
-                            <div>
-                                <label class="text-sm font-medium text-gray-600">Mobile</label>
-                                <p class="text-sm">{{ $student->mobile }}</p>
-                            </div>
-                        @endif
-
-                        @if ($student->telephone_no)
-                            <div>
-                                <label class="text-sm font-medium text-gray-600">Telephone</label>
-                                <p class="text-sm">{{ $student->telephone_no }}</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            <!-- Address -->
-            @if ($student->address && is_array($student->address))
+            <!-- Student Image & Signature -->
+            @if ($student->student_signature_image && $student->student_image)
                 <div class="mt-6">
-                    <h3 class="text-lg font-semibold text-primary mb-3">Address</h3>
-                    <div class="bg-base-200 p-4 rounded-lg">
-                        @if ($student->address['street'])
-                            <p class="text-sm">{{ $student->address['street'] }},</p>
-                        @endif
-                        @if ($student->address['city'])
-                            <p class="text-sm">{{ $student->address['city'] }},</p>
-                        @endif
-                        @if ($student->address['state'])
-                            <span class="text-sm">{{ $student->address['state'] }}</span>,
-                        @endif
-                        @if ($student->address['country'])
-                            <span class="text-sm">{{ $student->address['country'] }}</span>,
-                        @endif
-                        @if ($student->address['pincode'])
-                            <span class="text-sm">{{ $student->address['pincode'] }}</span>.
-                        @endif
-                    </div>
+                    <x-card shadow>
+                        <h3 class="text-lg font-semibold text-primary mb-4">Student Image & Signature</h3>
+                        <div class="flex gap-5 flex-wrap">
+                            <img src="{{ asset('storage/' . $student->student_image) }}" alt="Student Image"
+                                class="max-w-md h-40 border rounded-lg">
+
+                            <img src="{{ asset('storage/' . $student->student_signature_image) }}"
+                                alt="Student Signature" class="max-w-md h-40 border rounded-lg">
+                        </div>
+                    </x-card>
                 </div>
             @endif
-        </x-card>
+        </div>
 
         <div class="grid gap-6">
             <!-- Course & Fees Information -->
@@ -1199,19 +1219,6 @@ new class extends Component {
                         </div>
                     </div>
                 @endif
-            </x-card>
-        </div>
-    @endif
-
-    <!-- Student Signature -->
-    @if ($student->student_signature_image)
-        <div class="mt-6">
-            <x-card shadow>
-                <h3 class="text-lg font-semibold text-primary mb-4">Student Signature</h3>
-                <div class="flex justify-center">
-                    <img src="{{ asset('storage/' . $student->student_signature_image) }}" alt="Student Signature"
-                        class="max-w-md h-auto border rounded-lg">
-                </div>
             </x-card>
         </div>
     @endif

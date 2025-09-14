@@ -109,6 +109,26 @@
             @endif
         </div>
 
+        @if (isset($qrCodeUrl) && $qrCodeUrl)
+            <div
+                style="text-align: center; margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 2px solid #667eea; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                <h3 style="color: #1a365d; margin: 0 0 15px 0; font-size: 18px; font-weight: 700;">Your Student QR Code</h3>
+                <p style="color: #4a5568; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">
+                    Scan this QR code to access your student information and verify your enrollment status.
+                </p>
+
+                <div
+                    style="display: inline-block; padding: 15px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                    <img src="{{ $qrCodeUrl }}" alt="Student QR Code"
+                        style="max-width: 200px; height: auto; display: block;" />
+                </div>
+
+                <p style="color: #667eea; font-size: 12px; margin: 15px 0 0 0; font-weight: 600;">
+                    Keep this QR code safe - you'll need it for verification purposes
+                </p>
+            </div>
+        @endif
+
         <div style="text-align: center; margin-top: 30px;">
             <p style="color: #4a5568; font-size: 14px; margin: 0; font-weight: 500;">
                 Welcome to the TIITVT family! We're excited to be part of your success story.

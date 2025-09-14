@@ -744,11 +744,8 @@ new class extends Component {
                     </li>
                     <li>
                         <a href="{{ route('admin.student.show', $student->id) }}" wire:navigate>
-                            {{ $student->full_name }}
+                            {{ $student->tiitvt_reg_no }}
                         </a>
-                    </li>
-                    <li>
-                        Edit
                     </li>
                 </ul>
             </div>
