@@ -14,8 +14,8 @@ return new class extends Migration
     {
         Schema::create('course_categories', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Category::class);
-            $table->foreignIdFor(Course::class);
+            $table->foreignIdFor(Category::class)->nullOnDelete();
+            $table->foreignIdFor(Course::class)->nullOnDelete();
             $table->timestamps();
         });
     }
