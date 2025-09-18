@@ -1,0 +1,267 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>{{ $certificate->tiitvt_reg_no }} - {{ $certificate->full_name }}</title>
+    <meta name="author" content="TIITVT" />
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            text-indent: 0;
+        }
+
+        p {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 14.5pt;
+            margin: 0pt;
+        }
+
+        .s1 {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 11pt;
+            vertical-align: 7pt;
+        }
+
+        .s2 {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 11pt;
+        }
+
+        .s3 {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 12pt;
+            vertical-align: -1pt;
+        }
+
+        .s4 {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 10.5pt;
+        }
+
+        .s5 {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 10.5pt;
+        }
+
+        .s6 {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 12pt;
+        }
+
+        .s7 {
+            color: black;
+            font-family: "Arial Black", sans-serif;
+            font-style: normal;
+            font-weight: normal;
+            text-decoration: none;
+            font-size: 10.5pt;
+            vertical-align: 1pt;
+        }
+
+        table,
+        tbody {
+            vertical-align: top;
+            overflow: visible;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 50px;
+        }
+
+        .left-info {
+            display: flex;
+            flex-direction: column;
+            margin-left: 100px;
+        }
+
+        .certificate-number {
+            font-size: 11pt;
+            font-family: "Arial Black", sans-serif;
+        }
+
+        .date {
+            font-size: 11pt;
+            font-family: "Arial Black", sans-serif;
+        }
+
+        .qr-code {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8pt;
+            text-align: center;
+            background: #f9f9f9;
+            font-family: "Arial Black", sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="left-info">
+            <div class="certificate-number">{{ $certificate->tiitvt_reg_no }}</div>
+            <div class="date">{{ $certificate->issued_on->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
+        </div>
+        @if (isset($certificate->qr_token))
+            <div class="qr-code">
+                <div>
+                    <div>QR CODE</div>
+                    <div style="font-size: 6pt; margin-top: 5px;">{{ substr($certificate->qr_token, 0, 8) }}...</div>
+                </div>
+            </div>
+        @endif
+    </div>
+
+    <p style="text-indent: 0pt;text-align: left;"><br /></p>
+    <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? 'Student Name' }}</p>
+    <p style="padding-top: 8pt;text-indent: 0pt;text-align: left;"><br /></p>
+    <p style="padding-left: 64pt;text-indent: 0pt;text-align: left;">
+        {{ $student->course->name ?? 'Diploma In Full-Stack Web Development (1 year)' }}</p>
+    <p style="padding-top: 6pt;padding-left: 106pt;text-indent: 0pt;text-align: left;">
+        {{ $student->percentage ?? '88.50' }} {{ $student->grade ?? 'A' }}</p>
+    <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br /></p>
+    <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">
+        {{ $student->center->name ?? 'IT Centre Computer Education' }}</p>
+    <p style="padding-top: 4pt;text-indent: 0pt;text-align: left;"><br /></p>
+    <table style="border-collapse:collapse;margin-left:5.83776pt" cellspacing="0">
+        <tr style="height:26pt">
+            <td
+                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s1" style="padding-left: 7pt;text-indent: 0pt;line-height: 16pt;text-align: left;">
+                    SR.
+                </p>
+                <p class="s2" style="padding-left: 7pt;text-indent: 0pt;line-height: 9pt;text-align: left;">
+                    NO.
+                </p>
+            </td>
+            <td
+                style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s1" style="padding-left: 7pt;text-indent: 0pt;line-height: 16pt;text-align: left;">
+                    <span class="s2">SUBJECTS</span>
+                </p>
+            </td>
+            <td
+                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s2" style="padding-left: 15pt;text-indent: -9pt;line-height: 13pt;text-align: left;">
+                    MAXIMUM
+                    MARKS</p>
+            </td>
+            <td
+                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s2"
+                    style="padding-left: 7pt;padding-right: 6pt;text-indent: 8pt;line-height: 13pt;text-align: left;">
+                    MARKS OBTAINED</p>
+            </td>
+            <td
+                style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s2" style="padding-top: 4pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
+                    RESULTS
+                </p>
+            </td>
+        </tr>
+
+        @php
+            $categories = $certificate->course->categories()->get();
+        @endphp
+        @foreach ($categories as $category => $key)
+            <tr style="height:18pt">
+                <td
+                    style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s3" style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
+                        {{ $key + 1 }}.
+                    </p>
+                </td>
+                <td
+                    style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s3" style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
+                        <span class="s4">{{ $category->name }}</span>
+                    </p>
+                </td>
+                <td
+                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s5" style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
+                        {{ $student->examResult->data['category_results'][$category->id]['total_marks'] ?? '100' }}
+                    </p>
+                </td>
+                <td
+                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s5"
+                        style="padding-top: 1pt;padding-left: 2pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
+                        {{ $student->examResult->data['category_results'][$category->id]['marks'] ?? '80' }}</p>
+                </td>
+                <td
+                    style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s5" style="padding-top: 1pt;padding-left: 6pt;text-indent: 0pt;text-align: center;">
+                        {{ $student->examResult->data['category_results'][$category->id]['result'] ?? 'PASS' }}
+                    </p>
+                </td>
+            </tr>
+        @endforeach
+        <tr style="height:24pt">
+            <td
+                style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s2" style="padding-top: 3pt;padding-left: 128pt;text-indent: 0pt;text-align: left;">
+                    TOTAL MARKS
+                </p>
+            </td>
+            <td
+                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s2" style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
+                    {{ $student->examResult->data['total_marks'] ?? '700' }}
+                </p>
+            </td>
+            <td
+                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s2"
+                    style="padding-top: 3pt;padding-left: 4pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
+                    {{ $student->examResult->data['total_marks_obtained'] ?? '566' }}
+                </p>
+            </td>
+            <td
+                style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                <p class="s2" style="padding-top: 3pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
+                    {{ $student->examResult->data['total_result'] ?? 'PASS' }}
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
