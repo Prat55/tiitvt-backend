@@ -23,7 +23,7 @@ new class extends Component {
     // boot
     public function boot(): void
     {
-        $this->headers = [['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32']];
+        $this->headers = [['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'first_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32']];
 
         // Only show center column to admin users
         if (hasAuthRole(RolesEnum::Admin->value)) {
@@ -31,6 +31,7 @@ new class extends Component {
         }
 
         $this->headers[] = ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40', 'sortable' => false];
+        $this->headers[] = ['key' => 'enrollment_date', 'label' => 'Enrolled', 'class' => 'w-32'];
     }
 
     public function deleteStudent($id)
@@ -105,7 +106,7 @@ new class extends Component {
         @scope('cell_tiitvt_reg_no', $student)
             <span class="font-mono text-sm font-medium">{{ $student->tiitvt_reg_no }}</span>
         @endscope
-        @scope('cell_full_name', $student)
+        @scope('cell_first_name', $student)
             <div class="flex items-center gap-2">
                 <div>
                     <div class="font-medium">{{ $student->full_name }}</div>
@@ -134,6 +135,13 @@ new class extends Component {
         @scope('cell_course_name', $student)
             @if ($student->course)
                 <span class="text-sm font-medium">{{ $student->course->name }}</span>
+            @else
+                <span class="text-xs text-gray-400">-</span>
+            @endif
+        @endscope
+        @scope('cell_enrollment_date', $student)
+            @if ($student->enrollment_date)
+                <span class="text-sm">{{ $student->enrollment_date->format('M d, Y') }}</span>
             @else
                 <span class="text-xs text-gray-400">-</span>
             @endif

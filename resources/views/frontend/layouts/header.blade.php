@@ -1,5 +1,8 @@
  <!-- Header -->
  <header>
+     <form id="logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
+         @csrf
+     </form>
      <!-- Start Navigation -->
      <nav
          class="navbar mobile-sidenav navbar-sticky navbar-default validnavs dark navbar-fixed no-background inc-topbar">
@@ -40,10 +43,17 @@
                          <li><a href="{{ route('frontend.contact') }}">Contact</a></li>
                          @guest
                              <li><a href="{{ route('login') }}">Login</a></li>
+                             <li><a href="{{ route('login') }}">Center Login</a></li>
                          @endguest
 
                          @auth
                              <li><a href="{{ route('admin.index') }}">Dashboard</a></li>
+                             <li>
+                                 <a href="#"
+                                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                     Logout
+                                 </a>
+                             </li>
                          @endauth
                      </ul>
                  </div><!-- /.navbar-collapse -->

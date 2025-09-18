@@ -36,6 +36,20 @@ new class extends Component {
         $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'tiitvt_reg_no', 'label' => 'Reg No', 'class' => 'w-32'], ['key' => 'full_name', 'label' => 'Student Name', 'class' => 'w-48'], ['key' => 'mobile', 'label' => 'Mobile', 'class' => 'w-32'], ['key' => 'email', 'label' => 'Email', 'class' => 'w-48'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40'], ['key' => 'course_fees', 'label' => 'Fees', 'class' => 'w-24'], ['key' => 'enrollment_date', 'label' => 'Enrolled', 'class' => 'w-32']];
     }
 
+    public function banLogin(): void
+    {
+        $this->center->user->is_active = false;
+        $this->center->user->save();
+        $this->success('Login banned successfully!', position: 'toast-bottom', redirectTo: route('admin.center.show', $this->center->uid));
+    }
+
+    public function authorizeLogin(): void
+    {
+        $this->center->user->is_active = true;
+        $this->center->user->save();
+        $this->success('Login authorized successfully!', position: 'toast-bottom', redirectTo: route('admin.center.show', $this->center->uid));
+    }
+
     public function rendering(View $view): void
     {
         $view->students = $this->center
@@ -92,7 +106,12 @@ new class extends Component {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div>
             <!-- Center Logo and Basic Info -->
-            <x-card class="lg:col-span-1">
+            <x-card class="lg:col-span-1" title="Center Information">
+                <x-slot:menu>
+                    <x-badge value="{{ $center->user->is_active ? 'Active' : 'Inactive' }}"
+                        class="{{ $center->user->is_active ? 'badge-success' : 'badge-error' }}" />
+                </x-slot:menu>
+
                 <div class="flex flex-col items-center text-center space-y-4">
                     @if ($center->institute_logo)
                         <div class="avatar">
@@ -116,6 +135,16 @@ new class extends Component {
                     <div class="text-sm text-gray-400">
                         <p><strong>Center ID:</strong> {{ $center->uid }}</p>
                     </div>
+
+                    <x-slot:actions separator>
+                        @if ($center->user->is_active)
+                            <x-button label="Ban Login" icon="fas.ban" class="btn-error btn-outline"
+                                wire:click="banLogin" />
+                        @else
+                            <x-button label="Authorize Login" icon="o-pencil" class="btn-primary btn-outline"
+                                wire:click="authorizeLogin" />
+                        @endif
+                    </x-slot:actions>
                 </div>
             </x-card>
 

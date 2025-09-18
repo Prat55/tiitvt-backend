@@ -19,6 +19,7 @@ new class extends Component {
     {
         $studentQRService = app(StudentQRService::class);
         $this->studentQR = $studentQRService->verifyStudentQR($token);
+        $this->tiitvt_reg_no = $this->studentQR->student->tiitvt_reg_no;
 
         if (!$this->studentQR) {
             abort(404, 'Student QR code not found or has been deactivated.');
@@ -31,18 +32,19 @@ new class extends Component {
 
         // Validate inputs
         if (empty($this->tiitvt_reg_no) || empty($this->date_of_birth)) {
-            $this->error_message = 'Please enter both TIITVT Registration Number and Date of Birth.';
+            $this->error_message = 'Please enter Date of Birth.';
             return;
         }
 
         // Find student by registration number and date of birth
-        $student = Student::where('tiitvt_reg_no', $this->tiitvt_reg_no)
+        $student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'course_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments')
+            ->where('tiitvt_reg_no', $this->tiitvt_reg_no)
             ->where('date_of_birth', $this->date_of_birth)
             ->with(['center', 'course'])
             ->first();
 
         if (!$student) {
-            $this->error_message = 'Invalid TIITVT Registration Number or Date of Birth. Please check your details and try again.';
+            $this->error_message = 'Invalid Date of Birth. Please check your details and try again.';
             return;
         }
 
@@ -99,23 +101,15 @@ new class extends Component {
                         </div>
 
                         @if ($error_message)
-                            <div class="bg-error border border-error-content rounded-md p-4">
-                                <div class="flex">
-                                    <div class="flex-shrink-0">
-                                        <x-icon name="o-x-mark" class="h-5 w-5 text-error-content" />
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm text-error">{{ $error_message }}</p>
-                                    </div>
-                                </div>
-                            </div>
+                            <x-alert class="alert-error" title="Oops! Something went wrong"
+                                description="{{ $error_message }}" />
                         @endif
 
                         <form wire:submit.prevent="verifyStudent" class="space-y-4">
                             <div>
                                 <x-input lable="TIITVT Registration Number" id="tiitvt_reg_no"
                                     wire:model="tiitvt_reg_no" icon="o-identification"
-                                    placeholder="Enter your TIITVT Registration Number" required />
+                                    placeholder="Enter your TIITVT Registration Number" readonly />
                             </div>
 
                             <div>
@@ -140,7 +134,7 @@ new class extends Component {
                                 class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary mb-4">
                                 <x-icon name="o-check" class="h-6 w-6 text-primary-content" />
                             </div>
-                            <h2 class="text-lg font-medium text-gray-900">Verification Successful</h2>
+                            <h2 class="text-lg font-medium text-primary-content">Verification Successful</h2>
                             <p class="text-sm text-gray-600 mt-2">
                                 Your identity has been verified. Here are your registration details:
                             </p>
@@ -205,11 +199,6 @@ new class extends Component {
                                     </div>
                                 @endif
                             </div>
-                        </div>
-
-                        <div class="text-center">
-                            <x-button label="Verify Another Student" type="button" icon="o-check" class="btn-primary"
-                                wire:click="resetForm" />
                         </div>
                     </div>
                 @endif
