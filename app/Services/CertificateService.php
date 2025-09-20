@@ -111,12 +111,20 @@ class CertificateService
      */
     private function generatePdfCertificate(Certificate $certificate): string
     {
-        // This would typically use a PDF library like DomPDF or Snappy
-        // For now, we'll create a placeholder
         $filename = "certificates/pdfs/certificate_{$certificate->id}.pdf";
 
-        // TODO: Implement actual PDF generation
-        // $pdf = PDF::loadView('certificates.template', compact('certificate'));
+        // Load the certificate template
+        $html = view('certificates.tiitvt-merit', compact('certificate'))->render();
+
+        // For now, we'll save the HTML template
+        // In production, you would use a PDF library like DomPDF or Snappy
+        Storage::disk('public')->put(
+            str_replace('.pdf', '.html', $filename),
+            $html
+        );
+
+        // TODO: Implement actual PDF generation with DomPDF or Snappy
+        // $pdf = PDF::loadView('certificates.tiitvt-merit', compact('certificate'));
         // Storage::disk('public')->put($filename, $pdf->output());
 
         return $filename;
@@ -234,5 +242,13 @@ class CertificateService
             ->build();
 
         return $result->getDataUri();
+    }
+
+    /**
+     * Generate certificate view for display.
+     */
+    public function generateCertificateView(Certificate $certificate): string
+    {
+        return view('certificates.tiitvt-merit', compact('certificate'))->render();
     }
 }
