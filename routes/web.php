@@ -35,15 +35,6 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/{course}/edit', 'backend.course.edit')->name('edit');
             });
 
-            Route::prefix('exam')->name('exam.')->group(function () {
-                Volt::route('/', 'backend.exam.index')->name('index');
-                Volt::route('/create', 'backend.exam.create')->name('create');
-                Volt::route('/{exam}/show', 'backend.exam.show')->name('show');
-                Volt::route('/{exam}/edit', 'backend.exam.edit')->name('edit');
-                Volt::route('/schedule', 'backend.exam.schedule')->name('schedule');
-                Volt::route('/results', 'backend.exam.results')->name('results');
-            });
-
             Route::prefix('question')->name('question.')->group(function () {
                 Volt::route('/', 'backend.question.index')->name('index');
                 Volt::route('/create', 'backend.question.create')->name('create');
@@ -72,6 +63,15 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/{student}/show', 'backend.student.show')->name('show');
                 Volt::route('/{student}/edit', 'backend.student.edit')->name('edit');
                 Volt::route('/{student}/delete', 'backend.student.delete')->name('delete');
+            });
+
+            Route::prefix('exam')->name('exam.')->group(function () {
+                Volt::route('/', 'backend.exam.index')->name('index');
+                Volt::route('/create', 'backend.exam.create')->name('create');
+                Volt::route('/{exam}/show', 'backend.exam.show')->name('show');
+                Volt::route('/{exam}/edit', 'backend.exam.edit')->name('edit');
+                Volt::route('/schedule', 'backend.exam.schedule')->name('schedule');
+                Volt::route('/results', 'backend.exam.results')->name('results');
             });
         });
     });

@@ -18,6 +18,7 @@ class Exam extends Model
     use HasFactory;
 
     protected $fillable = [
+        'center_id',
         'course_id',
         'duration',
         'date',
@@ -39,21 +40,20 @@ class Exam extends Model
         'exam_statistics',
     ];
 
-    // =========================================================================
-    // BOOT METHOD
-    // =========================================================================
-
-
-    // =========================================================================
-    // RELATIONSHIPS
-    // =========================================================================
-
     /**
      * Get the course that owns the exam.
      */
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    /**
+     * Get the center that owns the exam.
+     */
+    public function center(): BelongsTo
+    {
+        return $this->belongsTo(Center::class);
     }
 
     /**

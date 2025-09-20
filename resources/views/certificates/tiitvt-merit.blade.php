@@ -155,7 +155,11 @@
     <p style="padding-left: 64pt;text-indent: 0pt;text-align: left;">
         {{ $student->course->name ?? 'Diploma In Full-Stack Web Development (1 year)' }}</p>
     <p style="padding-top: 6pt;padding-left: 106pt;text-indent: 0pt;text-align: left;">
-        {{ $student->percentage ?? '88.50' }} {{ $student->grade ?? 'A' }}</p>
+        <span>{{ $student->percentage ?? '88.50' }}</span>
+
+        <span>{{ $student->grade ?? 'A' }}</span>
+    </p>
+
     <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br /></p>
     <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">
         {{ $student->center->name ?? 'IT Centre Computer Education' }}</p>

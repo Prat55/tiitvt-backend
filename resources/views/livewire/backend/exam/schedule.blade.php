@@ -1,6 +1,7 @@
 <?php
 
 use Mary\Traits\Toast;
+use App\Enums\RolesEnum;
 use Illuminate\View\View;
 use Livewire\Volt\Component;
 use App\Services\ExamService;
@@ -122,7 +123,10 @@ new class extends Component {
         $offset = ($this->currentPage - 1) * $this->studentsPerPage;
 
         // Load students for current page
-        $students = Student::where('course_id', $this->selectedCourse)
+        $students = Student::when(hasAuthRole(RolesEnum::Center->value), function ($q) {
+            $q->where('center_id', auth()->user()->center->id);
+        })
+            ->where('course_id', $this->selectedCourse)
             ->offset($offset)
             ->limit($this->studentsPerPage)
             ->get(['id', 'first_name', 'fathers_name', 'surname', 'tiitvt_reg_no'])
