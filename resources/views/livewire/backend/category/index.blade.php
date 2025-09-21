@@ -73,51 +73,88 @@ new class extends Component {
 
     public function createCategory()
     {
-        $this->validate([
-            'name' => 'required|string|max:100|unique:categories,name',
-        ]);
+        try {
+            $this->validate([
+                'name' => 'required|string|max:100|unique:categories,name',
+            ]);
 
-        $category = new Category();
-        $category->name = $this->name;
-        $category->slug = Str::slug($this->name);
-        $category->description = $this->description;
-        $category->is_active = $this->is_active;
-        if ($this->image) {
-            $path = $this->image->store('category', 'public');
-            $this->image = '/storage/' . $path;
-            $category->image = $this->image;
+            $category = new Category();
+            $category->name = $this->name;
+
+            // Generate unique slug
+            $baseSlug = Str::slug($this->name);
+            $slug = $baseSlug;
+            $counter = 1;
+
+            while (Category::where('slug', $slug)->exists()) {
+                $slug = $baseSlug . '-' . $counter;
+                $counter++;
+            }
+
+            $category->slug = $slug;
+            $category->description = $this->description;
+            $category->is_active = $this->is_active;
+
+            if ($this->image) {
+                $path = $this->image->store('category', 'public');
+                $this->image = '/storage/' . $path;
+                $category->image = $this->image;
+            }
+            $category->save();
+
+            $this->resetForm();
+            $this->success('Category created successfully!', position: 'toast-bottom');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions to show proper error messages
+            throw $e;
+        } catch (\Exception $e) {
+            $this->error('Failed to create category: ' . $e->getMessage(), position: 'toast-bottom');
         }
-        $category->save();
-
-        $this->resetForm();
-        $this->success('Category created successfully!', position: 'toast-bottom');
     }
 
     public function updateCategory()
     {
-        $this->validate([
-            'name' => 'required|string|max:100|unique:categories,name,' . $this->categoryId,
-        ]);
+        try {
+            $this->validate([
+                'name' => 'required|string|max:100|unique:categories,name,' . $this->categoryId,
+            ]);
 
-        $category = Category::findOrFail($this->categoryId);
-        $category->name = $this->name;
-        $category->slug = Str::slug($this->name);
-        $category->description = $this->description;
-        $category->is_active = $this->is_active;
-        if ($this->image) {
-            if ($category->image) {
-                $imagePath = str_replace('/storage/', '', $category->image);
-                Storage::disk('public')->delete($imagePath);
+            $category = Category::findOrFail($this->categoryId);
+            $category->name = $this->name;
+
+            // Generate unique slug (excluding current category)
+            $baseSlug = Str::slug($this->name);
+            $slug = $baseSlug;
+            $counter = 1;
+
+            while (Category::where('slug', $slug)->where('id', '!=', $this->categoryId)->exists()) {
+                $slug = $baseSlug . '-' . $counter;
+                $counter++;
             }
 
-            $path = $this->image->store('category', 'public');
-            $this->image = '/storage/' . $path;
-            $category->image = $this->image;
-        }
-        $category->save();
+            $category->slug = $slug;
+            $category->description = $this->description;
+            $category->is_active = $this->is_active;
+            if ($this->image) {
+                if ($category->image) {
+                    $imagePath = str_replace('/storage/', '', $category->image);
+                    Storage::disk('public')->delete($imagePath);
+                }
 
-        $this->resetForm();
-        $this->success('Category updated successfully!', position: 'toast-bottom');
+                $path = $this->image->store('category', 'public');
+                $this->image = '/storage/' . $path;
+                $category->image = $this->image;
+            }
+            $category->save();
+
+            $this->resetForm();
+            $this->success('Category updated successfully!', position: 'toast-bottom');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions to show proper error messages
+            throw $e;
+        } catch (\Exception $e) {
+            $this->error('Failed to update category: ' . $e->getMessage(), position: 'toast-bottom');
+        }
     }
 
     public function deleteCategory($id)

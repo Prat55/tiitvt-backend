@@ -255,6 +255,7 @@ new class extends Component {
 
             // Schedule one exam for all students
             $exam = $examService->scheduleExamWithCategories([
+                'center_id' => hasAuthRole(RolesEnum::Center->value) ? auth()->user()->center->id : null,
                 'course_id' => $this->selectedCourse,
                 'student_ids' => $this->selectedStudents,
                 'category_ids' => $this->selectedCategories,
