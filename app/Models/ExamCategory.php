@@ -10,6 +10,8 @@ class ExamCategory extends Model
     protected $fillable = [
         'exam_id',
         'category_id',
+        'passing_points',
+        'total_points'
     ];
 
     public function exam(): BelongsTo

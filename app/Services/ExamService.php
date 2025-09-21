@@ -51,12 +51,24 @@ class ExamService
                 'status' => ExamStatusEnum::SCHEDULED,
             ]);
 
-            // Attach categories to the exam
-            if (!empty($data['category_ids'])) {
+            // Attach categories to the exam with points
+            if (!empty($data['category_data'])) {
+                foreach ($data['category_data'] as $categoryData) {
+                    ExamCategory::create([
+                        'exam_id' => $exam->id,
+                        'category_id' => $categoryData['category_id'],
+                        'total_points' => $categoryData['total_points'],
+                        'passing_points' => $categoryData['passing_points'],
+                    ]);
+                }
+            } elseif (!empty($data['category_ids'])) {
+                // Fallback for backward compatibility
                 foreach ($data['category_ids'] as $categoryId) {
                     ExamCategory::create([
                         'exam_id' => $exam->id,
                         'category_id' => $categoryId,
+                        'total_points' => 0,
+                        'passing_points' => 0,
                     ]);
                 }
             }
@@ -76,7 +88,7 @@ class ExamService
             Log::info('Exam scheduled successfully with categories and students', [
                 'exam_id' => $exam->id,
                 'course_id' => $exam->course_id,
-                'category_ids' => $data['category_ids'] ?? [],
+                'category_data' => $data['category_data'] ?? $data['category_ids'] ?? [],
                 'student_ids' => $data['student_ids'] ?? [],
                 'scheduled_date' => $exam->date,
                 'scheduled_time' => $exam->start_time . ' - ' . $exam->end_time
