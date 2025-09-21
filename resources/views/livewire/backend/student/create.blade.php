@@ -71,6 +71,10 @@ new class extends Component {
     public float $total_payable = 0;
     public array $installment_breakdown = [];
 
+    // Installment editing
+    public bool $edit_installment_amounts = false;
+    public array $editable_installment_amounts = [];
+
     // Notification
     public bool $send_notification = false;
 
@@ -354,6 +358,33 @@ new class extends Component {
         }
     }
 
+    // Update installments in database with custom amounts
+    public function updateInstallmentsWithCustomAmounts($student): void
+    {
+        if (empty($this->installment_breakdown)) {
+            return;
+        }
+
+        // Delete existing pending installments
+        $student
+            ->installments()
+            ->whereIn('status', ['pending', 'overdue'])
+            ->delete();
+
+        // Create new installments with custom amounts
+        foreach ($this->installment_breakdown as $installment) {
+            $dueDate = \Carbon\Carbon::parse($this->installment_date)->addMonths($installment['installment_no'] - 1);
+
+            \App\Models\Installment::create([
+                'student_id' => $student->id,
+                'installment_no' => $installment['installment_no'],
+                'amount' => $installment['amount'],
+                'due_date' => $dueDate,
+                'status' => 'pending',
+            ]);
+        }
+    }
+
     // Send registration success notification
     private function sendNotification($student): void
     {
@@ -485,6 +516,82 @@ new class extends Component {
             $this->course_fees = 0;
             $this->calculateInstallments();
         }
+    }
+
+    // Toggle installment amount editing mode
+    public function toggleInstallmentEditing(): void
+    {
+        $this->edit_installment_amounts = !$this->edit_installment_amounts;
+
+        if ($this->edit_installment_amounts) {
+            // Initialize editable amounts with current breakdown
+            $this->editable_installment_amounts = [];
+            foreach ($this->installment_breakdown as $installment) {
+                $this->editable_installment_amounts[$installment['installment_no']] = $installment['amount'];
+            }
+        }
+    }
+
+    // Update individual installment amount
+    public function updatedEditableInstallmentAmounts($value, $key): void
+    {
+        // Validate the amount
+        $amount = (float) $value;
+        if ($amount < 0) {
+            $this->editable_installment_amounts[$key] = 0;
+            $this->error('Installment amount cannot be negative.', position: 'toast-bottom');
+            return;
+        }
+
+        $this->editable_installment_amounts[$key] = $amount;
+        $this->validateInstallmentAmounts();
+    }
+
+    // Validate that total installment amounts equal remaining amount
+    public function validateInstallmentAmounts(): bool
+    {
+        if (empty($this->editable_installment_amounts)) {
+            return true;
+        }
+
+        $totalAmount = array_sum($this->editable_installment_amounts);
+        $difference = abs($totalAmount - $this->remaining_amount);
+
+        // Allow small rounding differences (up to 0.01)
+        if ($difference > 0.01) {
+            $this->error('Total installment amounts must equal the remaining amount (' . $this->formatCurrency($this->remaining_amount) . '). Current total: ' . $this->formatCurrency($totalAmount), position: 'toast-bottom');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Apply custom installment amounts
+    public function applyCustomInstallmentAmounts(): void
+    {
+        if (!$this->validateInstallmentAmounts()) {
+            return;
+        }
+
+        // Update the installment breakdown with custom amounts
+        foreach ($this->installment_breakdown as $index => $installment) {
+            $installmentNo = $installment['installment_no'];
+            if (isset($this->editable_installment_amounts[$installmentNo])) {
+                $this->installment_breakdown[$index]['amount'] = $this->editable_installment_amounts[$installmentNo];
+            }
+        }
+
+        $this->edit_installment_amounts = false;
+        $this->success('Custom installment amounts applied successfully!', position: 'toast-bottom');
+    }
+
+    // Reset to equal distribution
+    public function resetToEqualDistribution(): void
+    {
+        $this->calculateInstallments();
+        $this->edit_installment_amounts = false;
+        $this->editable_installment_amounts = [];
+        $this->success('Installment amounts reset to equal distribution!', position: 'toast-bottom');
     }
 
     public function rendering(View $view)
@@ -704,8 +811,25 @@ new class extends Component {
 
                             @if ($no_of_installments > 0 && count($installment_breakdown) > 0)
                                 <div class="mt-4">
-                                    <h4 class="font-semibold text-base mb-3">Installment Breakdown
-                                        ({{ $no_of_installments }} installments)</h4>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h4 class="font-semibold text-base">Installment Breakdown
+                                            ({{ $no_of_installments }} installments)</h4>
+                                        <div class="flex gap-2">
+                                            @if (!$edit_installment_amounts)
+                                                <x-button label="Edit Amounts" icon="o-pencil"
+                                                    class="btn-sm btn-outline"
+                                                    wire:click="toggleInstallmentEditing" />
+                                            @else
+                                                <x-button label="Apply" icon="o-check" class="btn-sm btn-primary"
+                                                    wire:click="applyCustomInstallmentAmounts" />
+                                                <x-button label="Reset" icon="o-arrow-path"
+                                                    class="btn-sm btn-outline"
+                                                    wire:click="resetToEqualDistribution" />
+                                                <x-button label="Cancel" icon="o-x-mark" class="btn-sm btn-ghost"
+                                                    wire:click="toggleInstallmentEditing" />
+                                            @endif
+                                        </div>
+                                    </div>
 
                                     <!-- Display calculated installment amount -->
                                     <div class="bg-base-100 rounded-lg p-3 border mb-3">
@@ -721,19 +845,40 @@ new class extends Component {
                                             <div class="bg-base-100 rounded-lg p-3 border">
                                                 <div class="text-sm text-gray-600">Installment
                                                     {{ $installment['installment_no'] }}</div>
-                                                <div class="font-bold text-lg">
-                                                    {{ $this->formatCurrency($installment['amount']) }}</div>
-                                                <div class="text-xs text-gray-500">Due: {{ $installment['due_date'] }}
-                                                </div>
+
+                                                @if ($edit_installment_amounts)
+                                                    <x-input
+                                                        wire:model="editable_installment_amounts.{{ $installment['installment_no'] }}"
+                                                        type="number" step="0.01" min="0"
+                                                        placeholder="Enter amount" />
+                                                @else
+                                                    <div class="font-bold text-lg">
+                                                        {{ $this->formatCurrency($installment['amount']) }}</div>
+                                                @endif
+
+                                                <div class="text-xs text-gray-500 mt-1">Due:
+                                                    {{ $installment['due_date'] }}</div>
                                             </div>
                                         @endforeach
                                     </div>
-                                    <div class="mt-3 text-xs bg-base-100 p-2 rounded-md">
-                                        <x-alert title="Note:" icon="o-exclamation-triangle"
-                                            description="Installment amounts are calculated by dividing the
-                                        remaining amount (after down payment) by the number of installments. The last
-                                        installment may vary slightly to account for rounding." />
-                                    </div>
+
+                                    @if ($edit_installment_amounts)
+                                        <div class="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                                            <div class="flex items-center gap-2 text-warning">
+                                                <x-icon name="o-exclamation-triangle" class="w-4 h-4" />
+                                                <span class="font-medium">Custom Amounts Mode</span>
+                                            </div>
+                                            <p class="text-sm text-warning mt-1">
+                                                Total must equal remaining amount:
+                                                {{ $this->formatCurrency($remaining_amount) }}
+                                            </p>
+                                        </div>
+                                    @else
+                                        <div class="mt-3 text-xs bg-base-100 p-2 rounded-md">
+                                            <x-alert title="Note:" icon="o-exclamation-triangle"
+                                                description="Installment amounts are calculated equally. Click 'Edit Amounts' to customize individual installment amounts. The last installment may vary slightly to account for rounding." />
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                         </div>
