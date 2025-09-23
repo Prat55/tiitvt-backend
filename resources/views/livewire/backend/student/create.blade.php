@@ -399,8 +399,12 @@ new class extends Component {
                 $monthlyInstallment = round($this->remaining_amount / $this->no_of_installments, 2);
             }
 
-            // Get student QR code
+            // Get student QR code or generate if it doesn't exist
             $studentQR = $student->qrCode;
+            if (!$studentQR) {
+                $qrService = new StudentQRService();
+                $studentQR = $qrService->generateStudentQR($student);
+            }
             $qrCodeUrl = $studentQR ? route('student.qr.verify', $studentQR->qr_token) : null;
             $qrCodePath = $studentQR ? $studentQR->qr_code_path : null;
 

@@ -136,6 +136,17 @@ class EmailNotificationService
     public function sendRegistrationSuccessNotification(Student $student, array $registrationData): bool
     {
         try {
+            // Generate QR code for the student if it doesn't exist
+            $studentQR = $student->qrCode;
+            if (!$studentQR) {
+                $qrService = new \App\Services\StudentQRService();
+                $studentQR = $qrService->generateStudentQR($student);
+            }
+
+            // Get QR code URL and path
+            $qrCodeUrl = $studentQR ? route('student.qr.verify', $studentQR->qr_token) : null;
+            $qrCodePath = $studentQR ? $studentQR->qr_code_path : null;
+
             $data = [
                 'studentName' => $student->first_name . ' ' . $student->surname,
                 'tiitvtRegNo' => $student->tiitvt_reg_no,
@@ -145,7 +156,9 @@ class EmailNotificationService
                 'courseFees' => $registrationData['courseFees'] ?? 0,
                 'downPayment' => $registrationData['downPayment'] ?? 0,
                 'noOfInstallments' => $registrationData['noOfInstallments'] ?? 0,
-                'monthlyInstallment' => $registrationData['monthlyInstallment'] ?? 0
+                'monthlyInstallment' => $registrationData['monthlyInstallment'] ?? 0,
+                'qrCodeUrl' => $qrCodeUrl,
+                'qrCodePath' => $qrCodePath,
             ];
 
             $result = EmailNotificationHelper::sendNotificationByType(

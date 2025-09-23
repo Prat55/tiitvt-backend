@@ -112,16 +112,14 @@ class StudentQRService
 
         $result = $builder->build();
 
-        // Ensure directory exists
+        // Ensure directory exists and save file using Storage
         $filename = "students/qr_codes/student_{$studentQRId}.png";
-        $fullPath = Storage::disk('public')->path($filename);
-        $directory = dirname($fullPath);
 
-        if (!file_exists($directory)) {
-            mkdir($directory, 0755, true);
-        }
+        // Ensure the directory exists
+        Storage::disk('public')->makeDirectory(dirname($filename));
 
-        $result->saveToFile($fullPath);
+        // Save the QR code data to storage
+        Storage::disk('public')->put($filename, $result->getString());
 
         return $filename;
     }
@@ -166,16 +164,14 @@ class StudentQRService
 
         $result = $builder->build();
 
-        // Ensure directory exists
+        // Ensure directory exists and save file using Storage
         $filename = "students/qr_codes/enhanced_student_{$student->id}.png";
-        $fullPath = Storage::disk('public')->path($filename);
-        $directory = dirname($fullPath);
 
-        if (!file_exists($directory)) {
-            mkdir($directory, 0755, true);
-        }
+        // Ensure the directory exists
+        Storage::disk('public')->makeDirectory(dirname($filename));
 
-        $result->saveToFile($fullPath);
+        // Save the QR code data to storage
+        Storage::disk('public')->put($filename, $result->getString());
 
         return $filename;
     }
