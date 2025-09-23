@@ -132,6 +132,14 @@ return [
             'path' => storage_path('logs/mail.log'),
             'level' => env('LOG_LEVEL', 'debug'),
         ],
+
+        'import' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/import.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
     ],
 
 ];
