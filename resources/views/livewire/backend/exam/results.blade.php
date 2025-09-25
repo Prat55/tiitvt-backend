@@ -47,17 +47,16 @@ new class extends Component {
         $view->categories = Category::all();
 
         $view->examStudents = ExamStudent::with(['student', 'exam.course', 'examResult'])
+            ->whereHas('examResult', function ($query) {
+                $query->whereIn('result_status', [ExamResultStatusEnum::Passed->value, ExamResultStatusEnum::Failed->value]);
+            })
             ->when($this->search, function ($query) {
                 $query->whereHas('student', function ($q) {
                     $q->search($this->search);
                 });
             })
             ->when($this->statusFilter, function ($query) {
-                if ($this->statusFilter === 'completed') {
-                    $query->whereHas('examResult');
-                } elseif ($this->statusFilter === 'not_started') {
-                    $query->whereDoesntHave('examResult');
-                } elseif ($this->statusFilter === 'failed') {
+                if ($this->statusFilter === 'failed') {
                     $query->whereHas('examResult', function ($q) {
                         $q->where('result_status', ExamResultStatusEnum::Failed->value);
                     });
@@ -287,9 +286,7 @@ new class extends Component {
     public function getStatusOptions(): array
     {
         return [
-            '' => 'All Statuses',
-            'completed' => 'Completed',
-            'not_started' => 'Not Started',
+            '' => 'All Declared Results',
             'failed' => 'Failed',
             'passed' => 'Passed',
         ];

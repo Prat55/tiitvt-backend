@@ -15,8 +15,6 @@ return new class extends Migration
     {
         Schema::create('exams', function (Blueprint $table) {
             $table->id();
-            $table->string('exam_id')->unique()->comment('Unique exam identifier for students');
-            $table->string('password')->comment('Password for exam access');
             $table->foreignIdFor(Course::class)->constrained()->onDelete('cascade');
             $table->integer('duration')->comment('Duration in minutes');
             $table->date('date');

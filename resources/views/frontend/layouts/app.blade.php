@@ -99,6 +99,11 @@
                                 Email: {{ getWebsiteSettings()->primary_email }}
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('frontend.exam.login') }}">
+                                Exam Login
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>

@@ -390,6 +390,9 @@ new class extends Component {
             $this->selectedCategories = [];
             $this->categoryPoints = [];
         }
+
+        // Recalculate end time when categories change
+        $this->calculateEndTime();
     }
 
     public function updatedSelectedCategories()
@@ -411,6 +414,9 @@ new class extends Component {
         }
 
         $this->categoryPoints = array_intersect_key($this->categoryPoints, array_flip($this->selectedCategories));
+
+        // Recalculate end time when categories change
+        $this->calculateEndTime();
     }
 
     public function filterCategories()
@@ -435,6 +441,7 @@ new class extends Component {
         $this->selectedCategories = array_diff($this->selectedCategories, [$categoryId]);
         unset($this->categoryPoints[$categoryId]);
         $this->updatedSelectedCategories();
+        // calculateEndTime() is already called in updatedSelectedCategories()
     }
 
     public function updatedCategoryPoints($value, $key)
@@ -491,9 +498,10 @@ new class extends Component {
 
     public function calculateEndTime()
     {
-        if ($this->startTime && $this->duration) {
+        if ($this->startTime && $this->duration && !empty($this->selectedCategories)) {
             $start = \Carbon\Carbon::parse($this->startTime);
-            $end = $start->copy()->addMinutes($this->duration);
+            $totalDuration = $this->duration * count($this->selectedCategories);
+            $end = $start->copy()->addMinutes($totalDuration);
             $this->endTime = $end->format('H:i');
         }
     }

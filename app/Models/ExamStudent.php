@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
 
@@ -73,6 +74,14 @@ class ExamStudent extends Model
     {
         return $this->belongsTo(ExamResult::class, 'student_id', 'student_id')
             ->where('exam_id', $this->exam_id);
+    }
+
+    /**
+     * Get all exam results for this student.
+     */
+    public function examResults(): HasMany
+    {
+        return $this->hasMany(ExamResult::class, 'student_id', 'student_id');
     }
 
     // =========================================================================

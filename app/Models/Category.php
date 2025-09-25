@@ -44,6 +44,14 @@ class Category extends Model
     }
 
     /**
+     * Get the questions for the category.
+     */
+    public function questions(): HasMany
+    {
+        return $this->hasMany(Question::class);
+    }
+
+    /**
      * Scope to get only active categories.
      */
     public function scopeActive($query)

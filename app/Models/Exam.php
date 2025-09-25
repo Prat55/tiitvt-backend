@@ -18,6 +18,7 @@ class Exam extends Model
     use HasFactory;
 
     protected $fillable = [
+        'exam_id',
         'center_id',
         'course_id',
         'duration',
@@ -39,6 +40,17 @@ class Exam extends Model
         'category_names',
         'exam_statistics',
     ];
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (Exam $exam): void {
+            if (empty($exam->exam_id)) {
+                $exam->exam_id = self::generateUniqueExamId();
+            }
+        });
+    }
 
     /**
      * Get the course that owns the exam.
@@ -329,5 +341,17 @@ class Exam extends Model
     public function scopeByDateRange(Builder $query, string $startDate, string $endDate): Builder
     {
         return $query->whereBetween('date', [$startDate, $endDate]);
+    }
+
+    /**
+     * Generate a unique exam ID.
+     */
+    public static function generateUniqueExamId(): string
+    {
+        do {
+            $examId = 'EXAM-' . strtoupper(Str::random(8));
+        } while (self::where('exam_id', $examId)->exists());
+
+        return $examId;
     }
 }
