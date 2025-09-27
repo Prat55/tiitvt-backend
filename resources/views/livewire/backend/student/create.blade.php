@@ -17,7 +17,7 @@ new class extends Component {
     public function mount(): void
     {
         // Initialize with default values and calculate installments if needed
-        if ($this->course_fees > 0) {
+        if (isset($this->course_fees) && $this->course_fees > 0) {
             $this->calculateInstallments();
         }
 
@@ -445,6 +445,13 @@ new class extends Component {
 
     public function updatedCourseFees(): void
     {
+        // Ensure course_fees is a valid number, default to 0 if empty or invalid
+        if (empty($this->course_fees) || !is_numeric($this->course_fees)) {
+            $this->course_fees = 0;
+        } else {
+            $this->course_fees = (float) $this->course_fees;
+        }
+
         // Clear related fields if course fees is 0 or empty
         if ($this->course_fees <= 0) {
             $this->down_payment = 0;
@@ -460,8 +467,11 @@ new class extends Component {
 
     public function updatedDownPayment(): void
     {
-        if ($this->down_payment == 0 || $this->down_payment == null) {
+        // Ensure down_payment is a valid number, default to 0 if empty or invalid
+        if (empty($this->down_payment) || !is_numeric($this->down_payment)) {
             $this->down_payment = 0;
+        } else {
+            $this->down_payment = (float) $this->down_payment;
         }
 
         // Ensure down payment doesn't exceed course fees
@@ -481,6 +491,13 @@ new class extends Component {
 
     public function updatedNoOfInstallments(): void
     {
+        // Ensure no_of_installments is a valid number, default to 0 if empty or invalid
+        if (empty($this->no_of_installments) || !is_numeric($this->no_of_installments)) {
+            $this->no_of_installments = 0;
+        } else {
+            $this->no_of_installments = (int) $this->no_of_installments;
+        }
+
         // Ensure number of installments is reasonable
         if ($this->no_of_installments > 24) {
             $this->no_of_installments = 24;
