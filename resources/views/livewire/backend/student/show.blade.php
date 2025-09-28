@@ -626,6 +626,11 @@ new class extends Component {
         }
         return null;
     }
+
+    public function resedRegisterMail()
+    {
+        //
+    }
 }; ?>
 
 <div>

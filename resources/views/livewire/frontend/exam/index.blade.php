@@ -4,7 +4,7 @@ use Carbon\Carbon;
 use Mary\Traits\Toast;
 use Livewire\Volt\Component;
 use Livewire\Attributes\{Title, Layout};
-use App\Models\{ExamStudent, ExamCategory, Question};
+use App\Models\{ExamStudent, ExamCategory, Question, ExamResult};
 
 new class extends Component {
     use Toast;
@@ -26,6 +26,13 @@ new class extends Component {
             return;
         }
 
+        $this->loadExamStudent();
+        $this->currentTime = now();
+    }
+
+    public function loadExamStudent()
+    {
+        $examStudentId = session('exam_student_id');
         $this->examStudent = ExamStudent::with(['exam.course', 'exam.examCategories.category', 'student'])->find($examStudentId);
 
         if (!$this->examStudent) {
@@ -35,7 +42,6 @@ new class extends Component {
 
         $this->exam = $this->examStudent->exam;
         $this->examCategories = $this->exam->examCategories;
-        $this->currentTime = now();
     }
 
     public function startExam($examCategoryId)
@@ -56,18 +62,8 @@ new class extends Component {
                 return;
             }
 
-            // Check if this category is already completed (simplified check)
-            $existingResult = $this->examStudent
-                ->examResults()
-                ->where('exam_id', $this->exam->id)
-                ->get()
-                ->filter(function ($result) use ($examCategory) {
-                    $data = $result->data ?? [];
-                    return isset($data['category_id']) && $data['category_id'] == $examCategory->category_id;
-                })
-                ->first();
-
-            if ($existingResult) {
+            // Check if this category is already completed
+            if ($this->isCategoryCompleted($examCategory->category_id)) {
                 $this->error('This exam category has already been completed.');
                 $this->isLoading = false;
                 return;
@@ -122,20 +118,17 @@ new class extends Component {
 
     public function isCategoryCompleted($categoryId)
     {
-        return $this->examStudent
-            ->examResults()
-            ->where('exam_id', $this->exam->id)
-            ->get()
-            ->filter(function ($result) use ($categoryId) {
-                $data = $result->data ?? [];
-                return isset($data['category_id']) && $data['category_id'] == $categoryId;
-            })
-            ->isNotEmpty();
+        return ExamResult::isCategoryCompleted($this->exam->id, $this->examStudent->student_id, $categoryId);
     }
 
     public function updateCurrentTime()
     {
         $this->currentTime = now();
+    }
+
+    public function refreshData()
+    {
+        $this->loadExamStudent();
     }
 
     public function logout()
@@ -161,6 +154,8 @@ new class extends Component {
                             {{ $currentTime->format('g:i A') }}
                         </div>
                     </div>
+                    <x-button wire:click="refreshData" label="Refresh" icon="o-arrow-path"
+                        class="btn-outline btn-primary" spinner="refreshData" />
                     <x-button wire:click="logout" label="Logout" icon="o-arrow-right-on-rectangle" class="btn-error" />
                 </div>
             </div>
@@ -168,7 +163,7 @@ new class extends Component {
     </div>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" wire:poll.5s="refreshData">
         <!-- Exam Info Card -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
             <div class="flex items-start justify-between">
@@ -217,13 +212,6 @@ new class extends Component {
                                 <div class="flex items-center gap-2 mb-2">
                                     <h4 class="text-lg font-semibold text-gray-900">{{ $examCategory->category->name }}
                                     </h4>
-                                    @if ($isCompleted)
-                                        <div
-                                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            <x-icon name="o-check-circle" class="w-3 h-3 mr-1" />
-                                            Completed
-                                        </div>
-                                    @endif
                                 </div>
                                 <div class="space-y-2 text-sm text-gray-600">
                                     <div class="flex items-center gap-2">
@@ -250,7 +238,11 @@ new class extends Component {
                         </div>
 
                         @if ($isCompleted)
-                            <x-button label="Completed" icon="o-check-circle" class="btn-success w-full" disabled />
+                            <div
+                                class="w-full bg-green-100 text-green-800 py-3 px-4 rounded-lg text-center font-medium">
+                                <x-icon name="o-check-circle" class="w-4 h-4 inline mr-2" />
+                                Completed
+                            </div>
                         @else
                             <x-button wire:click="startExam({{ $examCategory->id }})" label="Start Exam" icon="o-play"
                                 spinner="startExam" class="btn-primary w-full" wire:target="startExam" />

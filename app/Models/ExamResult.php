@@ -16,17 +16,27 @@ class ExamResult extends Model
         'exam_id',
         'student_id',
         'score',
-        'result_status',
         'declared_by',
-        'declared_at',
-        'data',
+        'category_id',
+        'category_slug',
+        'answers_data',
+        'total_questions',
+        'answered_questions',
+        'skipped_questions',
+        'total_points',
+        'points_earned',
+        'percentage',
+        'result',
+        'exam_duration',
+        'time_taken_minutes',
+        'submitted_at',
     ];
 
     protected $casts = [
-        'result_status' => ExamResultStatusEnum::class,
-        'score' => 'decimal:2',
-        'declared_at' => 'datetime',
-        'data' => 'array',
+        'answers_data' => 'array',
+        'percentage' => 'decimal:5,2',
+        'time_taken_minutes' => 'decimal:8,2',
+        'submitted_at' => 'datetime',
     ];
 
     protected $appends = [
@@ -56,6 +66,25 @@ class ExamResult extends Model
     }
 
     /**
+     * Get the category that owns the exam result.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Check if a student has completed an exam category.
+     */
+    public static function isCategoryCompleted(int $examId, int $studentId, int $categoryId): bool
+    {
+        return static::where('exam_id', $examId)
+            ->where('student_id', $studentId)
+            ->where('category_id', $categoryId)
+            ->exists();
+    }
+
+    /**
      * Get the user who declared the result.
      */
     public function declaredBy(): BelongsTo
@@ -77,17 +106,17 @@ class ExamResult extends Model
     // =========================================================================
 
     /**
-     * Get the grade based on score.
+     * Get the grade based on percentage.
      */
     public function getGradeAttribute(): string
     {
-        if ($this->score >= 90) return 'A+';
-        if ($this->score >= 80) return 'A';
-        if ($this->score >= 70) return 'B+';
-        if ($this->score >= 60) return 'B';
-        if ($this->score >= 50) return 'C+';
-        if ($this->score >= 40) return 'C';
-        if ($this->score >= 30) return 'D';
+        if ($this->percentage >= 90) return 'A+';
+        if ($this->percentage >= 80) return 'A';
+        if ($this->percentage >= 70) return 'B+';
+        if ($this->percentage >= 60) return 'B';
+        if ($this->percentage >= 50) return 'C+';
+        if ($this->percentage >= 40) return 'C';
+        if ($this->percentage >= 30) return 'D';
         return 'F';
     }
 
@@ -96,7 +125,7 @@ class ExamResult extends Model
      */
     public function getIsPassedAttribute(): bool
     {
-        return $this->score >= 40;
+        return $this->result === 'passed';
     }
 
     /**
@@ -104,12 +133,12 @@ class ExamResult extends Model
      */
     public function getPerformanceLevelAttribute(): string
     {
-        if ($this->score >= 90) return 'Excellent';
-        if ($this->score >= 80) return 'Very Good';
-        if ($this->score >= 70) return 'Good';
-        if ($this->score >= 60) return 'Above Average';
-        if ($this->score >= 50) return 'Average';
-        if ($this->score >= 40) return 'Below Average';
+        if ($this->percentage >= 90) return 'Excellent';
+        if ($this->percentage >= 80) return 'Very Good';
+        if ($this->percentage >= 70) return 'Good';
+        if ($this->percentage >= 60) return 'Above Average';
+        if ($this->percentage >= 50) return 'Average';
+        if ($this->percentage >= 40) return 'Below Average';
         return 'Poor';
     }
 

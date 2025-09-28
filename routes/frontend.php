@@ -16,7 +16,7 @@ Route::name('frontend.')->group(function () {
     Route::prefix('exam')->name('exam.')->group(function () {
         Volt::route('/login', 'frontend.exam.login')->name('login');
         Volt::route('/dashboard', 'frontend.exam.index')->name('index');
-        Volt::route('t/{exam_id}/{slug}', 'frontend.exam.take')->name('take');
+        Volt::route('/t/{exam_id}/{slug}', 'frontend.exam.take')->name('take');
         Volt::route('/test', 'frontend.exam.test')->name('test');
     });
 });
