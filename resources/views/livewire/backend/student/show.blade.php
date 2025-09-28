@@ -722,11 +722,11 @@ new class extends Component {
         </div>
 
         <div class="flex gap-3">
-            <x-button label="Resend Registration Mail" icon="o-envelope" class="btn-success btn-outline"
+            <x-button tooltip="Resend Registration Mail" icon="o-envelope" class="btn-success btn-outline"
                 wire:click="resedRegisterMail" spinner="resedRegisterMail" responsive />
-            <x-button label="Edit Student" icon="o-pencil" class="btn-primary btn-outline"
+            <x-button tooltip="Edit Student" icon="o-pencil" class="btn-primary btn-outline"
                 link="{{ route('admin.student.edit', $student->id) }}" responsive />
-            <x-button label="Back to Students" icon="o-arrow-left" class="btn-primary btn-outline"
+            <x-button label="Back" icon="o-arrow-left" class="btn-primary btn-outline"
                 link="{{ route('admin.student.index') }}" responsive />
         </div>
     </div>
