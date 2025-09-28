@@ -12,9 +12,6 @@ use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Color\Color;
-use Endroid\QrCode\QrCode as EndroidQrCode;
-use Endroid\QrCode\Logo\Logo;
-use Endroid\QrCode\Label\Label;
 use Endroid\QrCode\Label\Font\OpenSans;
 use Endroid\QrCode\Label\LabelAlignment;
 
@@ -106,7 +103,7 @@ class StudentQRService
         // Add logo if it exists
         if (file_exists($logoPath)) {
             $builder->logoPath($logoPath)
-                ->logoResizeToWidth(60)
+                ->logoResizeToWidth(90)
                 ->logoPunchoutBackground(true);
         }
 
@@ -151,7 +148,7 @@ class StudentQRService
         // Add logo if it exists
         if (file_exists($logoPath)) {
             $builder->logoPath($logoPath)
-                ->logoResizeToWidth(80)
+                ->logoResizeToWidth(90)
                 ->logoPunchoutBackground(true);
         }
 
@@ -198,7 +195,7 @@ class StudentQRService
         // Add logo if it exists
         if (file_exists($logoPath)) {
             $builder->logoPath($logoPath)
-                ->logoResizeToWidth(40)
+                ->logoResizeToWidth(90)
                 ->logoPunchoutBackground(true);
         }
 

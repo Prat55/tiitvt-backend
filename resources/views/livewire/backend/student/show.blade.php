@@ -629,7 +629,67 @@ new class extends Component {
 
     public function resedRegisterMail()
     {
-        //
+        try {
+            // Get student data
+            $student = $this->student;
+
+            // Get course and center information
+            $course = $student->course;
+            $center = $student->center;
+
+            // Calculate monthly installment
+            $monthlyInstallment = 0;
+            if ($student->no_of_installments > 0 && $student->course_fees > 0) {
+                $remainingAmount = $student->course_fees - ($student->down_payment ?: 0);
+                $monthlyInstallment = $remainingAmount / $student->no_of_installments;
+            }
+
+            // Get student QR code or generate if it doesn't exist
+            $studentQR = $student->qrCode;
+            if (!$studentQR) {
+                $qrService = new StudentQRService();
+                $studentQR = $qrService->generateStudentQR($student);
+            }
+
+            // Generate QR code data URI for email
+            $qrCodeDataUri = null;
+            if ($studentQR) {
+                $qrService = new StudentQRService();
+                $qrCodeDataUri = $qrService->generateQRCodeDataUri($studentQR->qr_data);
+            }
+
+            // Prepare data for email
+            $data = [
+                'studentName' => $student->first_name . ' ' . $student->surname,
+                'tiitvtRegNo' => $student->tiitvt_reg_no,
+                'courseName' => $course ? $course->name : 'N/A',
+                'centerName' => $center ? $center->name : 'N/A',
+                'enrollmentDate' => $student->enrollment_date ?: now()->format('d/m/Y'),
+                'courseFees' => $student->course_fees,
+                'downPayment' => $student->down_payment ?: 0,
+                'noOfInstallments' => $student->no_of_installments ?: 0,
+                'monthlyInstallment' => $monthlyInstallment,
+                'qrCodeUrl' => $qrCodeDataUri,
+            ];
+
+            // Send email using EmailNotificationHelper
+            $result = \App\Helpers\EmailNotificationHelper::sendNotificationByType('registration_success', $student->email, $data, ['queue' => true]);
+
+            if ($result) {
+                $this->success('Registration email resent successfully to student!', position: 'toast-bottom');
+            } else {
+                $this->warning('Failed to resend registration email. Please check logs.', position: 'toast-bottom');
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend registration notification: ' . $e->getMessage(), [
+                'student_id' => $student->id,
+                'email' => $student->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->warning('Failed to resend registration email. Please check logs.', position: 'toast-bottom');
+        }
     }
 }; ?>
 
@@ -660,7 +720,10 @@ new class extends Component {
                 </ul>
             </div>
         </div>
+
         <div class="flex gap-3">
+            <x-button label="Resend Registration Mail" icon="o-envelope" class="btn-success btn-outline"
+                wire:click="resedRegisterMail" spinner="resedRegisterMail" responsive />
             <x-button label="Edit Student" icon="o-pencil" class="btn-primary btn-outline"
                 link="{{ route('admin.student.edit', $student->id) }}" responsive />
             <x-button label="Back to Students" icon="o-arrow-left" class="btn-primary btn-outline"

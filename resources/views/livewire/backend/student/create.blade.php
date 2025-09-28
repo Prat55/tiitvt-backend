@@ -405,8 +405,13 @@ new class extends Component {
                 $qrService = new StudentQRService();
                 $studentQR = $qrService->generateStudentQR($student);
             }
-            $qrCodeUrl = $studentQR ? route('student.qr.verify', $studentQR->qr_token) : null;
-            $qrCodePath = $studentQR ? $studentQR->qr_code_path : null;
+
+            // Generate QR code data URI for email
+            $qrCodeDataUri = null;
+            if ($studentQR) {
+                $qrService = new StudentQRService();
+                $qrCodeDataUri = $qrService->generateQRCodeDataUri($studentQR->qr_data);
+            }
 
             // Prepare data for email
             $data = [
@@ -419,8 +424,7 @@ new class extends Component {
                 'downPayment' => $this->down_payment ?: 0,
                 'noOfInstallments' => $this->no_of_installments ?: 0,
                 'monthlyInstallment' => $monthlyInstallment,
-                'qrCodeUrl' => $qrCodeUrl,
-                'qrCodePath' => $qrCodePath,
+                'qrCodeUrl' => $qrCodeDataUri,
             ];
 
             // Send email using EmailNotificationHelper
