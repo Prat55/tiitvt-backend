@@ -83,18 +83,27 @@ new class extends Component {
 
     public function loadExamStudent()
     {
-        // For now, we'll create a simple ExamStudent record
-        // In a real application, you'd get the student from auth or session
-        $this->examStudent = ExamStudent::firstOrCreate(
-            [
-                'exam_id' => $this->exam->id,
-                'student_id' => 1, // You might want to get this from auth()->id() or session
-            ],
-            [
-                'status' => ExamStatusEnum::SCHEDULED->value,
-                'started_at' => now(),
-            ],
-        );
+        // Get the exam student ID from session (set during login)
+        $examStudentId = session('exam_student_id');
+
+        if (!$examStudentId) {
+            $this->error('Session expired. Please login again.', redirectTo: route('frontend.exam.login'));
+            return;
+        }
+
+        // Load the exam student record
+        $this->examStudent = ExamStudent::with('student')->find($examStudentId);
+
+        if (!$this->examStudent) {
+            $this->error('Exam student not found. Please login again.', redirectTo: route('frontend.exam.login'));
+            return;
+        }
+
+        // Verify this exam student belongs to the current exam
+        if ($this->examStudent->exam_id !== $this->exam->id) {
+            $this->error('Invalid exam access.', redirectTo: route('frontend.exam.index'));
+            return;
+        }
     }
 
     public function initializeExam()
@@ -457,8 +466,6 @@ new class extends Component {
             // Save to ExamStudent answers column
             $this->examStudent->update([
                 'answers' => json_encode($answersData), // Ensure it's JSON encoded
-                'submitted_at' => now(),
-                'status' => ExamStatusEnum::COMPLETED->value,
             ]);
 
             // Create ExamResult record for better tracking
@@ -478,10 +485,10 @@ new class extends Component {
                     'skipped_questions' => $answersData['skipped_questions'],
                     'total_points' => $answersData['total_points'],
                     'points_earned' => $answersData['points_earned'],
-                    'percentage' => $answersData['percentage'],
+                    'percentage' => (float) $answersData['percentage'],
                     'result' => $answersData['result'],
                     'exam_duration' => $answersData['exam_duration'],
-                    'time_taken_minutes' => $answersData['time_taken_minutes'],
+                    'time_taken_minutes' => (float) $answersData['time_taken_minutes'],
                     'submitted_at' => now(),
                 ],
             );
@@ -604,8 +611,6 @@ new class extends Component {
             // Save to ExamStudent answers column
             $this->examStudent->update([
                 'answers' => json_encode($answersData), // Ensure it's JSON encoded
-                'submitted_at' => now(),
-                'status' => ExamStatusEnum::COMPLETED->value,
             ]);
 
             // Create ExamResult record for better tracking
@@ -625,10 +630,10 @@ new class extends Component {
                     'skipped_questions' => $answersData['skipped_questions'],
                     'total_points' => $answersData['total_points'],
                     'points_earned' => $answersData['points_earned'],
-                    'percentage' => $answersData['percentage'],
+                    'percentage' => (float) $answersData['percentage'],
                     'result' => $answersData['result'],
                     'exam_duration' => $answersData['exam_duration'],
-                    'time_taken_minutes' => $answersData['time_taken_minutes'],
+                    'time_taken_minutes' => (float) $answersData['time_taken_minutes'],
                     'submitted_at' => now(),
                 ],
             );

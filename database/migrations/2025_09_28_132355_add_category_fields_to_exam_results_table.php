@@ -13,21 +13,21 @@ return new class extends Migration
     {
         Schema::table('exam_results', function (Blueprint $table) {
             // Add category fields
-            $table->foreignId('category_id')->nullable()->constrained()->onDelete('cascade');
-            $table->string('category_slug')->nullable();
+            $table->foreignId('category_id')->nullable()->constrained()->onDelete('cascade')->after('result_status');
+            $table->string('category_slug')->nullable()->after('category_id');
 
             // Add detailed exam result fields
-            $table->json('answers_data')->nullable();
-            $table->integer('total_questions')->nullable();
-            $table->integer('answered_questions')->nullable();
-            $table->integer('skipped_questions')->nullable();
-            $table->integer('total_points')->nullable();
-            $table->integer('points_earned')->nullable();
+            $table->json('answers_data')->nullable()->after('category_slug');
+            $table->integer('total_questions')->nullable()->after('answers_data');
+            $table->integer('answered_questions')->nullable()->after('total_questions');
+            $table->integer('skipped_questions')->nullable()->after('answered_questions');
+            $table->integer('total_points')->nullable()->after('skipped_questions');
+            $table->integer('points_earned')->nullable()->after('total_points');
             $table->decimal('percentage', 5, 2)->nullable();
-            $table->string('result')->nullable(); // passed, failed
-            $table->integer('exam_duration')->nullable(); // in minutes
-            $table->decimal('time_taken_minutes', 8, 2)->nullable();
-            $table->timestamp('submitted_at')->nullable();
+            $table->string('result')->nullable()->after('percentage'); // passed, failed
+            $table->integer('exam_duration')->nullable()->after('result'); // in minutes
+            $table->decimal('time_taken_minutes', 8, 2)->nullable()->after('exam_duration');
+            $table->timestamp('submitted_at')->nullable()->after('time_taken_minutes');
 
             // Add unique constraint for one result per student per exam per category
             $table->unique(['exam_id', 'student_id', 'category_id']);

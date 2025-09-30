@@ -245,7 +245,7 @@ new class extends Component {
                             </div>
                         @else
                             <x-button wire:click="startExam({{ $examCategory->id }})" label="Start Exam" icon="o-play"
-                                spinner="startExam" class="btn-primary w-full" wire:target="startExam" />
+                                spinner="startExam({{ $examCategory->id }})" class="btn-primary w-full" />
                         @endif
                     </div>
                 @endforeach

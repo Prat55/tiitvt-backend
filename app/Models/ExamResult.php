@@ -34,8 +34,8 @@ class ExamResult extends Model
 
     protected $casts = [
         'answers_data' => 'array',
-        'percentage' => 'decimal:5,2',
-        'time_taken_minutes' => 'decimal:8,2',
+        'percentage' => 'float',
+        'time_taken_minutes' => 'float',
         'submitted_at' => 'datetime',
     ];
 
