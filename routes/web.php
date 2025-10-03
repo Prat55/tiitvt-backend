@@ -72,8 +72,8 @@ Route::middleware(['admin.auth'])->group(function () {
                 Volt::route('/{exam}/show', 'backend.exam.show')->name('show');
                 Volt::route('/{exam}/edit', 'backend.exam.edit')->name('edit');
                 Volt::route('/schedule', 'backend.exam.schedule')->name('schedule');
-                Volt::route('/results', 'backend.exam.results')->name('results');
-                Volt::route('/result/{examResult}', 'backend.exam.result-show')->name('result.show');
+                Volt::route('/results', 'backend.exam.result.index')->name('results');
+                Volt::route('/result/{examResult}', 'backend.exam.result.show')->name('result.show');
             });
         });
     });
