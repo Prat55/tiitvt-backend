@@ -18,7 +18,7 @@ new class extends Component {
     #[Url]
     public string $search = '';
 
-    public $sortBy = ['column' => 'first_name', 'direction' => 'asc'];
+    public $sortBy = ['column' => 'tiitvt_reg_no', 'direction' => 'desc'];
 
     // boot
     public function boot(): void

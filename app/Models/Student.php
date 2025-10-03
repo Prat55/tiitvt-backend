@@ -196,4 +196,9 @@ class Student extends Model
     {
         return $query->whereAny(['first_name', 'fathers_name', 'surname', 'tiitvt_reg_no', 'mobile', 'email'], 'like', "%{$search}%");
     }
+
+    public function getInitials()
+    {
+        return $this->first_name[0] . $this->surname[0];
+    }
 }

@@ -18,6 +18,10 @@ new class extends Component {
     {
         // Initialize with default values and calculate installments if needed
         if (isset($this->course_fees) && $this->course_fees > 0) {
+            // Set default number of installments to 1 when fees are loaded
+            if ($this->no_of_installments == 0) {
+                $this->no_of_installments = 1;
+            }
             $this->calculateInstallments();
         }
 
@@ -464,6 +468,10 @@ new class extends Component {
             $this->remaining_amount = 0;
             $this->total_payable = 0;
         } else {
+            // Set default number of installments to 1 when fees are loaded
+            if ($this->no_of_installments == 0) {
+                $this->no_of_installments = 1;
+            }
             // Recalculate installments if course fees is valid
             $this->calculateInstallments();
         }
@@ -535,6 +543,11 @@ new class extends Component {
             $course = Course::find($this->course_id);
             if ($course && $course->price) {
                 $this->course_fees = $course->price;
+                // Set default number of installments to 1 when course is selected
+                if ($this->no_of_installments == 0) {
+                    $this->no_of_installments = 1;
+                }
+
                 $this->calculateInstallments();
             }
         } else {

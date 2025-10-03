@@ -157,12 +157,12 @@ new class extends Component {
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3">
-            <x-button label="Export CSV" icon="o-arrow-down-tray" class="btn-success btn-sm" wire:click="exportResults" />
-            <x-button label="{{ $showFilters ? 'Hide Filters' : 'Show Filters' }}" icon="o-funnel"
-                class="btn-outline btn-sm" wire:click="toggleFilters" />
+        <div class="flex flex-col sm:flex-row gap-3 items-center">
+            <x-input wire:model.live.debounce.300ms="search" icon="o-magnifying-glass" placeholder="Search. . ." />
+            <x-button tooltip="Export CSV" icon="o-arrow-down-tray" class="btn-success" wire:click="exportResults" />
         </div>
     </div>
+
     <hr class="mb-6">
 
     {{-- Statistics Summary --}}
@@ -206,45 +206,14 @@ new class extends Component {
         </div>
     </div>
 
-    {{-- Filters --}}
-    @if ($showFilters)
-        <div class="card bg-base-100 shadow-sm mb-6">
-            <div class="card-body">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <x-input label="Search Students" wire:model.live.debounce.300ms="search" icon="o-magnifying-glass"
-                        placeholder="Name or email..." />
-
-                    @php
-                        $statuses = [
-                            ['id' => 'All Statuses', 'name' => ''],
-                            ['id' => 'Passed', 'name' => 'passed'],
-                            ['id' => 'Failed', 'name' => 'failed'],
-                            ['id' => 'Pending', 'name' => 'pending'],
-                        ];
-                    @endphp
-
-                    <x-select label="Status" wire:model.live="statusFilter" icon="o-flag" :options="$statuses" />
-                    <x-select label="Exam" wire:model.live="examFilter" icon="o-academic-cap" :options="$exams" />
-                    <x-select label="Category" wire:model.live="categoryFilter" icon="o-tag" :options="$categories" />
-
-                </div>
-
-                <div class="flex justify-end mt-4">
-                    <x-button label="Clear Filters" icon="o-x-mark" class="btn-ghost btn-sm"
-                        wire:click="clearFilters" />
-                </div>
-            </div>
-        </div>
-    @endif
-
     {{-- Results Table --}}
     <x-card shadow>
         <x-table :headers="$headers" :rows="$examResults" with-pagination :sort-by="$sortBy">
             {{-- Student Column --}}
             @scope('cell_student.name', $result)
                 <div class="flex items-center gap-3">
-                    <x-avatar placeholder="RT"
-                        title="{{ $result->student?->first_name ?? 'Unknown' }} {{ $result->student?->last_name ?? 'Student' }}"
+                    <x-avatar placeholder="{{ $result->student?->getInitials() ?? 'Unknown' }}"
+                        title="{{ $result->student?->first_name ?? 'Unknown' }} {{ $result->student?->surname ?? 'Student' }}"
                         subtitle="{{ $result->student?->email ?? 'N/A' }}" class="!w-10" />
                 </div>
             @endscope
