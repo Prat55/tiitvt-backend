@@ -13,20 +13,19 @@ new class extends Component {
     #[Title('Exam Result Details')]
     public ExamResult $examResult;
 
-    public $showEditModal = false;
     public $showDeclareModal = false;
     public $showAnswersModal = false;
-
-    // Edit form fields
-    public $editScore;
-    public $editPointsEarned;
-    public $editPercentage;
-    public $editResult;
-    public $editAnswersData = [];
 
     // Declare form fields
     public $declareResult;
     public $declareNotes = '';
+
+    // Answer navigation and editing
+    public $currentQuestionIndex = 0;
+    public $questions = [];
+    public $editingQuestion = false;
+    public $tempAnswerData = [];
+    public $jumpToQuestionId = '';
 
     public function mount(ExamResult $examResult): void
     {
@@ -38,28 +37,13 @@ new class extends Component {
             return;
         }
 
-        // Initialize edit form with current values
-        $this->editScore = $this->examResult->score;
-        $this->editPointsEarned = $this->examResult->points_earned;
-        $this->editPercentage = $this->examResult->percentage;
-        $this->editResult = $this->examResult->result;
-        $this->editAnswersData = $this->examResult->answers_data ?? [];
+        // Initialize questions array for navigation
+        $this->initializeQuestions();
     }
 
     public function rendering(View $view): void
     {
         $view->examResult = $this->examResult;
-    }
-
-    public function openEditModal(): void
-    {
-        $this->showEditModal = true;
-    }
-
-    public function closeEditModal(): void
-    {
-        $this->showEditModal = false;
-        $this->resetEditForm();
     }
 
     public function openDeclareModal(): void
@@ -76,52 +60,21 @@ new class extends Component {
     public function openAnswersModal(): void
     {
         $this->showAnswersModal = true;
+        $this->currentQuestionIndex = 0;
+        $this->editingQuestion = false;
     }
 
     public function closeAnswersModal(): void
     {
         $this->showAnswersModal = false;
-    }
-
-    public function resetEditForm(): void
-    {
-        $this->editScore = $this->examResult->score;
-        $this->editPointsEarned = $this->examResult->points_earned;
-        $this->editPercentage = $this->examResult->percentage;
-        $this->editResult = $this->examResult->result;
-        $this->editAnswersData = $this->examResult->answers_data ?? [];
+        $this->editingQuestion = false;
+        $this->currentQuestionIndex = 0;
     }
 
     public function resetDeclareForm(): void
     {
         $this->declareResult = '';
         $this->declareNotes = '';
-    }
-
-    public function updateResult(): void
-    {
-        $this->validate([
-            'editScore' => 'required|numeric|min:0|max:100',
-            'editPointsEarned' => 'required|numeric|min:0',
-            'editPercentage' => 'required|numeric|min:0|max:100',
-            'editResult' => 'required|in:passed,failed',
-        ]);
-
-        try {
-            $this->examResult->update([
-                'score' => $this->editScore,
-                'points_earned' => $this->editPointsEarned,
-                'percentage' => (float) $this->editPercentage,
-                'result' => $this->editResult,
-                'answers_data' => $this->editAnswersData,
-            ]);
-
-            $this->success('Exam result updated successfully!');
-            $this->closeEditModal();
-            $this->examResult->refresh();
-        } catch (\Exception $e) {
-            $this->error('Failed to update exam result: ' . $e->getMessage());
-        }
     }
 
     public function declareResult(): void
@@ -144,40 +97,6 @@ new class extends Component {
         } catch (\Exception $e) {
             $this->error('Failed to declare exam result: ' . $e->getMessage());
         }
-    }
-
-    public function updateAnswerData($questionId, $field, $value): void
-    {
-        if (isset($this->editAnswersData["question_{$questionId}"])) {
-            $this->editAnswersData["question_{$questionId}"][$field] = $value;
-
-            // Recalculate points if point_earned is changed
-            if ($field === 'point_earned') {
-                $this->recalculateTotals();
-            }
-        }
-    }
-
-    public function recalculateTotals(): void
-    {
-        $totalPointsEarned = 0;
-        $totalPoints = 0;
-        $answeredQuestions = 0;
-
-        foreach ($this->editAnswersData as $key => $questionData) {
-            if (str_starts_with($key, 'question_')) {
-                $totalPoints += $questionData['point'] ?? 0;
-                $totalPointsEarned += $questionData['point_earned'] ?? 0;
-
-                if (isset($questionData['answer']) && $questionData['answer'] !== null) {
-                    $answeredQuestions++;
-                }
-            }
-        }
-
-        $this->editPointsEarned = $totalPointsEarned;
-        $this->editPercentage = $totalPoints > 0 ? round(($totalPointsEarned / $totalPoints) * 100, 2) : 0;
-        $this->editScore = $this->editPercentage;
     }
 
     public function getGradeFromPercentage($percentage): string
@@ -204,6 +123,153 @@ new class extends Component {
             return 'D';
         }
         return 'F';
+    }
+
+    public function initializeQuestions(): void
+    {
+        $this->questions = [];
+        if ($this->examResult->answers_data) {
+            foreach ($this->examResult->answers_data as $key => $questionData) {
+                if (str_starts_with($key, 'question_')) {
+                    $this->questions[] = [
+                        'key' => $key,
+                        'data' => $questionData,
+                    ];
+                }
+            }
+        }
+    }
+
+    public function nextQuestion(): void
+    {
+        if ($this->currentQuestionIndex < count($this->questions) - 1) {
+            $this->currentQuestionIndex++;
+            $this->editingQuestion = false;
+        }
+    }
+
+    public function previousQuestion(): void
+    {
+        if ($this->currentQuestionIndex > 0) {
+            $this->currentQuestionIndex--;
+            $this->editingQuestion = false;
+        }
+    }
+
+    public function startEditing(): void
+    {
+        $this->editingQuestion = true;
+        $currentQuestion = $this->questions[$this->currentQuestionIndex] ?? null;
+        if ($currentQuestion) {
+            $this->tempAnswerData = $currentQuestion['data'];
+        }
+    }
+
+    public function cancelEditing(): void
+    {
+        $this->editingQuestion = false;
+        $this->tempAnswerData = [];
+    }
+
+    public function saveEditing(): void
+    {
+        if ($this->editingQuestion && isset($this->questions[$this->currentQuestionIndex])) {
+            $questionKey = $this->questions[$this->currentQuestionIndex]['key'];
+            // Update the exam result directly
+            $answersData = $this->examResult->answers_data ?? [];
+
+            // Calculate earned points based on whether the selected answer is correct
+            $selectedAnswerId = $this->tempAnswerData['answer'] ?? null;
+            $isCorrect = false;
+
+            if ($selectedAnswerId && isset($this->tempAnswerData['options'])) {
+                foreach ($this->tempAnswerData['options'] as $option) {
+                    if ($option['id'] == $selectedAnswerId && ($option['is_correct'] ?? false)) {
+                        $isCorrect = true;
+                        break;
+                    }
+                }
+            }
+
+            // Set earned points based on correctness
+            $this->tempAnswerData['point_earned'] = $isCorrect ? $this->tempAnswerData['point'] ?? 0 : 0;
+
+            $answersData[$questionKey] = $this->tempAnswerData;
+
+            // Recalculate totals
+            $totalPointsEarned = 0;
+            $totalPoints = 0;
+            $answeredQuestions = 0;
+
+            foreach ($answersData as $key => $questionData) {
+                if (str_starts_with($key, 'question_')) {
+                    $totalPoints += $questionData['point'] ?? 0;
+                    $totalPointsEarned += $questionData['point_earned'] ?? 0;
+
+                    if (isset($questionData['answer']) && $questionData['answer'] !== null) {
+                        $answeredQuestions++;
+                    }
+                }
+            }
+
+            $percentage = $totalPoints > 0 ? round(($totalPointsEarned / $totalPoints) * 100, 2) : 0;
+
+            $this->examResult->update([
+                'answers_data' => $answersData,
+                'points_earned' => $totalPointsEarned,
+                'percentage' => $percentage,
+                'score' => $percentage,
+            ]);
+            $this->examResult->refresh();
+
+            // Refresh the questions array with updated data
+            $this->initializeQuestions();
+
+            $this->editingQuestion = false;
+            $this->tempAnswerData = [];
+
+            // Force Livewire to refresh the component
+            $this->dispatch('$refresh');
+
+            $this->success('Answer updated successfully!');
+        }
+    }
+
+    public function updateTempAnswer($field, $value): void
+    {
+        $this->tempAnswerData[$field] = $value;
+    }
+
+    public function getCurrentQuestion()
+    {
+        return $this->questions[$this->currentQuestionIndex] ?? null;
+    }
+
+    public function jumpToQuestion(): void
+    {
+        if (empty($this->jumpToQuestionId)) {
+            $this->error('Please enter a question ID');
+            return;
+        }
+
+        $questionId = (int) $this->jumpToQuestionId;
+        $foundIndex = -1;
+
+        foreach ($this->questions as $index => $question) {
+            if (isset($question['data']['question_id']) && $question['data']['question_id'] == $questionId) {
+                $foundIndex = $index;
+                break;
+            }
+        }
+
+        if ($foundIndex !== -1) {
+            $this->currentQuestionIndex = $foundIndex;
+            $this->editingQuestion = false;
+            $this->jumpToQuestionId = '';
+            $this->success("Jumped to question {$questionId}");
+        } else {
+            $this->error("Question ID {$questionId} not found");
+        }
     }
 };
 ?>
@@ -234,7 +300,6 @@ new class extends Component {
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3">
-            <x-button label="Edit Result" icon="o-pencil" class="btn-warning btn-sm" wire:click="openEditModal" />
             @if (!$examResult->result)
                 <x-button label="Declare Result" icon="o-flag" class="btn-primary btn-sm"
                     wire:click="openDeclareModal" />
@@ -383,54 +448,6 @@ new class extends Component {
         </div>
     </div>
 
-    {{-- Edit Modal --}}
-    <x-modal wire:model="showEditModal" title="Edit Exam Result" class="backdrop-blur" max-width="4xl">
-        <div class="space-y-6">
-            {{-- Basic Info --}}
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <x-input label="Score" wire:model="editScore" type="number" step="0.01" min="0"
-                    max="100" />
-                <x-input label="Points Earned" wire:model="editPointsEarned" type="number" step="0.01"
-                    min="0" />
-                <x-input label="Percentage" wire:model="editPercentage" type="number" step="0.01"
-                    min="0" max="100" />
-            </div>
-
-            @php
-                $results = [['id' => 'Passed', 'name' => 'passed'], ['id' => 'Failed', 'name' => 'failed']];
-            @endphp
-            <x-select label="Result" wire:model="editResult" :options="$results" />
-
-            {{-- Answer Data Editor --}}
-            <div class="divider">Answer Data</div>
-
-            <div class="max-h-96 overflow-y-auto space-y-4">
-                @foreach ($editAnswersData as $key => $questionData)
-                    @if (str_starts_with($key, 'question_'))
-                        <div class="card bg-base-200 p-4">
-                            <div class="font-medium mb-2">Question {{ $questionData['question_id'] ?? 'N/A' }}</div>
-                            <div class="text-sm mb-3">{{ $questionData['question'] ?? 'N/A' }}</div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <x-input label="Points" wire:model="editAnswersData.{{ $key }}.point"
-                                    type="number" step="0.01" />
-                                <x-input label="Points Earned"
-                                    wire:model="editAnswersData.{{ $key }}.point_earned" type="number"
-                                    step="0.01" />
-                                <x-input label="Answer ID" wire:model="editAnswersData.{{ $key }}.answer"
-                                    type="number" />
-                            </div>
-                        </div>
-                    @endif
-                @endforeach
-            </div>
-        </div>
-
-        <x-slot:actions>
-            <x-button label="Cancel" class="btn-ghost" wire:click="closeEditModal" />
-            <x-button label="Update Result" class="btn-primary" wire:click="updateResult" />
-        </x-slot:actions>
-    </x-modal>
 
     {{-- Declare Modal --}}
     <x-modal wire:model="showDeclareModal" title="Declare Exam Result" class="backdrop-blur">
@@ -444,7 +461,7 @@ new class extends Component {
             </div>
 
             @php
-                $results = [['id' => 'Passed', 'name' => 'passed'], ['id' => 'Failed', 'name' => 'failed']];
+                $results = [['id' => 'passed', 'name' => 'Passed'], ['id' => 'failed', 'name' => 'Failed']];
             @endphp
 
             <x-select label="Result" wire:model="declareResult" :options="$results" />
@@ -460,56 +477,120 @@ new class extends Component {
     </x-modal>
 
     {{-- Answers Modal --}}
-    <x-modal wire:model="showAnswersModal" title="Detailed Answer Data" class="backdrop-blur" max-width="6xl">
-        <div class="space-y-4 max-h-96 overflow-y-auto">
-            @if ($examResult->answers_data)
-                @foreach ($examResult->answers_data as $key => $questionData)
-                    @if (str_starts_with($key, 'question_'))
-                        <div class="card bg-base-200 p-4">
-                            <div class="flex justify-between items-start mb-3">
-                                <div class="font-medium">Question {{ $questionData['question_id'] ?? 'N/A' }}</div>
-                                <div class="text-sm">
-                                    <span class="badge badge-outline">{{ $questionData['point'] ?? 0 }} pts</span>
-                                    <span
-                                        class="badge {{ ($questionData['point_earned'] ?? 0) > 0 ? 'badge-success' : 'badge-error' }}">
-                                        {{ $questionData['point_earned'] ?? 0 }} earned
-                                    </span>
-                                </div>
-                            </div>
+    <x-modal wire:model="showAnswersModal" title="Answered Questions" class="backdrop-blur" box-class="max-w-6xl">
+        @if (count($questions) > 0)
+            @php
+                $currentQuestion = $this->getCurrentQuestion();
+                $questionData = $currentQuestion['data'] ?? null;
+            @endphp
 
-                            <div class="text-sm mb-3">{{ $questionData['question'] ?? 'N/A' }}</div>
+            @if ($questionData)
+                <div class="space-y-6">
+                    {{-- Question Header --}}
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <h3 class="text-lg font-semibold">
+                                Question {{ $currentQuestionIndex + 1 }} of {{ count($questions) }}
+                            </h3>
+                        </div>
 
-                            @if (isset($questionData['options']) && is_array($questionData['options']))
-                                <div class="space-y-2">
-                                    @foreach ($questionData['options'] as $option)
-                                        <div
-                                            class="flex items-center gap-2 p-2 rounded {{ $option['id'] == ($questionData['answer'] ?? null) ? 'bg-primary/20' : '' }}">
-                                            <input type="radio" disabled
-                                                {{ $option['id'] == ($questionData['answer'] ?? null) ? 'checked' : '' }}>
-                                            <span
-                                                class="text-sm {{ $option['is_correct'] ?? false ? 'font-bold text-success' : '' }}">
-                                                {{ $option['option_text'] ?? 'N/A' }}
-                                                @if ($option['is_correct'] ?? false)
-                                                    <span class="badge badge-success badge-xs ml-2">Correct</span>
-                                                @endif
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                </div>
+                        <div class="text-sm">
+                            <span class="badge badge-outline">{{ $questionData['point'] ?? 0 }} pts</span>
+                            <span
+                                class="badge {{ ($questionData['point_earned'] ?? 0) > 0 ? 'badge-success' : 'badge-error' }}">
+                                {{ $questionData['point_earned'] ?? 0 }} earned
+                            </span>
+                        </div>
+                    </div>
+
+                    {{-- Jump to Question Input --}}
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            @if (!$editingQuestion)
+                                <x-button label="Edit" icon="o-pencil" class="btn-warning btn-sm"
+                                    wire:click="startEditing" />
                             @endif
                         </div>
-                    @endif
-                @endforeach
-            @else
-                <div class="text-center py-8 text-gray-500">
-                    <x-icon name="o-document-text" class="w-12 h-12 mx-auto mb-2" />
-                    <div>No answer data available</div>
+
+                        <div class="flex items-center gap-2">
+                            <x-input wire:model="jumpToQuestionId" placeholder="Question No." type="number"
+                                class="input-sm" />
+                            <x-button label="Go" icon="o-arrow-right" class="btn-sm btn-outline"
+                                wire:click="jumpToQuestion" />
+                        </div>
+                    </div>
+
+                    {{-- Question Content --}}
+                    <div class="card bg-base-200 p-6">
+
+                        <div class="text-lg mb-4 font-medium">{{ $questionData['question'] ?? 'N/A' }}</div>
+
+                        {{-- Options Display --}}
+                        @if (isset($questionData['options']) && is_array($questionData['options']))
+                            <div class="space-y-3">
+                                @foreach ($questionData['options'] as $option)
+                                    <div
+                                        class="flex items-center gap-3 p-3 rounded-lg border {{ $option['id'] == ($questionData['answer'] ?? null) ? 'bg-primary/20 border-primary' : 'bg-base-100' }}">
+                                        @if ($editingQuestion)
+                                            <input type="radio" wire:model="tempAnswerData.answer"
+                                                value="{{ $option['id'] }}" class="radio radio-primary">
+                                        @else
+                                            <input type="radio" disabled
+                                                {{ $option['id'] == ($questionData['answer'] ?? null) ? 'checked' : '' }}
+                                                class="radio">
+                                        @endif
+
+                                        <span
+                                            class="flex-1 {{ $option['is_correct'] ?? false ? 'font-bold text-success' : '' }}">
+                                            {{ $option['option_text'] ?? 'N/A' }}
+                                            @if ($option['is_correct'] ?? false)
+                                                <span class="badge badge-success badge-xs ml-2">Correct</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        {{-- Editing Controls --}}
+                        @if ($editingQuestion)
+                            <div class="mt-6 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+                                <h4 class="font-medium mb-3">Edit Answer Details</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <x-input label="Points" wire:model="tempAnswerData.point" type="number"
+                                        step="0.01" />
+                                    <x-input label="Points Earned" wire:model="tempAnswerData.point_earned"
+                                        type="number" step="0.01" />
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Navigation Controls --}}
+                    <div class="flex justify-between items-center">
+                        <x-button label="Previous" icon="o-chevron-left"
+                            class="btn-outline btn-sm {{ $currentQuestionIndex === 0 ? 'btn-disabled' : '' }}"
+                            wire:click="previousQuestion" :disabled="$currentQuestionIndex === 0" />
+
+                        <div class="flex gap-2">
+                            @if ($editingQuestion)
+                                <x-button label="Cancel" class="btn-ghost btn-sm" wire:click="cancelEditing" />
+                                <x-button label="Done" icon="o-check" class="btn-success btn-sm"
+                                    wire:click="saveEditing" />
+                            @endif
+                        </div>
+
+                        <x-button label="Next" icon="o-chevron-right"
+                            class="btn-outline btn-sm {{ $currentQuestionIndex === count($questions) - 1 ? 'btn-disabled' : '' }}"
+                            wire:click="nextQuestion" :disabled="$currentQuestionIndex === count($questions) - 1" />
+                    </div>
                 </div>
             @endif
-        </div>
-
-        <x-slot:actions>
-            <x-button label="Close" class="btn-ghost" wire:click="closeAnswersModal" />
-        </x-slot:actions>
+        @else
+            <div class="text-center py-8 text-gray-500">
+                <x-icon name="o-document-text" class="w-12 h-12 mx-auto mb-2" />
+                <div>No answer data available</div>
+            </div>
+        @endif
     </x-modal>
 </div>
