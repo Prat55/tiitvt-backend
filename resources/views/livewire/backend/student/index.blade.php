@@ -1,15 +1,13 @@
 <?php
 
 use Mary\Traits\Toast;
-use App\Models\Student;
 use App\Enums\RolesEnum;
 use Illuminate\View\View;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
-use Livewire\Attributes\Url;
-use Livewire\Attributes\Title;
-use Livewire\Attributes\{Layout};
 use Illuminate\Support\Facades\Storage;
+use App\Models\{Student, Course, Center};
+use Livewire\Attributes\{Layout, Url, Title};
 
 new class extends Component {
     use WithPagination, Toast;
@@ -17,8 +15,19 @@ new class extends Component {
     public $headers;
     #[Url]
     public string $search = '';
+    public $filterDrawer = false;
 
     public $sortBy = ['column' => 'tiitvt_reg_no', 'direction' => 'desc'];
+
+    // Filter properties
+    #[Url]
+    public $selectedCenter = null;
+    #[Url]
+    public $selectedCourse = null;
+
+    // Cached data to avoid repeated queries
+    public $centers = [];
+    public $courses = [];
 
     // boot
     public function boot(): void
@@ -32,6 +41,27 @@ new class extends Component {
 
         $this->headers[] = ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-40', 'sortable' => false];
         $this->headers[] = ['key' => 'enrollment_date', 'label' => 'Enrolled', 'class' => 'w-32'];
+    }
+
+    // Mount method to cache filter options
+    public function mount(): void
+    {
+        // Cache centers and courses data to avoid repeated queries
+        $this->centers = Center::select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($center) {
+                return ['name' => $center->name, 'id' => $center->id];
+            })
+            ->toArray();
+
+        $this->courses = Course::select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($course) {
+                return ['name' => $course->name, 'id' => $course->id];
+            })
+            ->toArray();
     }
 
     public function deleteStudent($id)
@@ -62,15 +92,54 @@ new class extends Component {
     {
         $query = Student::with(['center', 'course']);
 
+        // Apply center filter for center users
         if (hasAuthRole(RolesEnum::Center->value)) {
             $query->where('center_id', auth()->user()->center->id);
         }
 
+        // Apply filters
+        if ($this->selectedCenter) {
+            $query->where('center_id', $this->selectedCenter);
+        }
+
+        if ($this->selectedCourse) {
+            $query->where('course_id', $this->selectedCourse);
+        }
+
         $view->students = $query->orderBy(...array_values($this->sortBy))->search($this->search)->paginate(20);
 
-        // dd($view->students);
-
         $view->title('All Students');
+    }
+
+    // Clear all filters
+    public function clearFilters(): void
+    {
+        $this->selectedCenter = null;
+        $this->selectedCourse = null;
+        $this->search = '';
+        $this->resetPage();
+    }
+
+    // Check if any filters are active
+    public function hasActiveFilters(): bool
+    {
+        return !empty($this->selectedCenter) || !empty($this->selectedCourse) || !empty($this->search);
+    }
+
+    // Reset pagination when filters change
+    public function updatedSelectedCenter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSelectedCourse(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
     }
 };
 ?>
@@ -97,11 +166,22 @@ new class extends Component {
         <div class="flex gap-3">
             <x-input placeholder="Search students, registration no, phone, email..." icon="o-magnifying-glass"
                 wire:model.live.debounce="search" />
-            <x-button label="Add Student" icon="o-plus" class="btn-primary inline-flex" responsive
+
+            <x-button icon="o-plus" class="btn-primary inline-flex" responsive
                 link="{{ route('admin.student.create') }}" tooltip-left="Add Student" />
+
+            <x-button tooltip-left="Filter Students" class="btn-secondary" icon="o-funnel"
+                wire:click="$toggle('filterDrawer')" />
+
+            @if ($this->hasActiveFilters())
+                <x-button icon="o-x-mark" class="btn-outline btn-primary" wire:click="clearFilters"
+                    tooltip-left="Clear all filters" />
+            @endif
         </div>
     </div>
+
     <hr class="mb-5">
+
     <x-table :headers="$headers" :rows="$students" with-pagination :sort-by="$sortBy">
         @scope('cell_tiitvt_reg_no', $student)
             <span class="font-mono text-sm font-medium">{{ $student->tiitvt_reg_no }}</span>
@@ -157,8 +237,26 @@ new class extends Component {
                     wire:confirm="Are you sure you want to delete this student?" />
             </div>
         @endscope
+
         <x-slot:empty>
             <x-empty icon="o-academic-cap" message="No students found" />
         </x-slot>
     </x-table>
+
+    <x-drawer wire:model="filterDrawer" class="w-11/12 lg:w-1/3" right title="Filter Students">
+        <div class="space-y-4">
+            <div class="space-y-4">
+                <x-choices-offline label="Filter by Center" wire:model.live="selectedCenter" :options="$centers"
+                    placeholder="All Centers" single clearable searchable />
+
+                <x-choices-offline label="Filter by Course" wire:model.live="selectedCourse" :options="$courses"
+                    placeholder="All Courses" single clearable searchable />
+            </div>
+        </div>
+
+        <x-slot:actions>
+            <x-button label="Clear All" icon="o-x-mark" class="btn-outline" wire:click="clearFilters" />
+            <x-button label="Close" @click="$wire.filterDrawer = false" />
+        </x-slot:actions>
+    </x-drawer>
 </div>
