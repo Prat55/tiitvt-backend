@@ -93,7 +93,7 @@ new class extends Component {
             // Commit the transaction
             \DB::commit();
 
-            $this->success('Question created successfully!', position: 'toast-bottom', redirect: route('admin.question.index'));
+            $this->success('Question created successfully!', position: 'toast-bottom', redirectTo: route('admin.question.index'));
         } catch (\Exception $e) {
             // Rollback the transaction on error
             \DB::rollBack();

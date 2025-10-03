@@ -281,7 +281,7 @@ new class extends Component {
                         <div class="flex-1">
                             <x-input label="Option {{ $index + 1 }}" wire:model="options.{{ $index }}"
                                 placeholder="Enter option {{ $index + 1 }}" icon="o-list-bullet" required
-                                class="mb-0" />
+                                class="mb-0" inline />
                         </div>
 
                         <!-- Correct Option Radio -->

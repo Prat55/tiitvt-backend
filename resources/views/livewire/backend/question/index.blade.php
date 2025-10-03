@@ -20,6 +20,14 @@ new class extends Component {
 
     public $sortBy = ['column' => 'id', 'direction' => 'desc'];
 
+    // Filter properties
+    public $filterDrawer = false;
+    #[Url]
+    public $selectedCategory = null;
+
+    // Cached data to avoid repeated queries
+    public $categories = [];
+
     // Import functionality
     public $showImportModal = false;
     public $importFile;
@@ -37,6 +45,20 @@ new class extends Component {
     public function boot(): void
     {
         $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-1'], ['key' => 'question_text', 'label' => 'Question', 'class' => 'w-80'], ['key' => 'category', 'label' => 'Category', 'class' => 'w-32'], ['key' => 'options', 'label' => 'Options', 'class' => 'w-24'], ['key' => 'correct_option', 'label' => 'Correct', 'class' => 'w-24'], ['key' => 'points', 'label' => 'Points', 'class' => 'w-20']];
+    }
+
+    // Mount method to cache filter options
+    public function mount(): void
+    {
+        // Cache categories data to avoid repeated queries
+        $this->categories = \App\Models\Category::active()
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($category) {
+                return ['name' => $category->name, 'id' => $category->id];
+            })
+            ->toArray();
     }
 
     public function deleteQuestion($questionId)
@@ -324,14 +346,44 @@ new class extends Component {
 
     public function rendering($view)
     {
-        $view->questions = Question::with(['category', 'options', 'correctOption'])
-            ->when($this->search, function ($query) {
-                $query->where('question_text', 'like', '%' . $this->search . '%');
-            })
-            ->orderBy(...array_values($this->sortBy))
-            ->paginate(20);
+        $query = Question::with(['category', 'options', 'correctOption']);
 
-        $view->categories = \App\Models\Category::active()->get(['id', 'name']);
+        // Apply category filter
+        if ($this->selectedCategory) {
+            $query->where('category_id', $this->selectedCategory);
+        }
+
+        // Apply search filter
+        if ($this->search) {
+            $query->where('question_text', 'like', '%' . $this->search . '%');
+        }
+
+        $view->questions = $query->orderBy(...array_values($this->sortBy))->paginate(20);
+    }
+
+    // Clear all filters
+    public function clearFilters(): void
+    {
+        $this->selectedCategory = null;
+        $this->search = '';
+        $this->resetPage();
+    }
+
+    // Check if any filters are active
+    public function hasActiveFilters(): bool
+    {
+        return !empty($this->selectedCategory) || !empty($this->search);
+    }
+
+    // Reset pagination when filters change
+    public function updatedSelectedCategory(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
     }
 }; ?>
 
@@ -358,10 +410,20 @@ new class extends Component {
 
         <div class="flex gap-3">
             <x-input placeholder="Search questions..." icon="o-magnifying-glass" wire:model.live.debounce="search" />
-            <x-button label="Import Questions" icon="o-arrow-up-tray" class="btn-secondary inline-flex" responsive
+
+            <x-button icon="o-plus" class="btn-primary inline-flex" responsive
+                link="{{ route('admin.question.create') }}" tooltip-left="Add Question" />
+
+            <x-button tooltip="Import Questions" icon="o-arrow-up-tray" class="btn-secondary inline-flex" responsive
                 wire:click="openImportModal" />
-            <x-button label="Add Question" icon="o-plus" class="btn-primary inline-flex" responsive
-                link="{{ route('admin.question.create') }}" />
+
+            <x-button tooltip-left="Filter Questions" class="btn-secondary" icon="o-funnel"
+                wire:click="$toggle('filterDrawer')" />
+
+            @if ($this->hasActiveFilters())
+                <x-button icon="o-x-mark" class="btn-outline btn-primary" wire:click="clearFilters"
+                    tooltip-left="Clear all filters" />
+            @endif
         </div>
     </div>
     <hr class="mb-5">
@@ -539,4 +601,19 @@ new class extends Component {
             @endif
         </x-slot:actions>
     </x-modal>
+
+    <!-- Filter Drawer -->
+    <x-drawer wire:model="filterDrawer" class="w-11/12 lg:w-1/3" right title="Filter Questions">
+        <div class="space-y-4">
+            <div class="space-y-4">
+                <x-choices-offline label="Filter by Category" wire:model.live="selectedCategory" :options="$categories"
+                    placeholder="All Categories" single clearable searchable />
+            </div>
+        </div>
+
+        <x-slot:actions>
+            <x-button label="Clear All" icon="o-x-mark" class="btn-outline" wire:click="clearFilters" />
+            <x-button label="Close" @click="$wire.filterDrawer = false" />
+        </x-slot:actions>
+    </x-drawer>
 </div>
