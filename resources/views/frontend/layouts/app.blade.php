@@ -6,16 +6,20 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="title" content="{{ getWebsiteSettings()->meta_title ?? 'Tiitvt' }}">
-    <meta name="keywords" content="{{ getWebsiteSettings()->meta_keywords ?? 'Tiitvt' }}">
-    <meta name="description" content="{{ getWebsiteSettings()->meta_description ?? 'Tiitvt' }}">
-    <meta name="author" content="{{ getWebsiteSettings()->meta_author ?? 'Tiitvt' }}">
+    <meta name="title" content="{{ $websiteSettings->getMetaTitle() }}">
+    <meta name="keywords" content="{{ $websiteSettings->getMetaKeywords() }}">
+    <meta name="description" content="{{ $websiteSettings->getMetaDescription() }}">
+    <meta name="author" content="{{ $websiteSettings->getSettings()->meta_author ?? 'Tiitvt' }}">
 
     <!-- ========== Page Title ========== -->
-    <title>{{ getWebsiteName() }} | @yield('page_name')</title>
+    <title>{{ $websiteSettings->getWebsiteName() }} | @yield('page_name')</title>
 
     <!-- ========== Favicon Icon ========== -->
-    <link rel="shortcut icon" href="{{ asset('default/tiitvt_logo.svg') }}" type="image/x-icon">
+    @if ($websiteSettings->getFaviconUrl())
+        <link rel="shortcut icon" href="{{ $websiteSettings->getFaviconUrl() }}" type="image/x-icon">
+    @else
+        <link rel="shortcut icon" href="{{ asset('default/favicon.ico') }}" type="image/x-icon">
+    @endif
 
     <!-- ========== Start Stylesheet ========== -->
     <link href="{{ asset('frontend/css/bootstrap.min.css') }}" rel="stylesheet">
@@ -88,15 +92,15 @@
                 <div class="col-lg-12">
                     <ul class="item-flex justify-content-end">
                         <li>
-                            <a href="tel:{{ getWebsiteSettings()->primary_phone }}">
+                            <a href="tel:{{ $websiteSettings->getSettings()->primary_phone }}">
                                 <img src="{{ asset('frontend/img/icon/2.png') }}" alt="Icon">
-                                Phone: {{ getWebsiteSettings()->primary_phone }}
+                                Phone: {{ $websiteSettings->getSettings()->primary_phone }}
                             </a>
                         </li>
                         <li>
-                            <a href="mailto:{{ getWebsiteSettings()->primary_email }}">
+                            <a href="mailto:{{ $websiteSettings->getSettings()->primary_email }}">
                                 <img src="{{ asset('frontend/img/icon/3.png') }}" alt="Icon">
-                                Email: {{ getWebsiteSettings()->primary_email }}
+                                Email: {{ $websiteSettings->getSettings()->primary_email }}
                             </a>
                         </li>
                         <li>

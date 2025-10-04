@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Student;
 use App\Models\StudentQR;
+use App\Services\WebsiteSettingsService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Endroid\QrCode\Builder\Builder;
@@ -17,6 +18,30 @@ use Endroid\QrCode\Label\LabelAlignment;
 
 class StudentQRService
 {
+    protected WebsiteSettingsService $websiteSettings;
+
+    public function __construct(WebsiteSettingsService $websiteSettings)
+    {
+        $this->websiteSettings = $websiteSettings;
+    }
+
+    /**
+     * Get QR logo path from website settings or fallback to default.
+     */
+    private function getQrLogoPath(): string
+    {
+        $qrCodeImageUrl = $this->websiteSettings->getQrCodeImageUrl();
+
+        if ($qrCodeImageUrl) {
+            // Convert storage URL to file path
+            $storagePath = str_replace('/storage/', '', $qrCodeImageUrl);
+            return Storage::path($storagePath);
+        }
+
+        // Fallback to default logo
+        return public_path('default/qr_logo.png');
+    }
+
     /**
      * Generate QR code for a student.
      */
@@ -85,7 +110,7 @@ class StudentQRService
      */
     public function generateQrCodeWithLogo(string $data, int $studentQRId): string
     {
-        $logoPath = public_path('default/qr_logo.png');
+        $logoPath = $this->getQrLogoPath();
 
         // Create QR code using the Builder pattern with logo
         $builder = Builder::create()
@@ -140,9 +165,9 @@ class StudentQRService
             ->foregroundColor(new Color(0, 0, 0))
             ->backgroundColor(new Color(255, 255, 255));
 
-        // Use default logo if no logo path provided
+        // Use QR logo from website settings if no logo path provided
         if (!$logoPath) {
-            $logoPath = public_path('default/qr_logo.png');
+            $logoPath = $this->getQrLogoPath();
         }
 
         // Add logo if it exists
@@ -178,7 +203,7 @@ class StudentQRService
      */
     public function generateQRCodeDataUri(string $data): string
     {
-        $logoPath = public_path('default/qr_logo.png');
+        $logoPath = $this->getQrLogoPath();
 
         $builder = Builder::create()
             ->writer(new PngWriter())
@@ -239,6 +264,52 @@ class StudentQRService
 
         // Generate new QR code
         return $this->generateStudentQR($student);
+    }
+
+    /**
+     * Regenerate QR code with fresh logo from website settings.
+     */
+    public function regenerateStudentQRWithFreshLogo(Student $student): StudentQR
+    {
+        // Get existing QR code or create new one
+        $existingQR = $student->qrCode;
+        if (!$existingQR) {
+            return $this->generateStudentQR($student);
+        }
+
+        // Delete existing QR code file
+        if ($existingQR->qr_code_path) {
+            Storage::disk('public')->delete($existingQR->qr_code_path);
+        }
+
+        // Generate new QR code with current website logo
+        $qrData = $this->generateQrDataWithToken($student, $existingQR->qr_token);
+        $qrCodePath = $this->generateQrCodeWithLogo($qrData, $existingQR->id);
+
+        $existingQR->update([
+            'qr_code_path' => $qrCodePath,
+        ]);
+
+        return $existingQR;
+    }
+
+    /**
+     * Bulk regenerate QR codes for all students with fresh logo.
+     */
+    public function regenerateAllStudentQRsWithFreshLogo(): array
+    {
+        $results = [];
+        $students = Student::with('qrCode')->whereHas('qrCode')->get();
+
+        foreach ($students as $student) {
+            try {
+                $results[$student->id] = $this->regenerateStudentQRWithFreshLogo($student);
+            } catch (\Exception $e) {
+                $results[$student->id] = ['error' => $e->getMessage()];
+            }
+        }
+
+        return $results;
     }
 
     /**

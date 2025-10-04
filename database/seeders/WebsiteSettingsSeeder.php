@@ -22,6 +22,10 @@ class WebsiteSettingsSeeder extends Seeder
         // Create default website settings
         WebsiteSetting::create([
             'website_name' => 'TIITVT - Technical Institute of Information Technology',
+            'logo' => null, // Default logo path - will fallback to public asset
+            'logo_dark' => null, // Dark theme logo path
+            'favicon' => null, // Favicon path - will fallback to default favicon
+            'qr_code_image' => null, // QR code image path
             'meta_title' => 'TIITVT - Technical Institute of Information Technology | Professional Training & Certification',
             'meta_keywords' => 'technical training, IT courses, professional certification, skill development, computer science, business management, engineering',
             'meta_description' => 'TIITVT offers comprehensive technical training and professional certification programs in IT, business, engineering, and creative arts. Transform your career with our industry-focused courses.',

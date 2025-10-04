@@ -8,6 +8,10 @@ class WebsiteSetting extends Model
 {
     protected $fillable = [
         'website_name',
+        'logo',
+        'logo_dark',
+        'favicon',
+        'qr_code_image',
         'meta_title',
         'meta_keywords',
         'meta_description',

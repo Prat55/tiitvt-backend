@@ -4,7 +4,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-    <link rel="icon" href="{{ asset('favicon.png') }}" type="image/x-icon" />
+    @if ($websiteSettings->getFaviconUrl())
+        <link rel="icon" href="{{ $websiteSettings->getFaviconUrl() }}" type="image/x-icon" />
+    @else
+        <link rel="icon" href="{{ asset('default/favicon.ico') }}" type="image/x-icon" />
+    @endif
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ isset($title) ? $title . ' - ' . config('app.name') : config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])

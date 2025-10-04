@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Certificate;
 use App\Models\Student;
 use App\Models\Course;
+use App\Services\WebsiteSettingsService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Endroid\QrCode\Builder\Builder;
@@ -16,6 +17,30 @@ use Endroid\QrCode\Color\Color;
 
 class CertificateService
 {
+    protected WebsiteSettingsService $websiteSettings;
+
+    public function __construct(WebsiteSettingsService $websiteSettings)
+    {
+        $this->websiteSettings = $websiteSettings;
+    }
+
+    /**
+     * Get QR logo path from website settings or fallback to default.
+     */
+    private function getQrLogoPath(): string
+    {
+        $qrCodeImageUrl = $this->websiteSettings->getQrCodeImageUrl();
+
+        if ($qrCodeImageUrl) {
+            // Convert storage URL to file path
+            $storagePath = str_replace('/storage/', '', $qrCodeImageUrl);
+            return Storage::path($storagePath);
+        }
+
+        // Fallback to default logo
+        return public_path('default/qr_logo.png');
+    }
+
     /**
      * Issue a certificate for a student.
      */
@@ -77,7 +102,7 @@ class CertificateService
     private function generateQrCode(string $token, int $certificateId): string
     {
         $verificationUrl = route('certificate.verify', $token);
-        $logoPath = public_path('default/qr_logo.png');
+        $logoPath = $this->getQrLogoPath();
 
         $builder = Builder::create()
             ->writer(new PngWriter())

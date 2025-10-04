@@ -5,7 +5,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ isset($title) ? $title . ' - ' . config('app.name') : config('app.name') }}</title>
+    <meta name="description" content="{{ $websiteSettings->getMetaDescription() }}">
+    <title>
+        {{ isset($title) ? $title . ' - ' . $websiteSettings->getWebsiteName() : $websiteSettings->getWebsiteName() }}
+    </title>
+
+    @if ($websiteSettings->getFaviconUrl())
+        <link rel="shortcut icon" href="{{ $websiteSettings->getFaviconUrl() }}" type="image/x-icon">
+    @else
+        <link rel="shortcut icon" href="{{ asset('default/favicon.ico') }}" type="image/x-icon">
+    @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @yield('cdn')
@@ -38,14 +47,24 @@
                 <a href="{{ route('admin.index') }}" wire:navigate class="mb-3">
                     <div class="pt-3 hidden-when-collapsed ">
                         <div class="flex justify-center items-center cursor-pointer">
-                            <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo" class="light-logo"
-                                style="height: 100px">
+                            @if ($websiteSettings->getLogoUrl())
+                                <img src="{{ $websiteSettings->getLogoUrl() }}" alt="Logo" class="light-logo"
+                                    style="height: 100px">
+                            @else
+                                <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo" class="light-logo"
+                                    style="height: 100px">
+                            @endif
                         </div>
                     </div>
 
                     <div class="display-when-collapsed hidden my-3 h-[25px] mx-3">
-                        <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo" class="light-logo"
-                            style="height: 100%">
+                        @if ($websiteSettings->getLogoUrl())
+                            <img src="{{ $websiteSettings->getLogoUrl() }}" alt="Logo" class="light-logo"
+                                style="height: 100%">
+                        @else
+                            <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo" class="light-logo"
+                                style="height: 100%">
+                        @endif
                     </div>
                 </a>
 

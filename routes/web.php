@@ -7,6 +7,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Dynamic favicon route
+Route::get('/favicon.ico', [App\Http\Controllers\FaviconController::class, 'favicon'])->name('favicon');
+
 Route::middleware(['admin.auth'])->group(function () {
     Route::redirect('/admin', '/admin/dashboard');
     Route::redirect('/admin', '/dashboard');

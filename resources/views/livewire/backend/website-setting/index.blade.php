@@ -2,12 +2,15 @@
 
 use Mary\Traits\Toast;
 use App\Models\WebsiteSetting;
+use App\Services\WebsiteSettingsService;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Title;
+use Livewire\WithFileUploads;
 
 new class extends Component {
-    use Toast;
+    use Toast, WithFileUploads;
 
     // General Settings
     #[Title('Website Settings')]
@@ -16,6 +19,12 @@ new class extends Component {
     public $meta_keywords;
     public $meta_description;
     public $meta_author;
+
+    // Image Settings
+    public $logo;
+    public $logo_dark;
+    public $favicon;
+    public $qr_code_image;
 
     // Contact Settings
     public $primary_email;
@@ -32,10 +41,19 @@ new class extends Component {
 
     // Modal states
     public $showGeneralModal = false;
+    public $showImageModal = false;
     public $showContactModal = false;
     public $showSocialModal = false;
 
     public $settings;
+
+    public $cropConfig = [
+        'aspectRatio' => 1,
+    ];
+
+    public $cropConfigLogo = [
+        'aspectRatio' => 16 / 9,
+    ];
 
     public function mount(): void
     {
@@ -48,6 +66,10 @@ new class extends Component {
 
         if ($this->settings) {
             $this->website_name = $this->settings->website_name;
+            $this->logo = $this->settings->logo;
+            $this->logo_dark = $this->settings->logo_dark;
+            $this->favicon = $this->settings->favicon;
+            $this->qr_code_image = $this->settings->qr_code_image;
             $this->meta_title = $this->settings->meta_title;
             $this->meta_keywords = $this->settings->meta_keywords;
             $this->meta_description = $this->settings->meta_description;
@@ -67,6 +89,11 @@ new class extends Component {
     public function openGeneralModal(): void
     {
         $this->showGeneralModal = true;
+    }
+
+    public function openImageModal(): void
+    {
+        $this->showImageModal = true;
     }
 
     public function openContactModal(): void
@@ -99,6 +126,52 @@ new class extends Component {
 
         $this->showGeneralModal = false;
         $this->success('General settings updated successfully!', position: 'toast-bottom');
+    }
+
+    public function updateImageSettings(): void
+    {
+        $this->validate([
+            'logo' => 'nullable|image|max:2048',
+            'logo_dark' => 'nullable|image|max:2048',
+            'favicon' => 'nullable|image|max:1024',
+            'qr_code_image' => 'nullable|image|max:2048',
+        ]);
+
+        $data = [];
+
+        if ($this->logo) {
+            $data['logo'] = $this->uploadFile($this->logo, 'logo');
+        }
+
+        if ($this->logo_dark) {
+            $data['logo_dark'] = $this->uploadFile($this->logo_dark, 'logo_dark');
+        }
+
+        if ($this->favicon) {
+            $data['favicon'] = $this->uploadFile($this->favicon, 'favicon');
+        }
+
+        if ($this->qr_code_image) {
+            $data['qr_code_image'] = $this->uploadFile($this->qr_code_image, 'qr_code');
+        }
+
+        if (!empty($data)) {
+            $this->updateSettings($data);
+            $this->loadSettings();
+
+            // Clear website settings cache
+            app(WebsiteSettingsService::class)->clearCache();
+        }
+
+        $this->showImageModal = false;
+        $this->success('Images updated successfully!', position: 'toast-bottom');
+    }
+
+    private function uploadFile($file, $type): string
+    {
+        $filename = $type . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('website-images', $filename, 'public');
+        return $path;
     }
 
     public function updateContactSettings(): void
@@ -153,7 +226,10 @@ new class extends Component {
         }
     }
 }; ?>
-
+@section('cdn')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+@endsection
 <div>
     <div class="flex justify-between items-center mb-6">
         <div>
@@ -162,7 +238,7 @@ new class extends Component {
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- General Settings Card -->
         <div
             class="bg-base-200 rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow dark:border-gray-700">
@@ -194,6 +270,98 @@ new class extends Component {
                 <div>
                     <span class="text-sm font-medium text-gray-500">Meta Author</span>
                     <p class="text-sm truncate">{{ $meta_author ?: 'Not set' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Settings Card -->
+        <div
+            class="bg-base-200 rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-orange-100 rounded-lg">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">Images & Branding</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Logo, favicon & QR code</p>
+                    </div>
+                </div>
+                <x-button icon="o-pencil" class="btn-primary btn-outline btn-sm" wire:click="openImageModal" />
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                        @if ($logo)
+                            <img src="{{ Storage::url($logo) }}" alt="Logo"
+                                class="w-full h-full object-contain rounded">
+                        @else
+                            <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                        @endif
+                    </div>
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-500">Logo</span>
+                        <p class="text-sm truncate">{{ $logo ? 'Uploaded' : 'Not set' }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                        @if ($logo_dark)
+                            <img src="{{ Storage::url($logo_dark) }}" alt="Dark Logo"
+                                class="w-full h-full object-contain rounded">
+                        @else
+                            <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                        @endif
+                    </div>
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-500">Dark Logo</span>
+                        <p class="text-sm truncate">{{ $logo_dark ? 'Uploaded' : 'Not set' }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                        @if ($favicon)
+                            <img src="{{ Storage::url($favicon) }}" alt="Favicon"
+                                class="w-full h-full object-contain rounded">
+                        @else
+                            <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                        @endif
+                    </div>
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-500">Favicon</span>
+                        <p class="text-sm truncate">{{ $favicon ? 'Uploaded' : 'Not set' }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                        @if ($qr_code_image)
+                            <img src="{{ Storage::url($qr_code_image) }}" alt="QR Code Image"
+                                class="w-full h-full object-contain rounded">
+                        @else
+                            <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                        @endif
+                    </div>
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-500">QR Code Image</span>
+                        <p class="text-sm truncate">{{ $qr_code_image ? 'Uploaded' : 'Not set' }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -240,7 +408,8 @@ new class extends Component {
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-3">
                     <div class="p-2 bg-purple-100 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-10 0a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2M9 12l2 2 4-4">
                             </path>
@@ -286,6 +455,52 @@ new class extends Component {
             </div>
         </div>
     </div>
+
+    <!-- Image Settings Modal -->
+    <x-modal wire:model="showImageModal" title="Upload Images" class="backdrop-blur" separator>
+        <x-form wire:submit.prevent="updateImageSettings">
+            <div class="space-y-4 grid grid-cols-2 gap-4">
+                <x-file label="Website Logo" wire:model.defer="logo" accept="image/*" crop-after-change
+                    :crop-config="$cropConfigLogo">
+                    <img src="{{ $settings->logo ? asset($settings->logo) : 'https://placehold.co/200x50' }}"
+                        alt="Website Logo" class="h-30 object-cover rounded-lg">
+                </x-file>
+
+                <x-file label="Dark Theme Logo" wire:model.defer="logo_dark" accept="image/*" crop-after-change
+                    :crop-config="$cropConfigLogo">
+                    <img src="{{ $settings->logo_dark ? asset($settings->logo_dark) : 'https://placehold.co/200x50' }}"
+                        alt="Dark Theme Logo" class="h-30 object-cover rounded-lg">
+                </x-file>
+
+                <x-file label="Favicon" wire:model.defer="favicon" accept="image/*" crop-after-change
+                    :crop-config="$cropConfig">
+                    <img src="{{ $settings->favicon ? asset($settings->favicon) : 'https://placehold.co/300' }}"
+                        alt="Favicon" class="w-32 h-32 object-cover rounded-lg">
+                </x-file>
+
+                <x-file label="QR Code Image" wire:model.defer="qr_code_image" accept="image/*" crop-after-change
+                    :crop-config="$cropConfig">
+                    <img src="{{ $settings->qr_code_image ? asset($settings->qr_code_image) : 'https://placehold.co/300' }}"
+                        alt="QR Code Image" class="w-32 h-32 object-cover rounded-lg">
+                </x-file>
+
+                <div class="text-sm text-gray-500 mt-4 col-span-2">
+                    <p><strong>Recommended sizes:</strong></p>
+                    <ul class="list-disc ml-4 mt-2">
+                        <li>Logo: 200x50 pixels (SVG or PNG)</li>
+                        <li>Dark Logo: Same as logo, dark theme version</li>
+                        <li>Favicon: 32x32 pixels (ICO or PNG)</li>
+                        <li>QR Code: 300x300 pixels (PNG or JPG)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <x-slot:actions>
+                <x-button label="Cancel" @click="$wire.showImageModal = false" />
+                <x-button label="Upload Images" class="btn-primary" type="submit" spinner="updateImageSettings" />
+            </x-slot:actions>
+        </x-form>
+    </x-modal>
 
     <!-- General Settings Modal -->
     <x-modal wire:model="showGeneralModal" title="Edit General Settings" class="backdrop-blur" separator>
