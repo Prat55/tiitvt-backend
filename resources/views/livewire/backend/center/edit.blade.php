@@ -319,7 +319,10 @@ new class extends Component {
                             </div>
                         @else
                             <x-file wire:model="front_office_photo" accept="image/*"
-                                placeholder="Upload front office photo" icon="o-photo" />
+                                placeholder="Upload front office photo" icon="o-photo">
+                                <img src="https://placehold.co/300x300?text=Front Office" alt="Front Office"
+                                    class="w-70 h-32 object-cover rounded-lg">
+                            </x-file>
                         @endif
                     </div>
 
@@ -344,7 +347,10 @@ new class extends Component {
                             </div>
                         @else
                             <x-file wire:model="back_office_photo" accept="image/*"
-                                placeholder="Upload back office photo" icon="o-photo" />
+                                placeholder="Upload back office photo" icon="o-photo">
+                                <img src="https://placehold.co/300x300?text=Back Office" alt="Back Office"
+                                    class="w-70 h-32 object-cover rounded-lg">
+                            </x-file>
                         @endif
                     </div>
                 </div>

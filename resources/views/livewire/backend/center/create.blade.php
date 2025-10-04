@@ -239,17 +239,11 @@ new class extends Component {
                         <label class="label">
                             <span class="label-text font-medium">Front Office Photo</span>
                         </label>
-                        @if ($front_office_photo)
-                            <div class="relative">
-                                <img src="{{ $front_office_photo->temporaryUrl() }}" alt="Preview"
-                                    class="w-80 h-full object-cover rounded-lg">
-                                <x-button icon="o-x-mark" class="btn-circle btn-sm btn-error absolute -top-2 -right-2"
-                                    wire:click="removeFile('front_office_photo')" />
-                            </div>
-                        @else
-                            <x-file wire:model="front_office_photo" accept="image/*"
-                                placeholder="Upload front office photo" icon="o-photo" />
-                        @endif
+                        <x-file wire:model="front_office_photo" accept="image/*" placeholder="Upload front office photo"
+                            icon="o-photo">
+                            <img src="https://placehold.co/300x300?text=Front Office" alt="Front Office"
+                                class="w-70 h-32 object-cover rounded-lg">
+                        </x-file>
                     </div>
 
                     <!-- Back Office Photo -->
@@ -257,17 +251,11 @@ new class extends Component {
                         <label class="label">
                             <span class="label-text font-medium">Back Office Photo</span>
                         </label>
-                        @if ($back_office_photo)
-                            <div class="relative">
-                                <img src="{{ $back_office_photo->temporaryUrl() }}" alt="Preview"
-                                    class="w-80 h-full object-cover rounded-lg">
-                                <x-button icon="o-x-mark" class="btn-circle btn-sm btn-error absolute -top-2 -right-2"
-                                    wire:click="removeFile('back_office_photo')" />
-                            </div>
-                        @else
-                            <x-file wire:model="back_office_photo" accept="image/*"
-                                placeholder="Upload back office photo" icon="o-photo" />
-                        @endif
+                        <x-file wire:model="back_office_photo" accept="image/*" placeholder="Upload back office photo"
+                            icon="o-photo">
+                            <img src="https://placehold.co/300x300?text=Back Office" alt="Back Office"
+                                class="w-70 h-32 object-cover rounded-lg">
+                        </x-file>
                     </div>
                 </div>
             </div>
