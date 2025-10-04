@@ -565,7 +565,7 @@ new class extends Component {
                 return;
             }
 
-            $qrService = new StudentQRService();
+            $qrService = app(StudentQRService::class);
 
             // Delete the old QR code file if it exists
             if ($this->student->qrCode->qr_code_path && \Storage::disk('public')->exists($this->student->qrCode->qr_code_path)) {
@@ -621,7 +621,7 @@ new class extends Component {
     public function getQRCodeDataUri()
     {
         if ($this->student->qrCode) {
-            $qrService = new StudentQRService();
+            $qrService = app(StudentQRService::class);
             return $qrService->generateQRCodeDataUri($this->student->qrCode->qr_data);
         }
         return null;
@@ -647,14 +647,14 @@ new class extends Component {
             // Get student QR code or generate if it doesn't exist
             $studentQR = $student->qrCode;
             if (!$studentQR) {
-                $qrService = new StudentQRService();
+                $qrService = app(StudentQRService::class);
                 $studentQR = $qrService->generateStudentQR($student);
             }
 
             // Generate QR code data URI for email
             $qrCodeDataUri = null;
             if ($studentQR) {
-                $qrService = new StudentQRService();
+                $qrService = app(StudentQRService::class);
                 $qrCodeDataUri = $qrService->generateQRCodeDataUri($studentQR->qr_data);
             }
 

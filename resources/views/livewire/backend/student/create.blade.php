@@ -241,7 +241,7 @@ new class extends Component {
         $student = Student::create($data);
 
         // Generate QR code for the student
-        $studentQRService = new StudentQRService();
+        $studentQRService = app(StudentQRService::class);
         $studentQRService->generateStudentQR($student);
 
         // Create installments if specified
@@ -406,14 +406,14 @@ new class extends Component {
             // Get student QR code or generate if it doesn't exist
             $studentQR = $student->qrCode;
             if (!$studentQR) {
-                $qrService = new StudentQRService();
+                $qrService = app(StudentQRService::class);
                 $studentQR = $qrService->generateStudentQR($student);
             }
 
             // Generate QR code data URI for email
             $qrCodeDataUri = null;
             if ($studentQR) {
-                $qrService = new StudentQRService();
+                $qrService = app(StudentQRService::class);
                 $qrCodeDataUri = $qrService->generateQRCodeDataUri($studentQR->qr_data);
             }
 

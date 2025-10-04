@@ -19,9 +19,9 @@ class CertificateService
 {
     protected WebsiteSettingsService $websiteSettings;
 
-    public function __construct(WebsiteSettingsService $websiteSettings)
+    public function __construct(?WebsiteSettingsService $websiteSettings = null)
     {
-        $this->websiteSettings = $websiteSettings;
+        $this->websiteSettings = $websiteSettings ?: app(WebsiteSettingsService::class);
     }
 
     /**
@@ -29,12 +29,12 @@ class CertificateService
      */
     private function getQrLogoPath(): string
     {
-        $qrCodeImageUrl = $this->websiteSettings->getQrCodeImageUrl();
+        // Get the settings directly to get the raw path, not the URL
+        $settings = $this->websiteSettings->getSettings();
 
-        if ($qrCodeImageUrl) {
-            // Convert storage URL to file path
-            $storagePath = str_replace('/storage/', '', $qrCodeImageUrl);
-            return Storage::path($storagePath);
+        if ($settings && $settings->qr_code_image) {
+            // Use Storage::disk('public')->path() since file is stored in public disk
+            return Storage::disk('public')->path($settings->qr_code_image);
         }
 
         // Fallback to default logo

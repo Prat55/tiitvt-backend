@@ -237,7 +237,7 @@ class StudentSeeder extends Seeder
                 ]);
 
                 // Generate QR code for the student
-                $studentQRService = new StudentQRService();
+                $studentQRService = app(StudentQRService::class);
                 $studentQRService->generateStudentQR($student);
 
                 // Create installments if specified (same logic as create page)
