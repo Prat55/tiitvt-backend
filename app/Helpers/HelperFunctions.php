@@ -51,3 +51,50 @@ if (!function_exists('hasAuthRole')) {
         return auth()->user()->hasRole($role);
     }
 }
+
+if (!function_exists('encodeTiitvtRegNo')) {
+    function encodeTiitvtRegNo($regNo)
+    {
+        return str_replace('/', '_', $regNo);
+    }
+}
+
+if (!function_exists('decodeTiitvtRegNo')) {
+    function decodeTiitvtRegNo($encodedRegNo)
+    {
+        return str_replace('_', '/', $encodedRegNo);
+    }
+}
+
+if (!function_exists('getUserCenterId')) {
+    function getUserCenterId()
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
+        // Check if user has center role and get their center_id
+        if ($user->hasRole('center')) {
+            return $user->center->id ?? null;
+        }
+
+        // Admin users can access all centers
+        return null;
+    }
+}
+
+if (!function_exists('canAccessStudent')) {
+    function canAccessStudent($student)
+    {
+        $userCenterId = getUserCenterId();
+
+        // Admin users can access all students
+        if ($userCenterId === null) {
+            return true;
+        }
+
+        // Center users can only access students from their center
+        return $student->center_id === $userCenterId;
+    }
+}

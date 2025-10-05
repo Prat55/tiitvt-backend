@@ -1,17 +1,20 @@
 <?php
 
-use App\Models\ExamResult;
-use App\Enums\ExamResultStatusEnum;
 use Mary\Traits\Toast;
+use App\Enums\RolesEnum;
 use Illuminate\View\View;
 use Livewire\Volt\Component;
 use Livewire\Attributes\{Title};
+use App\Enums\ExamResultStatusEnum;
+use App\Models\{ExamResult, Exam, Student};
 
 new class extends Component {
     use Toast;
 
     #[Title('Exam Result Details')]
     public ExamResult $examResult;
+    public $allExamResults = [];
+    public $selectedCategoryId = null;
 
     public $showDeclareModal = false;
     public $showAnswersModal = false;
@@ -27,15 +30,66 @@ new class extends Component {
     public $tempAnswerData = [];
     public $jumpToQuestionId = '';
 
-    public function mount(ExamResult $examResult): void
+    public function mount($examId, $studentRegNo): void
     {
-        $this->examResult = $examResult->load(['student', 'exam.course', 'category', 'declaredBy']);
+        // Find the exam by exam_id
+        $exam = Exam::where('exam_id', $examId)->first();
 
-        // Check if student exists
-        if (!$this->examResult->student) {
-            $this->error('Student not found for this exam result.', redirectTo: route('admin.exam.results'));
+        if (!$exam) {
+            $this->error('Exam not found.', redirectTo: route('admin.exam.results'));
             return;
         }
+
+        // Find the student by TIITVT registration number (decode from URL)
+        $studentRegNo = decodeTiitvtRegNo($studentRegNo);
+        $student = Student::where('tiitvt_reg_no', $studentRegNo)->first();
+
+        if (!$student) {
+            $this->error('Student not found.', redirectTo: route('admin.exam.results'));
+            return;
+        }
+
+        // Check if user has permission to access this student
+        if (!hasAuthRole(RolesEnum::Admin->value)) {
+            if (!$student->center_id == getUserCenterId()) {
+                $this->error('You are not authorized to access this student.', redirectTo: route('admin.exam.results'));
+                return;
+            }
+        }
+
+        // Get the first exam result for this student in this exam (for initial display)
+        $this->examResult = ExamResult::with(['student', 'exam.course', 'category', 'declaredBy'])
+            ->where('exam_id', $exam->id)
+            ->where('student_id', $student->id)
+            ->first();
+
+        if (!$this->examResult) {
+            $this->error('No exam result found for this student in this exam.', redirectTo: route('admin.exam.results'));
+            return;
+        }
+
+        // Get all exam results for this student in this exam
+        $this->allExamResults = ExamResult::with(['category'])
+            ->where('exam_id', $exam->id)
+            ->where('student_id', $student->id)
+            ->get()
+            ->groupBy('category_id')
+            ->map(function ($results, $categoryId) {
+                $firstResult = $results->first();
+                return [
+                    'category_id' => $categoryId,
+                    'category_name' => $firstResult->category->name,
+                    'exam_result' => $firstResult,
+                    'total_score' => $results->sum('score'),
+                    'avg_percentage' => $results->avg('percentage'),
+                    'total_questions' => $results->sum('total_questions'),
+                    'answered_questions' => $results->sum('answered_questions'),
+                ];
+            })
+            ->values();
+
+        // Set default selected category to the current result's category
+        $this->selectedCategoryId = $this->examResult->category_id;
 
         // Initialize questions array for navigation
         $this->initializeQuestions();
@@ -44,6 +98,29 @@ new class extends Component {
     public function rendering(View $view): void
     {
         $view->examResult = $this->examResult;
+        $view->allExamResults = $this->allExamResults;
+    }
+
+    public function selectCategory($categoryId): void
+    {
+        $this->selectedCategoryId = $categoryId;
+
+        // Find the exam result for this category
+        $categoryData = $this->allExamResults->where('category_id', $categoryId)->first();
+        if ($categoryData) {
+            $this->examResult = $categoryData['exam_result']->load(['student', 'exam.course', 'category', 'declaredBy']);
+            $this->initializeQuestions();
+
+            // Reset question navigation to first question
+            $this->currentQuestionIndex = 0;
+            $this->editingQuestion = false;
+            $this->jumpToQuestionId = '';
+        }
+    }
+
+    public function getSelectedCategoryData()
+    {
+        return $this->allExamResults->where('category_id', $this->selectedCategoryId)->first();
     }
 
     public function openDeclareModal(): void
@@ -161,7 +238,10 @@ new class extends Component {
         $this->editingQuestion = true;
         $currentQuestion = $this->questions[$this->currentQuestionIndex] ?? null;
         if ($currentQuestion) {
-            $this->tempAnswerData = $currentQuestion['data'];
+            // Only copy the answer, not the points (they are read-only)
+            $this->tempAnswerData = [
+                'answer' => $currentQuestion['data']['answer'] ?? null,
+            ];
         }
     }
 
@@ -175,6 +255,8 @@ new class extends Component {
     {
         if ($this->editingQuestion && isset($this->questions[$this->currentQuestionIndex])) {
             $questionKey = $this->questions[$this->currentQuestionIndex]['key'];
+            $currentQuestionData = $this->questions[$this->currentQuestionIndex]['data'];
+
             // Update the exam result directly
             $answersData = $this->examResult->answers_data ?? [];
 
@@ -182,8 +264,8 @@ new class extends Component {
             $selectedAnswerId = $this->tempAnswerData['answer'] ?? null;
             $isCorrect = false;
 
-            if ($selectedAnswerId && isset($this->tempAnswerData['options'])) {
-                foreach ($this->tempAnswerData['options'] as $option) {
+            if ($selectedAnswerId && isset($currentQuestionData['options'])) {
+                foreach ($currentQuestionData['options'] as $option) {
                     if ($option['id'] == $selectedAnswerId && ($option['is_correct'] ?? false)) {
                         $isCorrect = true;
                         break;
@@ -191,10 +273,12 @@ new class extends Component {
                 }
             }
 
-            // Set earned points based on correctness
-            $this->tempAnswerData['point_earned'] = $isCorrect ? $this->tempAnswerData['point'] ?? 0 : 0;
+            // Update only the answer and recalculate earned points
+            $updatedQuestionData = $currentQuestionData;
+            $updatedQuestionData['answer'] = $selectedAnswerId;
+            $updatedQuestionData['point_earned'] = $isCorrect ? $currentQuestionData['point'] ?? 0 : 0;
 
-            $answersData[$questionKey] = $this->tempAnswerData;
+            $answersData[$questionKey] = $updatedQuestionData;
 
             // Recalculate totals
             $totalPointsEarned = 0;
@@ -248,27 +332,23 @@ new class extends Component {
     public function jumpToQuestion(): void
     {
         if (empty($this->jumpToQuestionId)) {
-            $this->error('Please enter a question ID');
+            $this->error('Please enter a question number');
             return;
         }
 
-        $questionId = (int) $this->jumpToQuestionId;
-        $foundIndex = -1;
+        $questionNumber = (int) $this->jumpToQuestionId;
 
-        foreach ($this->questions as $index => $question) {
-            if (isset($question['data']['question_id']) && $question['data']['question_id'] == $questionId) {
-                $foundIndex = $index;
-                break;
-            }
-        }
+        // Convert to 0-based index
+        $questionIndex = $questionNumber - 1;
 
-        if ($foundIndex !== -1) {
-            $this->currentQuestionIndex = $foundIndex;
+        // Check if the index is valid
+        if ($questionIndex >= 0 && $questionIndex < count($this->questions)) {
+            $this->currentQuestionIndex = $questionIndex;
             $this->editingQuestion = false;
             $this->jumpToQuestionId = '';
-            $this->success("Jumped to question {$questionId}");
+            $this->success("Jumped to question {$questionNumber}");
         } else {
-            $this->error("Question ID {$questionId} not found");
+            $this->error("Question number {$questionNumber} not found. Please enter a number between 1 and " . count($this->questions));
         }
     }
 };
@@ -294,7 +374,14 @@ new class extends Component {
                             Exam Results
                         </a>
                     </li>
-                    <li class="font-medium">Result #{{ $examResult->id }}</li>
+                    <li class="font-medium flex items-center gap-2 md:flex-nowrap flex-wrap">
+                        <div class="badge badge-soft badge-sm">
+                            Exam #{{ $examResult->exam?->exam_id }}
+                        </div>
+                        <div class="badge badge-soft badge-sm">
+                            Student #{{ $examResult->student?->tiitvt_reg_no }}
+                        </div>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -331,7 +418,11 @@ new class extends Component {
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="font-medium">Student Reg No:</span>
-                            <div class="text-gray-600">{{ $examResult->student?->tiitvt_reg_no ?? 'N/A' }}</div>
+                            <div>
+                                <span class="badge badge-soft badge-sm">
+                                    {{ $examResult->student?->tiitvt_reg_no ?? 'N/A' }}
+                                </span>
+                            </div>
                         </div>
                         <div>
                             <span class="font-medium">Phone:</span>
@@ -362,17 +453,66 @@ new class extends Component {
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="font-medium">Exam ID:</span>
-                            <div class="text-gray-600">{{ $examResult->exam->exam_id }}</div>
+                            <div class="">
+                                <span class="badge badge-soft">{{ $examResult->exam?->exam_id ?? 'N/A' }}</span>
+                            </div>
                         </div>
                         <div>
                             <span class="font-medium">Duration:</span>
-                            <div class="text-gray-600">{{ $examResult->exam_duration }} minutes</div>
+                            <div class="">
+                                <span class="badge badge-soft badge-primary">
+                                    {{ $examResult->exam_duration }} minutes
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Category Selector --}}
+    @if ($allExamResults->count() > 1)
+        <div class="card bg-base-100 shadow-sm mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">
+                    <x-icon name="o-tag" class="w-5 h-5" />
+                    Select Category to View Results
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach ($allExamResults as $categoryData)
+                        <div class="card bg-base-200 shadow-sm cursor-pointer transition-all hover:shadow-md {{ $selectedCategoryId == $categoryData['category_id'] ? 'ring-2 ring-primary' : '' }}"
+                            wire:click="selectCategory({{ $categoryData['category_id'] }})">
+                            <div class="card-body p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold">{{ $categoryData['category_name'] }}</h4>
+                                    @if ($selectedCategoryId == $categoryData['category_id'])
+                                        <x-icon name="o-check-circle" class="w-5 h-5 text-primary" />
+                                    @endif
+                                </div>
+                                <div class="text-sm space-y-1">
+                                    <div class="flex justify-between">
+                                        <span>Score:</span>
+                                        <span class="font-medium">{{ $categoryData['total_score'] }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Percentage:</span>
+                                        <span
+                                            class="font-medium">{{ number_format($categoryData['avg_percentage'], 1) }}%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Questions:</span>
+                                        <span
+                                            class="font-medium">{{ $categoryData['answered_questions'] }}/{{ $categoryData['total_questions'] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- Result Summary --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -399,7 +539,8 @@ new class extends Component {
                 <x-icon name="o-question-mark-circle" class="w-8 h-8" />
             </div>
             <div class="stat-title">Questions</div>
-            <div class="stat-value text-info">{{ $examResult->answered_questions }}/{{ $examResult->total_questions }}
+            <div class="stat-value text-info">
+                {{ $examResult->answered_questions }}/{{ $examResult->total_questions }}
             </div>
             <div class="stat-desc">{{ $examResult->skipped_questions }} skipped</div>
         </div>
@@ -513,9 +654,9 @@ new class extends Component {
                         </div>
 
                         <div class="flex items-center gap-2">
-                            <x-input wire:model="jumpToQuestionId" placeholder="Question No." type="number"
-                                class="input-sm" />
-                            <x-button label="Go" icon="o-arrow-right" class="btn-sm btn-outline"
+                            <x-input type="number" wire:model="jumpToQuestionId" placeholder="Question No."
+                                min="1" max="{{ count($questions) }}" />
+                            <x-button label="Go" icon="o-arrow-right" class="btn-outline"
                                 wire:click="jumpToQuestion" />
                         </div>
                     </div>
@@ -549,19 +690,6 @@ new class extends Component {
                                         </span>
                                     </div>
                                 @endforeach
-                            </div>
-                        @endif
-
-                        {{-- Editing Controls --}}
-                        @if ($editingQuestion)
-                            <div class="mt-6 p-4 bg-warning/10 border border-warning/20 rounded-lg">
-                                <h4 class="font-medium mb-3">Edit Answer Details</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <x-input label="Points" wire:model="tempAnswerData.point" type="number"
-                                        step="0.01" />
-                                    <x-input label="Points Earned" wire:model="tempAnswerData.point_earned"
-                                        type="number" step="0.01" />
-                                </div>
                             </div>
                         @endif
                     </div>

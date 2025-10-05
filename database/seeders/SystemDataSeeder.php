@@ -24,49 +24,57 @@ class SystemDataSeeder extends Seeder
         // Create categories
         $programmingCategory = Category::create([
             'name' => 'Programming',
+            'slug' => 'programming',
             'description' => 'Programming and software development courses',
-            'status' => 'active',
+            'is_active' => true,
         ]);
 
         $webDevCategory = Category::create([
             'name' => 'Web Development',
+            'slug' => 'web-development',
             'description' => 'Web development and design courses',
-            'status' => 'active',
+            'is_active' => true,
         ]);
 
         $dataScienceCategory = Category::create([
             'name' => 'Data Science',
+            'slug' => 'data-science',
             'description' => 'Data science and analytics courses',
-            'status' => 'active',
+            'is_active' => true,
         ]);
 
         // Create courses
         $phpCourse = Course::create([
-            'category_id' => $programmingCategory->id,
             'name' => 'PHP Programming',
+            'slug' => 'php-programming',
             'description' => 'Learn PHP programming from basics to advanced',
             'duration' => '3 months',
-            'fee' => 15000.00,
-            'status' => 'active',
+            'price' => 15000.00,
+            'is_active' => true,
         ]);
 
         $laravelCourse = Course::create([
-            'category_id' => $webDevCategory->id,
             'name' => 'Laravel Framework',
+            'slug' => 'laravel-framework',
             'description' => 'Master Laravel PHP framework',
             'duration' => '4 months',
-            'fee' => 20000.00,
-            'status' => 'active',
+            'price' => 20000.00,
+            'is_active' => true,
         ]);
 
         $pythonCourse = Course::create([
-            'category_id' => $dataScienceCategory->id,
             'name' => 'Python for Data Science',
+            'slug' => 'python-data-science',
             'description' => 'Python programming for data analysis',
             'duration' => '6 months',
-            'fee' => 25000.00,
-            'status' => 'active',
+            'price' => 25000.00,
+            'is_active' => true,
         ]);
+
+        // Create course-category relationships
+        $programmingCategory->courses()->attach($phpCourse->id);
+        $webDevCategory->courses()->attach($laravelCourse->id);
+        $dataScienceCategory->courses()->attach($pythonCourse->id);
 
         // Create center users and centers
         $center1User = User::factory()->create([
@@ -110,13 +118,21 @@ class SystemDataSeeder extends Seeder
         $student1 = Student::create([
             'center_id' => $center1->id,
             'course_id' => $phpCourse->id,
-            'user_id' => $student1User->id,
-            'name' => 'John Doe',
-            'phone' => '+1111111111',
-            'address' => '789 Student Road, Village',
-            'status' => 'active',
-            'fee' => 15000.00,
-            'join_date' => now()->subMonths(2),
+            'tiitvt_reg_no' => 'TIITVT/ATC/21/1',
+            'first_name' => 'John',
+            'fathers_name' => 'Doe',
+            'surname' => 'Smith',
+            'email' => 'john.doe@example.com',
+            'mobile' => '+1111111111',
+            'address' => [
+                'street' => '789 Student Road',
+                'city' => 'Village',
+                'state' => 'State',
+                'pincode' => '123456',
+                'country' => 'India'
+            ],
+            'course_fees' => 15000.00,
+            'enrollment_date' => now()->subMonths(2),
         ]);
 
         $student2User = User::factory()->create([
@@ -129,33 +145,47 @@ class SystemDataSeeder extends Seeder
         $student2 = Student::create([
             'center_id' => $center2->id,
             'course_id' => $laravelCourse->id,
-            'user_id' => $student2User->id,
-            'name' => 'Jane Smith',
-            'phone' => '+2222222222',
-            'address' => '321 Learning Lane, City',
-            'status' => 'active',
-            'fee' => 20000.00,
-            'join_date' => now()->subMonth(),
+            'tiitvt_reg_no' => 'TIITVT/ATC/22/2',
+            'first_name' => 'Jane',
+            'fathers_name' => 'Smith',
+            'surname' => 'Johnson',
+            'email' => 'jane.smith@example.com',
+            'mobile' => '+2222222222',
+            'address' => [
+                'street' => '321 Learning Lane',
+                'city' => 'City',
+                'state' => 'State',
+                'pincode' => '654321',
+                'country' => 'India'
+            ],
+            'course_fees' => 20000.00,
+            'enrollment_date' => now()->subMonth(),
         ]);
 
         // Create exams
         $phpExam = Exam::create([
             'course_id' => $phpCourse->id,
-            'title' => 'PHP Final Exam',
+            'center_id' => $center1->id,
             'duration' => 120, // 2 hours
-            'is_active' => true,
+            'date' => now()->addDays(7),
+            'start_time' => '10:00:00',
+            'end_time' => '12:00:00',
+            'status' => 'scheduled',
         ]);
 
         $laravelExam = Exam::create([
             'course_id' => $laravelCourse->id,
-            'title' => 'Laravel Assessment',
+            'center_id' => $center2->id,
             'duration' => 90, // 1.5 hours
-            'is_active' => true,
+            'date' => now()->addDays(10),
+            'start_time' => '14:00:00',
+            'end_time' => '15:30:00',
+            'status' => 'scheduled',
         ]);
 
         // Create questions for PHP exam
         $phpQuestion1 = Question::create([
-            'exam_id' => $phpExam->id,
+            'category_id' => $programmingCategory->id,
             'question_text' => 'What does PHP stand for?',
             'points' => 1,
         ]);
@@ -173,7 +203,7 @@ class SystemDataSeeder extends Seeder
         $phpQuestion1->update(['correct_option_id' => $correctOption1->id]);
 
         $phpQuestion2 = Question::create([
-            'exam_id' => $phpExam->id,
+            'category_id' => $programmingCategory->id,
             'question_text' => 'Which of the following is used to declare a constant in PHP?',
             'points' => 1,
         ]);
@@ -192,7 +222,7 @@ class SystemDataSeeder extends Seeder
 
         // Create questions for Laravel exam
         $laravelQuestion1 = Question::create([
-            'exam_id' => $laravelExam->id,
+            'category_id' => $webDevCategory->id,
             'question_text' => 'What is the default database driver in Laravel?',
             'points' => 1,
         ]);
@@ -210,7 +240,7 @@ class SystemDataSeeder extends Seeder
         $laravelQuestion1->update(['correct_option_id' => $correctOption3->id]);
 
         $laravelQuestion2 = Question::create([
-            'exam_id' => $laravelExam->id,
+            'category_id' => $webDevCategory->id,
             'question_text' => 'Which command is used to create a new Laravel project?',
             'points' => 1,
         ]);

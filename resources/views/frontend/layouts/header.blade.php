@@ -108,7 +108,7 @@
                              <li>
                                  <div class="content">
                                      <p>Contact</p>
-                                     <strong>{{ getWebsiteSettings()->primary_phone }}</strong>
+                                     <strong>{{ getWebsiteSettings()?->primary_phone ?? 'Not Available' }}</strong>
                                  </div>
                              </li>
                          </ul>
