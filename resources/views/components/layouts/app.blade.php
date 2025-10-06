@@ -76,6 +76,8 @@
                 @role($role::Admin->value)
                     <x-menu-item title="Category" icon="o-tag" link="{{ route('admin.category.index') }}" />
                     <x-menu-item title="Course" icon="o-book-open" link="{{ route('admin.course.index') }}" />
+                    <x-menu-item title="Certificates" icon="o-document-text"
+                        link="{{ route('admin.certificate.index') }}" />
                 @endrole
 
                 <x-menu-sub title="Exam" icon="o-square-2-stack">
