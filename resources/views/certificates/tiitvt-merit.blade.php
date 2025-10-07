@@ -157,7 +157,7 @@
         @endif
     </div>
 
-    <p style="text-indent: 0pt;text-align: left;margin-top: 230px"><br /></p>
+    <p style="text-indent: 0pt;text-align: left;margin-top: 245px"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? 'Student Name' }}</p>
     <p style="padding-top: 8pt;text-indent: 0pt;text-align: left;"><br /></p>
     <p style="padding-left: 64pt;text-indent: 0pt;text-align: left;">
@@ -176,7 +176,7 @@
         <table style="border-collapse:collapse;margin-left:5.83776pt" cellspacing="0">
             <tr style="height:26pt">
                 <td
-                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    style="width:50pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
                     <p class="s1" style="padding-left: 12pt;text-indent: 0pt;line-height: 16pt;text-align: left;">
                         SR.
                     </p>
@@ -217,38 +217,48 @@
                 $categories = $usingExternal ? collect($externalSubjects) : $certificate->course->categories()->get();
             @endphp
             @foreach ($categories as $category => $key)
+                @php
+                    $isFirst = $key === 0;
+                    $isLast = $key === count($categories) - 1;
+                    $borderStyle = '';
+                    if ($isFirst) {
+                        $borderStyle =
+                            'border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt';
+                    } elseif ($isLast) {
+                        $borderStyle =
+                            'border-bottom-style:solid;border-bottom-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt';
+                    } else {
+                        $borderStyle =
+                            'border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt';
+                    }
+                @endphp
                 <tr style="height:18pt">
-                    <td
-                        style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <td style="width:272pt;{{ $borderStyle }}">
                         <p class="s3"
                             style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
                             {{ $key + 1 }}.
                         </p>
                     </td>
-                    <td
-                        style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <td style="width:272pt;{{ $borderStyle }}">
                         <p class="s3"
                             style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
                             <span
                                 class="s4">{{ $usingExternal ? $category['name'] ?? 'Subject' : $category->name }}</span>
                         </p>
                     </td>
-                    <td
-                        style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <td style="width:72pt;{{ $borderStyle }}">
                         <p class="s5"
                             style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
                             {{ $usingExternal ? $category['maximum'] ?? '100' : $student->examResult->data['category_results'][$category->id]['total_marks'] ?? '100' }}
                         </p>
                     </td>
-                    <td
-                        style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <td style="width:72pt;{{ $borderStyle }}">
                         <p class="s5"
                             style="padding-top: 1pt;padding-left: 2pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
                             {{ $usingExternal ? $category['obtained'] ?? '80' : $student->examResult->data['category_results'][$category->id]['marks'] ?? '80' }}
                         </p>
                     </td>
-                    <td
-                        style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <td style="width:62pt;{{ $borderStyle }}">
                         <p class="s5"
                             style="padding-top: 1pt;padding-left: 6pt;text-indent: 0pt;text-align: center;">
                             {{ $usingExternal ? strtoupper($category['result'] ?? 'PASS') : $student->examResult->data['category_results'][$category->id]['result'] ?? 'PASS' }}
@@ -265,20 +275,20 @@
                 </td>
                 <td
                     style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s2" style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
+                    <p class="s2" style="padding-top: 5pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
                         {{ $student->examResult->data['total_marks'] ?? ($usingExternal ? array_sum(array_map(fn($s) => (float) ($s['maximum'] ?? 0), $externalSubjects)) : '700') }}
                     </p>
                 </td>
                 <td
                     style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
                     <p class="s2"
-                        style="padding-top: 3pt;padding-left: 4pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
+                        style="padding-top: 5pt;padding-left: 4pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
                         {{ $student->examResult->data['total_marks_obtained'] ?? ($usingExternal ? array_sum(array_map(fn($s) => (float) ($s['obtained'] ?? 0), $externalSubjects)) : '566') }}
                     </p>
                 </td>
                 <td
                     style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s2" style="padding-top: 3pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
+                    <p class="s2" style="padding-top: 5pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
                         {{ $student->examResult->data['total_result'] ?? ($usingExternal ? (collect($externalSubjects)->contains(fn($s) => strtoupper($s['result'] ?? 'PASS') !== 'PASS') ? 'FAIL' : 'PASS') : 'PASS') }}
                     </p>
                 </td>
