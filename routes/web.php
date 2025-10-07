@@ -109,6 +109,7 @@ Route::get('/certificate/external/show/{id}', function ($id) {
     // Map external certificate to expected variables in the blade
     $certificate = (object) [
         'tiitvt_reg_no' => $ext->reg_no,
+        'center_name' => $ext->center->name,
         'issued_on' => $ext->issued_on ? \Illuminate\Support\Carbon::parse($ext->issued_on) : now(),
         'qr_token' => $ext->qr_token,
     ];
@@ -118,7 +119,6 @@ Route::get('/certificate/external/show/{id}', function ($id) {
         'percentage' => $ext->percentage,
         'grade' => $ext->grade,
         'course' => (object) ['name' => $ext->course_name],
-        'center' => (object) ['name' => ($ext->data['center_name'] ?? 'TIITVT Training Centre')],
         'examResult' => (object) ['data' => [
             'subjects' => $ext->data['subjects'] ?? [],
             'total_marks' => $ext->data['total_marks'] ?? null,
