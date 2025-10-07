@@ -1,7 +1,8 @@
 <?php
 
 use Livewire\Volt\Component;
-use App\Models\ExternalCertificate;
+use App\Models\{ExternalCertificate, Center};
+use App\Enums\RolesEnum;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Endroid\QrCode\Builder\Builder;
@@ -10,6 +11,7 @@ use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 use Mary\Traits\Toast;
+use Illuminate\View\View;
 
 new class extends Component {
     use Toast;
@@ -21,6 +23,14 @@ new class extends Component {
     public string $percentage = '';
     public array $data = [];
     public array $subjects = [['name' => '', 'maximum' => '', 'obtained' => '', 'result' => 'PASS']];
+    public int $center_id = 0;
+
+    public function mount(): void
+    {
+        if (hasAuthRole(RolesEnum::Center->value)) {
+            $this->center_id = auth()->user()->center->id;
+        }
+    }
 
     public function rules()
     {
@@ -30,6 +40,7 @@ new class extends Component {
             'student_name' => 'required|string|max:150',
             'grade' => 'nullable|string|max:5',
             'percentage' => 'nullable|numeric|min:0|max:100',
+            'center_id' => 'required|integer|exists:centers,id',
             'data' => 'nullable|array',
             'subjects' => 'required|array|min:1',
             'subjects.*.name' => 'required|string|max:150',
@@ -83,6 +94,7 @@ new class extends Component {
             'student_name' => $this->student_name,
             'grade' => $this->grade ?: null,
             'percentage' => $this->percentage !== '' ? (float) $this->percentage : null,
+            'center_id' => $this->center_id,
             'issued_on' => now(),
             'qr_token' => $qrToken,
             'data' => $data ?: null,
@@ -103,6 +115,13 @@ new class extends Component {
 
         $this->success('External certificate created', position: 'toast-bottom');
         $this->redirect(route('admin.certificate.index'));
+    }
+
+    public function rendering(View $view)
+    {
+        $view->centers = Center::active()
+            ->latest()
+            ->get(['id', 'name']);
     }
 }; ?>
 
@@ -139,6 +158,11 @@ new class extends Component {
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Basic Information</h3>
                 </div>
+
+                @role(RolesEnum::Admin->value)
+                    <x-choices-offline label="Center" wire:model.live="center_id" placeholder="Select center"
+                        icon="o-building-office" :options="$centers" single searchable clearable />
+                @endrole
 
                 <x-input label="Registration No" wire:model="reg_no" placeholder="Enter registration number"
                     icon="o-identification" />

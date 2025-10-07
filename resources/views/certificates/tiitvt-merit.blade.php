@@ -15,9 +15,9 @@
 
         p {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 14.5pt;
             margin: 0pt;
@@ -25,9 +25,9 @@
 
         .s1 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 11pt;
             vertical-align: 7pt;
@@ -35,18 +35,18 @@
 
         .s2 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 11pt;
         }
 
         .s3 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 12pt;
             vertical-align: -1pt;
@@ -54,36 +54,36 @@
 
         .s4 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 10.5pt;
         }
 
         .s5 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 10.5pt;
         }
 
         .s6 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 12pt;
         }
 
         .s7 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 10.5pt;
             vertical-align: 1pt;
@@ -93,6 +93,11 @@
         tbody {
             vertical-align: top;
             overflow: visible;
+        }
+
+        table {
+            border: 2pt solid #000;
+            border-collapse: collapse;
         }
 
         .header {
@@ -106,16 +111,19 @@
             display: flex;
             flex-direction: column;
             margin-left: 100px;
+            margin-top: 10px;
         }
 
         .certificate-number {
             font-size: 11pt;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
+            font-weight: 600;
         }
 
         .date {
             font-size: 11pt;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
+            font-weight: 600;
         }
 
         .qr-code {
@@ -128,7 +136,7 @@
             font-size: 8pt;
             text-align: center;
             background: #f9f9f9;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
         }
     </style>
 </head>
@@ -149,7 +157,7 @@
         @endif
     </div>
 
-    <p style="text-indent: 0pt;text-align: left;"><br /></p>
+    <p style="text-indent: 0pt;text-align: left;margin-top: 230px"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? 'Student Name' }}</p>
     <p style="padding-top: 8pt;text-indent: 0pt;text-align: left;"><br /></p>
     <p style="padding-left: 64pt;text-indent: 0pt;text-align: left;">
@@ -164,113 +172,119 @@
     <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">
         {{ $student->center->name ?? 'IT Centre Computer Education' }}</p>
     <p style="padding-top: 4pt;text-indent: 0pt;text-align: left;"><br /></p>
-    <table style="border-collapse:collapse;margin-left:5.83776pt" cellspacing="0">
-        <tr style="height:26pt">
-            <td
-                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s1" style="padding-left: 7pt;text-indent: 0pt;line-height: 16pt;text-align: left;">
-                    SR.
-                </p>
-                <p class="s2" style="padding-left: 7pt;text-indent: 0pt;line-height: 9pt;text-align: left;">
-                    NO.
-                </p>
-            </td>
-            <td
-                style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s1" style="padding-left: 7pt;text-indent: 0pt;line-height: 16pt;text-align: left;">
-                    <span class="s2">SUBJECTS</span>
-                </p>
-            </td>
-            <td
-                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s2" style="padding-left: 15pt;text-indent: -9pt;line-height: 13pt;text-align: left;">
-                    MAXIMUM
-                    MARKS</p>
-            </td>
-            <td
-                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s2"
-                    style="padding-left: 7pt;padding-right: 6pt;text-indent: 8pt;line-height: 13pt;text-align: left;">
-                    MARKS OBTAINED</p>
-            </td>
-            <td
-                style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s2" style="padding-top: 4pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
-                    RESULTS
-                </p>
-            </td>
-        </tr>
-
-        @php
-            // Prefer external-provided subjects if present in $student->examResult->data
-            $externalSubjects = $student->examResult->data['subjects'] ?? null;
-            $usingExternal = is_array($externalSubjects) && count($externalSubjects) > 0;
-            $categories = $usingExternal ? collect($externalSubjects) : $certificate->course->categories()->get();
-        @endphp
-        @foreach ($categories as $category => $key)
-            <tr style="height:18pt">
+    <div style="padding: 0 50px;">
+        <table style="border-collapse:collapse;margin-left:5.83776pt" cellspacing="0">
+            <tr style="height:26pt">
                 <td
-                    style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s3" style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
-                        {{ $key + 1 }}.
+                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s1" style="padding-left: 12pt;text-indent: 0pt;line-height: 16pt;text-align: left;">
+                        SR.
+                    </p>
+                    <p class="s2" style="padding-left: 12pt;text-indent: 0pt;line-height: 6pt;text-align: left;">
+                        NO.
                     </p>
                 </td>
                 <td
-                    style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s3" style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
-                        <span
-                            class="s4">{{ $usingExternal ? $category['name'] ?? 'Subject' : $category->name }}</span>
+                    style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s1" style="text-indent: 0pt;line-height: 16pt;text-align: center;padding-top: 8pt;">
+                        <span class="s2">SUBJECTS</span>
                     </p>
                 </td>
                 <td
-                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s5" style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
-                        {{ $usingExternal ? $category['maximum'] ?? '100' : $student->examResult->data['category_results'][$category->id]['total_marks'] ?? '100' }}
-                    </p>
+                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s2" style="padding-left: 15pt;text-indent: -9pt;line-height: 13pt;text-align: left;">
+                        MAXIMUM
+                        MARKS</p>
                 </td>
                 <td
-                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s5"
-                        style="padding-top: 1pt;padding-left: 2pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
-                        {{ $usingExternal ? $category['obtained'] ?? '80' : $student->examResult->data['category_results'][$category->id]['marks'] ?? '80' }}
-                    </p>
+                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s2"
+                        style="padding-left: 7pt;padding-right: 6pt;text-indent: 8pt;line-height: 13pt;text-align: left;">
+                        MARKS OBTAINED</p>
                 </td>
                 <td
-                    style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s5" style="padding-top: 1pt;padding-left: 6pt;text-indent: 0pt;text-align: center;">
-                        {{ $usingExternal ? strtoupper($category['result'] ?? 'PASS') : $student->examResult->data['category_results'][$category->id]['result'] ?? 'PASS' }}
+                    style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s2" style="padding-top: 4pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
+                        RESULTS
                     </p>
                 </td>
             </tr>
-        @endforeach
-        <tr style="height:24pt">
-            <td
-                style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s2" style="padding-top: 3pt;padding-left: 128pt;text-indent: 0pt;text-align: left;">
-                    TOTAL MARKS
-                </p>
-            </td>
-            <td
-                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s2" style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
-                    {{ $student->examResult->data['total_marks'] ?? ($usingExternal ? array_sum(array_map(fn($s) => (float) ($s['maximum'] ?? 0), $externalSubjects)) : '700') }}
-                </p>
-            </td>
-            <td
-                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s2"
-                    style="padding-top: 3pt;padding-left: 4pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
-                    {{ $student->examResult->data['total_marks_obtained'] ?? ($usingExternal ? array_sum(array_map(fn($s) => (float) ($s['obtained'] ?? 0), $externalSubjects)) : '566') }}
-                </p>
-            </td>
-            <td
-                style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                <p class="s2" style="padding-top: 3pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
-                    {{ $student->examResult->data['total_result'] ?? ($usingExternal ? (collect($externalSubjects)->contains(fn($s) => strtoupper($s['result'] ?? 'PASS') !== 'PASS') ? 'FAIL' : 'PASS') : 'PASS') }}
-                </p>
-            </td>
-        </tr>
-    </table>
+
+            @php
+                // Prefer external-provided subjects if present in $student->examResult->data
+                $externalSubjects = $student->examResult->data['subjects'] ?? null;
+                $usingExternal = is_array($externalSubjects) && count($externalSubjects) > 0;
+                $categories = $usingExternal ? collect($externalSubjects) : $certificate->course->categories()->get();
+            @endphp
+            @foreach ($categories as $category => $key)
+                <tr style="height:18pt">
+                    <td
+                        style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                        <p class="s3"
+                            style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
+                            {{ $key + 1 }}.
+                        </p>
+                    </td>
+                    <td
+                        style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                        <p class="s3"
+                            style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
+                            <span
+                                class="s4">{{ $usingExternal ? $category['name'] ?? 'Subject' : $category->name }}</span>
+                        </p>
+                    </td>
+                    <td
+                        style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                        <p class="s5"
+                            style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
+                            {{ $usingExternal ? $category['maximum'] ?? '100' : $student->examResult->data['category_results'][$category->id]['total_marks'] ?? '100' }}
+                        </p>
+                    </td>
+                    <td
+                        style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                        <p class="s5"
+                            style="padding-top: 1pt;padding-left: 2pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
+                            {{ $usingExternal ? $category['obtained'] ?? '80' : $student->examResult->data['category_results'][$category->id]['marks'] ?? '80' }}
+                        </p>
+                    </td>
+                    <td
+                        style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt">
+                        <p class="s5"
+                            style="padding-top: 1pt;padding-left: 6pt;text-indent: 0pt;text-align: center;">
+                            {{ $usingExternal ? strtoupper($category['result'] ?? 'PASS') : $student->examResult->data['category_results'][$category->id]['result'] ?? 'PASS' }}
+                        </p>
+                    </td>
+                </tr>
+            @endforeach
+            <tr style="height:24pt">
+                <td
+                    style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s2" style="padding-top: 3pt;padding-left: 128pt;text-indent: 0pt;text-align: left;">
+                        TOTAL MARKS
+                    </p>
+                </td>
+                <td
+                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s2" style="padding-top: 1pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
+                        {{ $student->examResult->data['total_marks'] ?? ($usingExternal ? array_sum(array_map(fn($s) => (float) ($s['maximum'] ?? 0), $externalSubjects)) : '700') }}
+                    </p>
+                </td>
+                <td
+                    style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s2"
+                        style="padding-top: 3pt;padding-left: 4pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
+                        {{ $student->examResult->data['total_marks_obtained'] ?? ($usingExternal ? array_sum(array_map(fn($s) => (float) ($s['obtained'] ?? 0), $externalSubjects)) : '566') }}
+                    </p>
+                </td>
+                <td
+                    style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    <p class="s2" style="padding-top: 3pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
+                        {{ $student->examResult->data['total_result'] ?? ($usingExternal ? (collect($externalSubjects)->contains(fn($s) => strtoupper($s['result'] ?? 'PASS') !== 'PASS') ? 'FAIL' : 'PASS') : 'PASS') }}
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </div>
 </body>
 
 </html>
