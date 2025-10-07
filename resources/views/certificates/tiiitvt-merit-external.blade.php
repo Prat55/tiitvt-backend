@@ -15,9 +15,9 @@
 
         p {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 14.5pt;
             margin: 0pt;
@@ -25,9 +25,9 @@
 
         .s1 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 11pt;
             vertical-align: 7pt;
@@ -35,18 +35,18 @@
 
         .s2 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 11pt;
         }
 
         .s3 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 12pt;
             vertical-align: -1pt;
@@ -54,36 +54,36 @@
 
         .s4 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 10.5pt;
         }
 
         .s5 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 10.5pt;
         }
 
         .s6 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 12pt;
         }
 
         .s7 {
             color: black;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             font-style: normal;
-            font-weight: normal;
+            font-weight: 600;
             text-decoration: none;
             font-size: 10.5pt;
             vertical-align: 1pt;
@@ -93,6 +93,11 @@
         tbody {
             vertical-align: top;
             overflow: visible;
+        }
+
+        table {
+            border: 2pt solid #000;
+            border-collapse: collapse;
         }
 
         .header {
@@ -111,14 +116,14 @@
 
         .certificate-number {
             font-size: 11pt;
-            font-family: "Arial Black", sans-serif;
-            font-weight: normal;
+            font-family: "Arial", sans-serif;
+            font-weight: 600;
         }
 
         .date {
             font-size: 11pt;
-            font-weight: normal;
-            font-family: "Arial Black", sans-serif;
+            font-weight: 600;
+            font-family: "Arial", sans-serif;
         }
 
         .qr-code {
@@ -131,7 +136,7 @@
             font-size: 8pt;
             text-align: center;
             background: #f9f9f9;
-            font-family: "Arial Black", sans-serif;
+            font-family: "Arial", sans-serif;
             margin-right: 100px;
         }
     </style>
@@ -140,8 +145,8 @@
 <body>
     <div class="header">
         <div class="left-info">
-            <div class="certificate-number" style="font-weight: normal;">{{ $certificate->tiitvt_reg_no }}</div>
-            <div class="date" style="margin-top: 10px;font-weight: normal;">
+            <div class="certificate-number" style="font-weight: 600;">{{ $certificate->tiitvt_reg_no }}</div>
+            <div class="date" style="margin-top: 10px;font-weight: 600;">
                 {{ $certificate->issued_on->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
         </div>
         @if (!empty($qrDataUri))
@@ -154,7 +159,7 @@
             </div>
         @endif
     </div>
-    <p style="text-indent: 0pt;text-align: left;margin-top: 220px"><br /></p>
+    <p style="text-indent: 0pt;text-align: left;margin-top: 230px"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? 'Student Name' }}</p>
     <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">
