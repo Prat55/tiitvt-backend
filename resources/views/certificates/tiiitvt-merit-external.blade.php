@@ -110,8 +110,8 @@
         .left-info {
             display: flex;
             flex-direction: column;
-            margin-left: 100px;
-            margin-top: 10px;
+            margin-left: 120px;
+            margin-top: 20px;
         }
 
         .certificate-number {
@@ -159,15 +159,15 @@
             </div>
         @endif
     </div>
-    <p style="text-indent: 0pt;text-align: left;margin-top: 245px"><br /></p>
+    <p style="text-indent: 0pt;text-align: left;margin-top: 250px"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? 'Student Name' }}</p>
     <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">
         {{ $student->course->name ?? 'Diploma In Full-Stack Web Development (1 year)' }}</p>
-    <p style="padding-top: 6pt;padding-left: 156pt;text-indent: 0pt;text-align: left;">
+    <p style="padding-top: 6pt;padding-left: 145pt;text-indent: 0pt;text-align: left;">
         <span>{{ $student->percentage ?? '88.50' }}</span>
 
-        <span style="margin-left: 300px;">{{ $student->grade ?? 'A' }}</span>
+        <span style="margin-left: 320px;">{{ $student->grade ?? 'A' }}</span>
     </p>
 
     <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br /></p>

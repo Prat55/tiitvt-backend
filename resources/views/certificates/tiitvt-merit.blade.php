@@ -110,8 +110,8 @@
         .left-info {
             display: flex;
             flex-direction: column;
-            margin-left: 100px;
-            margin-top: 10px;
+            margin-left: 120px;
+            margin-top: 20px;
         }
 
         .certificate-number {
@@ -122,8 +122,8 @@
 
         .date {
             font-size: 11pt;
-            font-family: "Arial", sans-serif;
             font-weight: 600;
+            font-family: "Arial", sans-serif;
         }
 
         .qr-code {
@@ -137,6 +137,7 @@
             text-align: center;
             background: #f9f9f9;
             font-family: "Arial", sans-serif;
+            margin-right: 100px;
         }
     </style>
 </head>
@@ -144,36 +145,38 @@
 <body>
     <div class="header">
         <div class="left-info">
-            <div class="certificate-number">{{ $certificate->tiitvt_reg_no }}</div>
-            <div class="date">{{ $certificate->issued_on->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
+            <div class="certificate-number" style="font-weight: 600;">{{ $certificate->tiitvt_reg_no }}</div>
+            <div class="date" style="margin-top: 10px;font-weight: 600;">
+                {{ $certificate->issued_on->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
         </div>
-        @if (isset($certificate->qr_token))
+        @if (!empty($qrDataUri))
             <div class="qr-code">
-                <div>
-                    <div>QR CODE</div>
-                    <div style="font-size: 6pt; margin-top: 5px;">{{ substr($certificate->qr_token, 0, 8) }}...</div>
-                </div>
+                <img src="{{ $qrDataUri }}" alt="QR Code" style="width: 80px; height: 80px;">
+            </div>
+        @elseif (!empty($qrUrl))
+            <div class="qr-code">
+                <img src="{{ $qrUrl }}" alt="QR Code" style="width: 80px; height: 80px;">
             </div>
         @endif
     </div>
 
-    <p style="text-indent: 0pt;text-align: left;margin-top: 245px"><br /></p>
+    <p style="text-indent: 0pt;text-align: left;margin-top: 250px"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? 'Student Name' }}</p>
-    <p style="padding-top: 8pt;text-indent: 0pt;text-align: left;"><br /></p>
-    <p style="padding-left: 64pt;text-indent: 0pt;text-align: left;">
+    <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
+    <p style="text-indent: 0pt;text-align: center;">
         {{ $student->course->name ?? 'Diploma In Full-Stack Web Development (1 year)' }}</p>
-    <p style="padding-top: 6pt;padding-left: 106pt;text-indent: 0pt;text-align: left;">
+    <p style="padding-top: 6pt;padding-left: 145pt;text-indent: 0pt;text-align: left;">
         <span>{{ $student->percentage ?? '88.50' }}</span>
 
-        <span>{{ $student->grade ?? 'A' }}</span>
+        <span style="margin-left: 320px;">{{ $student->grade ?? 'A' }}</span>
     </p>
 
     <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br /></p>
     <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">
-        {{ $student->center->name ?? 'IT Centre Computer Education' }}</p>
+        {{ $certificate->center_name ?? '' }}</p>
     <p style="padding-top: 4pt;text-indent: 0pt;text-align: left;"><br /></p>
-    <div style="padding: 0 50px;">
-        <table style="border-collapse:collapse;margin-left:5.83776pt" cellspacing="0">
+    <div style="padding: 0 50px;margin-top: 20px;">
+        <table style="border-collapse:collapse;margin-left:4pt" cellspacing="0">
             <tr style="height:26pt">
                 <td
                     style="width:50pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
@@ -185,7 +188,7 @@
                     </p>
                 </td>
                 <td
-                    style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                    style="width:250pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
                     <p class="s1" style="text-indent: 0pt;line-height: 16pt;text-align: center;padding-top: 8pt;">
                         <span class="s2">SUBJECTS</span>
                     </p>
@@ -216,7 +219,7 @@
                 $usingExternal = is_array($externalSubjects) && count($externalSubjects) > 0;
                 $categories = $usingExternal ? collect($externalSubjects) : $certificate->course->categories()->get();
             @endphp
-            @foreach ($categories as $category => $key)
+            @foreach ($categories as $key => $category)
                 @php
                     $isFirst = $key === 0;
                     $isLast = $key === count($categories) - 1;
@@ -233,13 +236,13 @@
                     }
                 @endphp
                 <tr style="height:18pt">
-                    <td style="width:272pt;{{ $borderStyle }}">
+                    <td style="width:20pt;{{ $borderStyle }}">
                         <p class="s3"
                             style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
                             {{ $key + 1 }}.
                         </p>
                     </td>
-                    <td style="width:272pt;{{ $borderStyle }}">
+                    <td style="width:250pt;{{ $borderStyle }}">
                         <p class="s3"
                             style="padding-left: 14pt;text-indent: 0pt;line-height: 17pt;text-align: left;">
                             <span
@@ -268,8 +271,12 @@
             @endforeach
             <tr style="height:24pt">
                 <td
+                    style="width:20pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+
+                </td>
+                <td
                     style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
-                    <p class="s2" style="padding-top: 3pt;padding-left: 128pt;text-indent: 0pt;text-align: left;">
+                    <p class="s2" style="padding-top: 5pt;text-indent: 0pt;text-align: center;">
                         TOTAL MARKS
                     </p>
                 </td>
