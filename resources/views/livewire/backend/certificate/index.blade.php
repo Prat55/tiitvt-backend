@@ -104,7 +104,7 @@ new class extends Component {
 
         @scope('cell_actions', $certificate)
             <x-button icon="o-eye" link="{{ route('certificate.display', $certificate->id) }}" class="btn-xs btn-ghost"
-                title="View Certificate" />
+                title="View Certificate" external />
             <x-button icon="o-pencil" link="{{ route('admin.certificate.edit', $certificate->id) }}"
                 class="btn-xs btn-ghost" title="Edit" />
             <x-button icon="o-trash" class="btn-xs btn-ghost text-error"
