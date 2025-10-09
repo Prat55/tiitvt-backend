@@ -15,6 +15,7 @@ use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Label\Font\OpenSans;
 use Endroid\QrCode\Label\LabelAlignment;
+use Illuminate\Support\Facades\Log;
 
 class StudentQRService
 {
@@ -34,12 +35,28 @@ class StudentQRService
         $settings = $this->websiteSettings->getSettings();
 
         if ($settings && $settings->qr_code_image) {
-            // Use Storage::disk('public')->path() since file is stored in public disk
-            return Storage::disk('public')->path($settings->qr_code_image);
+            $logoPath = Storage::disk('public')->path($settings->qr_code_image);
+
+            // Debug logging
+            Log::info('QR Logo Debug', [
+                'settings_qr_code_image' => $settings->qr_code_image,
+                'full_logo_path' => $logoPath,
+                'file_exists' => file_exists($logoPath),
+                'is_readable' => is_readable($logoPath),
+                'file_size' => file_exists($logoPath) ? filesize($logoPath) : 'N/A'
+            ]);
+
+            return $logoPath;
         }
 
         // Fallback to default logo
-        return public_path('default/qr_logo.png');
+        $defaultPath = public_path('default/qr_logo.png');
+        Log::info('QR Logo Debug - Using default', [
+            'default_path' => $defaultPath,
+            'file_exists' => file_exists($defaultPath)
+        ]);
+
+        return $defaultPath;
     }
 
     /**

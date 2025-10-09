@@ -130,28 +130,45 @@ new class extends Component {
 
     public function updateImageSettings(): void
     {
-        $this->validate([
-            'logo' => 'nullable|image|max:2048',
-            'logo_dark' => 'nullable|image|max:2048',
-            'favicon' => 'nullable|image|max:1024',
-            'qr_code_image' => 'nullable|image|max:2048',
-        ]);
+        // Build validation rules dynamically based on what's being uploaded
+        $validationRules = [];
+
+        if ($this->logo && !is_string($this->logo)) {
+            $validationRules['logo'] = 'nullable|image|max:2048';
+        }
+
+        if ($this->logo_dark && !is_string($this->logo_dark)) {
+            $validationRules['logo_dark'] = 'nullable|image|max:2048';
+        }
+
+        if ($this->favicon && !is_string($this->favicon)) {
+            $validationRules['favicon'] = 'nullable|image|max:1024';
+        }
+
+        if ($this->qr_code_image && !is_string($this->qr_code_image)) {
+            $validationRules['qr_code_image'] = 'nullable|image|max:2048';
+        }
+
+        // Only validate if there are rules to validate
+        if (!empty($validationRules)) {
+            $this->validate($validationRules);
+        }
 
         $data = [];
 
-        if ($this->logo) {
+        if ($this->logo && !is_string($this->logo)) {
             $data['logo'] = $this->uploadFile($this->logo, 'logo');
         }
 
-        if ($this->logo_dark) {
+        if ($this->logo_dark && !is_string($this->logo_dark)) {
             $data['logo_dark'] = $this->uploadFile($this->logo_dark, 'logo_dark');
         }
 
-        if ($this->favicon) {
+        if ($this->favicon && !is_string($this->favicon)) {
             $data['favicon'] = $this->uploadFile($this->favicon, 'favicon');
         }
 
-        if ($this->qr_code_image) {
+        if ($this->qr_code_image && !is_string($this->qr_code_image)) {
             $data['qr_code_image'] = $this->uploadFile($this->qr_code_image, 'qr_code');
         }
 
@@ -298,7 +315,7 @@ new class extends Component {
                 <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
                         @if ($logo)
-                            <img src="{{ Storage::url($logo) }}" alt="Logo"
+                            <img src="{{ asset('storage/' . $logo) }}" alt="Logo"
                                 class="w-full h-full object-contain rounded">
                         @else
                             <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -315,7 +332,7 @@ new class extends Component {
                 <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
                         @if ($logo_dark)
-                            <img src="{{ Storage::url($logo_dark) }}" alt="Dark Logo"
+                            <img src="{{ asset('storage/' . $logo_dark) }}" alt="Dark Logo"
                                 class="w-full h-full object-contain rounded">
                         @else
                             <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -332,7 +349,7 @@ new class extends Component {
                 <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
                         @if ($favicon)
-                            <img src="{{ Storage::url($favicon) }}" alt="Favicon"
+                            <img src="{{ asset('storage/' . $favicon) }}" alt="Favicon"
                                 class="w-full h-full object-contain rounded">
                         @else
                             <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -349,7 +366,7 @@ new class extends Component {
                 <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
                         @if ($qr_code_image)
-                            <img src="{{ Storage::url($qr_code_image) }}" alt="QR Code Image"
+                            <img src="{{ asset('storage/' . $qr_code_image) }}" alt="QR Code Image"
                                 class="w-full h-full object-contain rounded">
                         @else
                             <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -462,25 +479,25 @@ new class extends Component {
             <div class="space-y-4 grid grid-cols-2 gap-4">
                 <x-file label="Website Logo" wire:model.defer="logo" accept="image/*" crop-after-change
                     :crop-config="$cropConfigLogo">
-                    <img src="{{ $settings->logo ? asset($settings->logo) : 'https://placehold.co/200x50' }}"
+                    <img src="{{ $settings->logo ? asset('storage/' . $settings->logo) : 'https://placehold.co/200x50' }}"
                         alt="Website Logo" class="h-30 object-cover rounded-lg">
                 </x-file>
 
                 <x-file label="Dark Theme Logo" wire:model.defer="logo_dark" accept="image/*" crop-after-change
                     :crop-config="$cropConfigLogo">
-                    <img src="{{ $settings->logo_dark ? asset($settings->logo_dark) : 'https://placehold.co/200x50' }}"
+                    <img src="{{ $settings->logo_dark ? asset('storage/' . $settings->logo_dark) : 'https://placehold.co/200x50' }}"
                         alt="Dark Theme Logo" class="h-30 object-cover rounded-lg">
                 </x-file>
 
                 <x-file label="Favicon" wire:model.defer="favicon" accept="image/*" crop-after-change
                     :crop-config="$cropConfig">
-                    <img src="{{ $settings->favicon ? asset($settings->favicon) : 'https://placehold.co/300' }}"
+                    <img src="{{ $settings->favicon ? asset('storage/' . $settings->favicon) : 'https://placehold.co/300' }}"
                         alt="Favicon" class="w-32 h-32 object-cover rounded-lg">
                 </x-file>
 
                 <x-file label="QR Code Image" wire:model.defer="qr_code_image" accept="image/*" crop-after-change
                     :crop-config="$cropConfig">
-                    <img src="{{ $settings->qr_code_image ? asset($settings->qr_code_image) : 'https://placehold.co/300' }}"
+                    <img src="{{ $settings->qr_code_image ? asset('storage/' . $settings->qr_code_image) : 'https://placehold.co/300' }}"
                         alt="QR Code Image" class="w-32 h-32 object-cover rounded-lg">
                 </x-file>
 

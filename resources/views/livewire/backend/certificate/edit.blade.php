@@ -12,6 +12,7 @@ use Illuminate\View\View;
 new class extends Component {
     use Toast;
 
+    public ExternalCertificate $certificate;
     public string $reg_no = '';
     public string $course_name = '';
     public string $student_name = '';
@@ -20,23 +21,40 @@ new class extends Component {
     public array $data = [];
     public array $subjects = [['name' => '', 'maximum' => '', 'obtained' => '', 'result' => 'PASS']];
     public int $center_id = 0;
+    public string $issued_on = '';
 
-    public function mount(): void
+    public function mount(ExternalCertificate $certificate): void
     {
-        if (hasAuthRole(RolesEnum::Center->value)) {
-            $this->center_id = auth()->user()->center->id;
+        $this->certificate = $certificate;
+        $this->reg_no = $certificate->reg_no;
+        $this->course_name = $certificate->course_name;
+        $this->student_name = $certificate->student_name;
+        $this->grade = $certificate->grade ?? '';
+        $this->percentage = $certificate->percentage ? (string) $certificate->percentage : '';
+        $this->center_id = $certificate->center_id;
+        $this->issued_on = $certificate->issued_on ? $certificate->issued_on->format('Y-m-d') : now()->format('Y-m-d');
+
+        // Load subjects data
+        if ($certificate->data && isset($certificate->data['subjects'])) {
+            $this->subjects = $certificate->data['subjects'];
+        } else {
+            $this->subjects = [['name' => '', 'maximum' => '', 'obtained' => '', 'result' => 'PASS']];
         }
+
+        // Load other data
+        $this->data = $certificate->data ?? [];
     }
 
     public function rules()
     {
         return [
-            'reg_no' => 'required|string|max:100|unique:external_certificates,reg_no',
+            'reg_no' => 'required|string|max:100|unique:external_certificates,reg_no,' . $this->certificate->id,
             'course_name' => 'required|string|max:150',
             'student_name' => 'required|string|max:150',
             'grade' => 'nullable|string|max:5',
             'percentage' => 'nullable|numeric|min:0|max:100',
             'center_id' => 'required|integer|exists:centers,id',
+            'issued_on' => 'required|date',
             'data' => 'nullable|array',
             'subjects' => 'required|array|min:1',
             'subjects.*.name' => 'required|string|max:150',
@@ -57,14 +75,9 @@ new class extends Component {
         $this->subjects = array_values($this->subjects);
     }
 
-    public function submit()
+    public function update()
     {
         $this->validate();
-
-        $qrToken = Str::random(32);
-        while (ExternalCertificate::where('qr_token', $qrToken)->exists()) {
-            $qrToken = Str::random(32);
-        }
 
         // Calculate totals and overall result
         $totalMaximum = 0;
@@ -84,25 +97,38 @@ new class extends Component {
         $data['total_marks_obtained'] = $totalObtained;
         $data['total_result'] = $overallResult;
 
-        $ext = ExternalCertificate::create([
+        // Update certificate
+        $this->certificate->update([
             'reg_no' => $this->reg_no,
             'course_name' => $this->course_name,
             'student_name' => $this->student_name,
             'grade' => $this->grade ?: null,
             'percentage' => $this->percentage !== '' ? (float) $this->percentage : null,
             'center_id' => $this->center_id,
-            'issued_on' => now(),
-            'qr_token' => $qrToken,
+            'issued_on' => $this->issued_on,
             'data' => $data ?: null,
         ]);
 
-        // Generate QR code with logo using CertificateService
+        // Regenerate QR code with updated information
         $certificateService = app(CertificateService::class);
-        $qrPath = $certificateService->generateCertificateQRCodeWithLogo($ext->qr_token, $ext->id);
-        $ext->update(['qr_code_path' => $qrPath]);
+        $qrPath = $certificateService->generateCertificateQRCodeWithLogo($this->certificate->qr_token, $this->certificate->id);
+        $this->certificate->update(['qr_code_path' => $qrPath]);
 
-        $this->success('External certificate created', position: 'toast-bottom');
+        $this->success('Certificate updated successfully!', position: 'toast-bottom');
         $this->redirect(route('admin.certificate.index'));
+    }
+
+    public function regenerateQRCode()
+    {
+        try {
+            $certificateService = app(CertificateService::class);
+            $qrPath = $certificateService->generateCertificateQRCodeWithLogo($this->certificate->qr_token, $this->certificate->id);
+            $this->certificate->update(['qr_code_path' => $qrPath]);
+
+            $this->success('QR Code regenerated successfully with current logo!', position: 'toast-bottom');
+        } catch (\Exception $e) {
+            $this->error('Failed to regenerate QR code. Please try again.', position: 'toast-bottom');
+        }
     }
 
     public function rendering(View $view)
@@ -112,12 +138,11 @@ new class extends Component {
             ->get(['id', 'name']);
     }
 }; ?>
-
 <div>
     <!-- Header -->
     <div class="flex justify-between items-start lg:items-center flex-col lg:flex-row mt-3 mb-5 gap-2">
         <div>
-            <h1 class="text-2xl font-bold">Create Certificate</h1>
+            <h1 class="text-2xl font-bold">Edit Certificate</h1>
             <div class="breadcrumbs text-sm">
                 <ul class="flex">
                     <li>
@@ -126,11 +151,13 @@ new class extends Component {
                     <li>
                         <a href="{{ route('admin.certificate.index') }}" wire:navigate>Certificates</a>
                     </li>
-                    <li>Create</li>
+                    <li>Edit - {{ $certificate->reg_no }}</li>
                 </ul>
             </div>
         </div>
         <div class="flex gap-3">
+            <x-button label="Regenerate QR" icon="o-arrow-path" class="btn-secondary btn-outline"
+                wire:click="regenerateQRCode" spinner="regenerateQRCode" />
             <x-button label="Back to Certificates" icon="o-arrow-left" class="btn-primary btn-outline"
                 link="{{ route('admin.certificate.index') }}" responsive />
         </div>
@@ -140,7 +167,7 @@ new class extends Component {
 
     <!-- Form Card -->
     <x-card shadow>
-        <form wire:submit.prevent="submit" class="space-y-6">
+        <form wire:submit.prevent="update" class="space-y-6">
             <!-- Basic Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="md:col-span-2">
@@ -165,6 +192,8 @@ new class extends Component {
 
                 <x-input label="Percentage" wire:model="percentage" type="number" step="0.01" min="0"
                     max="100" placeholder="e.g. 88.50" icon="o-chart-bar" />
+
+                <x-input label="Issued Date" wire:model="issued_on" type="date" icon="o-calendar" />
             </div>
 
             <!-- Subjects -->
@@ -194,11 +223,62 @@ new class extends Component {
                             <div class="col-span-2 flex gap-2">
                                 <button type="button" class="btn btn-outline btn-sm"
                                     wire:click="addSubjectRow">Add</button>
-                                <button type="button" class="btn btn-error btn-sm"
-                                    wire:click="removeSubjectRow({{ $i }})">Remove</button>
+                                @if (count($subjects) > 1)
+                                    <button type="button" class="btn btn-error btn-sm"
+                                        wire:click="removeSubjectRow({{ $i }})">Remove</button>
+                                @endif
                             </div>
                         </div>
                     @endforeach
+                </div>
+            </div>
+
+            <!-- Certificate Preview -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-primary">Certificate Preview</h3>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">{{ $student_name ?: 'Student Name' }}</h4>
+                            <p class="text-sm text-gray-600">{{ $course_name ?: 'Course Name' }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Reg No: {{ $reg_no ?: 'REG-XXX' }}</p>
+                            <p class="text-sm text-gray-500">
+                                {{ $issued_on ? \Carbon\Carbon::parse($issued_on)->format('d M Y') : 'Date' }}</p>
+                        </div>
+                    </div>
+
+                    @if ($grade || $percentage)
+                        <div class="flex gap-4 mb-4">
+                            @if ($grade)
+                                <div class="text-center">
+                                    <p class="text-xs text-gray-500">Grade</p>
+                                    <span
+                                        class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                        {{ $grade }}
+                                    </span>
+                                </div>
+                            @endif
+                            @if ($percentage)
+                                <div class="text-center">
+                                    <p class="text-xs text-gray-500">Percentage</p>
+                                    <span
+                                        class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                        {{ number_format((float) $percentage, 1) }}%
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    <div class="text-center">
+                        <a href="{{ route('certificate.display', $certificate->id) }}" target="_blank"
+                            class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye mr-1"></i>
+                            View Certificate
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -206,8 +286,8 @@ new class extends Component {
             <div class="flex justify-end gap-3 pt-6 border-t">
                 <x-button label="Cancel" icon="o-x-mark" class="btn-error btn-soft btn-sm"
                     link="{{ route('admin.certificate.index') }}" />
-                <x-button label="Create" icon="o-plus" class="btn-primary btn-sm btn-soft" type="submit"
-                    spinner="submit" />
+                <x-button label="Update Certificate" icon="o-check" class="btn-primary btn-sm btn-soft"
+                    type="submit" spinner="update" />
             </div>
         </form>
     </x-card>

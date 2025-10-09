@@ -3,8 +3,11 @@
 use Livewire\Volt\Component;
 use App\Models\ExternalCertificate;
 use Illuminate\Support\Str;
+use Mary\Traits\Toast;
+use Illuminate\Support\Facades\Storage;
 
 new class extends Component {
+    use Toast;
     public $search = '';
     public $headers = [['key' => 'reg_no', 'label' => 'Reg No', 'class' => 'w-48'], ['key' => 'student_name', 'label' => 'Student', 'class' => 'w-64'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-64'], ['key' => 'issued_on', 'label' => 'Issued On', 'class' => 'w-40'], ['key' => 'actions', 'label' => 'Actions', 'class' => 'w-32']];
     public $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
@@ -26,6 +29,30 @@ new class extends Component {
             $this->sortBy['direction'] = $this->sortBy['direction'] === 'asc' ? 'desc' : 'asc';
         } else {
             $this->sortBy = ['column' => $column, 'direction' => 'asc'];
+        }
+    }
+
+    public function deleteCertificate($certificateId)
+    {
+        try {
+            $certificate = ExternalCertificate::findOrFail($certificateId);
+
+            // Delete QR code file if exists
+            if ($certificate->qr_code_path && Storage::disk('public')->exists($certificate->qr_code_path)) {
+                Storage::disk('public')->delete($certificate->qr_code_path);
+            }
+
+            // Delete PDF file if exists
+            if ($certificate->pdf_path && Storage::disk('public')->exists($certificate->pdf_path)) {
+                Storage::disk('public')->delete($certificate->pdf_path);
+            }
+
+            // Delete certificate record
+            $certificate->delete();
+
+            $this->success('Certificate deleted successfully!', position: 'toast-bottom');
+        } catch (\Exception $e) {
+            $this->error('Failed to delete certificate. Please try again.', position: 'toast-bottom');
         }
     }
 }; ?>
@@ -76,8 +103,13 @@ new class extends Component {
         @endscope
 
         @scope('cell_actions', $certificate)
-            <a class="link link-primary" href="{{ route('certificate.external.show', $certificate->id) }}"
-                target="_blank">Show</a>
+            <x-button icon="o-eye" link="{{ route('certificate.display', $certificate->id) }}" class="btn-xs btn-ghost"
+                title="View Certificate" />
+            <x-button icon="o-pencil" link="{{ route('admin.certificate.edit', $certificate->id) }}"
+                class="btn-xs btn-ghost" title="Edit" />
+            <x-button icon="o-trash" class="btn-xs btn-ghost text-error"
+                wire:click="deleteCertificate({{ $certificate->id }})"
+                wire:confirm="Are you sure you want to delete this certificate?" title="Delete" />
         @endscope
     </x-table>
 </div>

@@ -24,6 +24,8 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('certificate')->name('certificate.')->group(function () {
                 Volt::route('/', 'backend.certificate.index')->name('index');
                 Volt::route('/create', 'backend.certificate.create')->name('create');
+                Volt::route('/{certificate}/show', 'backend.certificate.show')->name('show');
+                Volt::route('/{certificate}/edit', 'backend.certificate.edit')->name('edit');
             });
 
             Route::prefix('center')->name('center.')->group(function () {
@@ -170,3 +172,17 @@ Route::get('/certificate/external/show/{id}', function ($id) {
 
 // Student QR verification route (public) - by QR token using Volt
 Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');
+
+// Modern certificate display route (public)
+Route::get('/certificate/{id}', function ($id) {
+    $certificate = \App\Models\ExternalCertificate::with('center')->findOrFail($id);
+
+    // Generate QR code data URI if not exists
+    $qrDataUri = null;
+    if ($certificate->qr_code_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($certificate->qr_code_path)) {
+        $contents = \Illuminate\Support\Facades\Storage::disk('public')->get($certificate->qr_code_path);
+        $qrDataUri = 'data:image/png;base64,' . base64_encode($contents);
+    }
+
+    return view('certificates.modern-display', compact('certificate', 'qrDataUri'));
+})->name('certificate.display');

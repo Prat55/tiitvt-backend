@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\Course;
 use App\Services\WebsiteSettingsService;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Encoding\Encoding;
@@ -33,12 +34,28 @@ class CertificateService
         $settings = $this->websiteSettings->getSettings();
 
         if ($settings && $settings->qr_code_image) {
-            // Use Storage::disk('public')->path() since file is stored in public disk
-            return Storage::disk('public')->path($settings->qr_code_image);
+            $logoPath = Storage::disk('public')->path($settings->qr_code_image);
+
+            // Debug logging
+            Log::info('Certificate QR Logo Debug', [
+                'settings_qr_code_image' => $settings->qr_code_image,
+                'full_logo_path' => $logoPath,
+                'file_exists' => file_exists($logoPath),
+                'is_readable' => is_readable($logoPath),
+                'file_size' => file_exists($logoPath) ? filesize($logoPath) : 'N/A'
+            ]);
+
+            return $logoPath;
         }
 
         // Fallback to default logo
-        return public_path('default/qr_logo.png');
+        $defaultPath = public_path('default/qr_logo.png');
+        Log::info('Certificate QR Logo Debug - Using default', [
+            'default_path' => $defaultPath,
+            'file_exists' => file_exists($defaultPath)
+        ]);
+
+        return $defaultPath;
     }
 
     /**
@@ -119,7 +136,7 @@ class CertificateService
         // Add logo if it exists
         if (file_exists($logoPath)) {
             $builder->logoPath($logoPath)
-                ->logoResizeToWidth(50)
+                ->logoResizeToWidth(80)
                 ->logoPunchoutBackground(true);
         }
 
@@ -226,7 +243,7 @@ class CertificateService
         // Add logo if provided
         if ($logoPath && file_exists($logoPath)) {
             $builder->logoPath($logoPath)
-                ->logoResizeToWidth(60)
+                ->logoResizeToWidth(80)
                 ->logoPunchoutBackground(true);
         }
 
@@ -242,6 +259,46 @@ class CertificateService
         // Save the enhanced QR code
         $filename = "certificates/qr_codes/enhanced_certificate_{$certificate->id}.png";
         $result->saveToFile(Storage::disk('public')->path($filename));
+
+        return $filename;
+    }
+
+    /**
+     * Generate QR code with logo for external certificates.
+     */
+    public function generateCertificateQRCodeWithLogo(string $token, int $certificateId): string
+    {
+        $verificationUrl = route('certificate.display', $certificateId);
+        $logoPath = $this->getQrLogoPath();
+
+        $builder = Builder::create()
+            ->writer(new PngWriter())
+            ->writerOptions([])
+            ->data($verificationUrl)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::High)
+            ->size(300)
+            ->margin(10)
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->foregroundColor(new Color(0, 0, 0))
+            ->backgroundColor(new Color(255, 255, 255));
+
+        // Add logo if it exists
+        if (file_exists($logoPath)) {
+            $builder->logoPath($logoPath)
+                ->logoResizeToWidth(80)
+                ->logoPunchoutBackground(true);
+        }
+
+        $result = $builder->build();
+
+        $filename = "certificates/qr_codes/external_{$certificateId}.png";
+
+        // Ensure directory exists
+        Storage::disk('public')->makeDirectory(dirname($filename));
+
+        // Save the QR code
+        Storage::disk('public')->put($filename, $result->getString());
 
         return $filename;
     }
