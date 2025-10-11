@@ -274,6 +274,11 @@ new class extends Component {
 
     public function nextQuestion()
     {
+        // If no answer is selected, treat it as a skip
+        if ($this->selectedAnswer === null) {
+            $this->answers[$this->currentQuestion->id] = null;
+        }
+
         $this->saveAnswer();
 
         // Show navigation after first question is answered
@@ -1014,7 +1019,7 @@ new class extends Component {
                                     <input type="radio" wire:model.live="selectedAnswer" value="{{ $option->id }}"
                                         id="option_{{ $option->id }}" class="sr-only peer" />
                                     <label for="option_{{ $option->id }}"
-                                        class="flex items-center gap-4 p-5 border-2 border-gray-200 rounded-xl cursor-pointer transition-all duration-200 hover:border-blue-300 hover:shadow-md peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-lg">
+                                        class="flex items-center gap-4 p-5 border-2 border-gray-200 rounded-xl cursor-pointer transition-all duration-200 hover:border-blue-300 hover:shadow-md peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-lg peer-checked:shadow-blue-200 peer-checked:ring-4 peer-checked:ring-blue-200">
 
                                         <!-- Custom Radio Button -->
                                         <div class="relative flex-shrink-0">
@@ -1081,15 +1086,6 @@ new class extends Component {
                         @endif
 
                         <div class="flex gap-3">
-                            <!-- Skip Button - Only show when no option is selected -->
-                            @if (!$selectedAnswer)
-                                <button wire:click="skipQuestion"
-                                    class="{{ $this->getNavigationButtonClass('skip') }}">
-                                    <x-icon name="o-forward" class="w-4 h-4" />
-                                    Skip
-                                </button>
-                            @endif
-
                             <!-- Next/Submit Button -->
                             @if ($currentQuestionNumber >= $totalQuestions)
                                 <button wire:click="$set('showSubmitModal', true)"
@@ -1098,8 +1094,8 @@ new class extends Component {
                                     Submit Exam
                                 </button>
                             @else
-                                <button wire:click="nextQuestion" @disabled(!$selectedAnswer)
-                                    class="{{ $this->getNavigationButtonClass('next', !$selectedAnswer) }}">
+                                <button wire:click="nextQuestion"
+                                    class="{{ $this->getNavigationButtonClass('next') }}">
                                     Next
                                     <x-icon name="o-chevron-right" class="w-4 h-4" />
                                 </button>
@@ -1125,8 +1121,7 @@ new class extends Component {
                     </p>
 
                     <!-- Auto-submit countdown -->
-                    <div id="auto-submit-countdown"
-                        class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div id="auto-submit-countdown" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <div class="flex items-center justify-center">
                             <div class="text-red-700 font-semibold">
                                 Auto-submitting in <span id="countdown-timer">5</span> seconds...
