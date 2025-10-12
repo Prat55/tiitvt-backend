@@ -113,13 +113,14 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 50px;
-            margin-top: -25px;
+            margin-top: -20px;
         }
 
         .left-info {
             display: flex;
             flex-direction: column;
             margin-left: 80px;
+            margin-top: -10px;
         }
 
         .certificate-number {
@@ -181,7 +182,8 @@
             }
 
             .qr-code {
-                margin-left: 100px;
+                margin-left: 100px !important;
+                margin-top: -10px !important;
             }
         }
     </style>
@@ -229,7 +231,7 @@
                 <div class="header">
                     <div class="left-info">
                         <div class="certificate-number" style="font-weight: 600;">{{ $certificate->reg_no }}</div>
-                        <div class="date" style="margin-top: 8px;font-weight: 600;">
+                        <div class="date" style="margin-top: 6px;font-weight: 600;">
                             {{ $certificate->issued_on->format('d/m/Y') ?? now()->format('d/m/Y') }}
                         </div>
                     </div>
@@ -241,7 +243,7 @@
                 </div>
 
                 <!-- Student Name -->
-                <p style="text-indent: 0pt;text-align: left;margin-top: 240px"><br /></p>
+                <p style="text-indent: 0pt;text-align: left;margin-top: 220px"><br /></p>
                 <p style="text-indent: 0pt;text-align: center;">{{ $certificate->student_name }}</p>
                 <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
 
