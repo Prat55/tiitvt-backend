@@ -113,14 +113,13 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 50px;
-            margin-top: -20px;
+            margin-top: -30px;
         }
 
         .left-info {
             display: flex;
             flex-direction: column;
-            margin-left: 120px;
-            margin-top: 20px;
+            margin-left: 80px;
         }
 
         .certificate-number {
@@ -146,7 +145,7 @@
             text-align: center;
             background: #f9f9f9;
             font-family: "Arial", sans-serif;
-            /* margin-right: 100px; */
+            margin-right: 50px;
         }
 
         /* Print Styles */
