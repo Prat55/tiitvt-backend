@@ -104,7 +104,7 @@
         }
 
         table {
-            border: 2pt solid #000;
+            border: 1px solid #000000 !important;
             border-collapse: collapse;
         }
 
@@ -245,13 +245,13 @@
                 <!-- Student Name -->
                 <p style="text-indent: 0pt;text-align: left;margin-top: 220px"><br /></p>
                 <p style="text-indent: 0pt;text-align: center;">{{ $certificate->student_name }}</p>
-                <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
+                <p style="padding-top: 6pt;text-indent: 0pt;text-align: center;"><br /></p>
 
                 <!-- Course Name -->
                 <p style="text-indent: 0pt;text-align: center;">{{ $certificate->course_name }}</p>
 
                 <!-- Percentage and Grade -->
-                <p style="padding-top: 4pt;padding-left: 100pt;text-indent: 0pt;text-align: left;">
+                <p style="padding-top: 3.5pt;padding-left: 120pt;text-indent: 0pt;text-align: left;">
                     <span>{{ $certificate->percentage ? number_format($certificate->percentage, 2) : '88.50' }}</span>
                     <span style="margin-left: 330px;">{{ $certificate->grade ?? 'A' }}</span>
                 </p>
@@ -268,7 +268,7 @@
                     <table style="border-collapse:collapse;margin-left:4pt" cellspacing="0">
                         <tr style="height:26pt">
                             <td
-                                style="width:50pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:50pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000;">
                                 <p class="s1"
                                     style="padding-left: 12pt;text-indent: 0pt;line-height: 16pt;text-align: left;">SR.
                                 </p>
@@ -277,26 +277,26 @@
                                 </p>
                             </td>
                             <td
-                                style="width:250pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:250pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s1"
                                     style="text-indent: 0pt;line-height: 16pt;text-align: center;padding-top: 8pt;">
                                     <span class="s2">SUBJECTS</span>
                                 </p>
                             </td>
                             <td
-                                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:72pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s2"
                                     style="padding-left: 15pt;text-indent: -9pt;line-height: 13pt;text-align: left;">
                                     MAXIMUM MARKS</p>
                             </td>
                             <td
-                                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:72pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s2"
                                     style="padding-left: 7pt;padding-right: 6pt;text-indent: 8pt;line-height: 13pt;text-align: left;">
                                     MARKS OBTAINED</p>
                             </td>
                             <td
-                                style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:62pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s2"
                                     style="padding-top: 4pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
                                     RESULTS</p>
@@ -311,13 +311,13 @@
                                     $borderStyle = '';
                                     if ($isFirst) {
                                         $borderStyle =
-                                            'border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt';
+                                            'border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000';
                                     } elseif ($isLast) {
                                         $borderStyle =
-                                            'border-bottom-style:solid;border-bottom-width:2pt;border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt';
+                                            'border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000';
                                     } else {
                                         $borderStyle =
-                                            'border-left-style:solid;border-left-width:2pt;border-right-style:solid;border-right-width:2pt';
+                                            'border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000';
                                     }
                                 @endphp
                                 <tr style="height:18pt">
@@ -358,29 +358,29 @@
                         <!-- Total Row -->
                         <tr style="height:24pt">
                             <td
-                                style="width:20pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:20pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                             </td>
                             <td
-                                style="width:272pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:272pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s2" style="padding-top: 5pt;text-indent: 0pt;text-align: center;">TOTAL
                                     MARKS</p>
                             </td>
                             <td
-                                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:72pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s2"
                                     style="padding-top: 5pt;padding-left: 1pt;text-indent: 0pt;text-align: center;">
                                     {{ $certificate->data['total_marks'] ?? '700' }}
                                 </p>
                             </td>
                             <td
-                                style="width:72pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:72pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s2"
                                     style="padding-top: 5pt;padding-left: 4pt;padding-right: 3pt;text-indent: 0pt;text-align: center;">
                                     {{ $certificate->data['total_marks_obtained'] ?? '566' }}
                                 </p>
                             </td>
                             <td
-                                style="width:62pt;border-top-style:solid;border-top-width:2pt;border-left-style:solid;border-left-width:2pt;border-bottom-style:solid;border-bottom-width:2pt;border-right-style:solid;border-right-width:2pt">
+                                style="width:62pt;border-top-style:solid;border-top-width:1px;border-top-color:#000000;border-left-style:solid;border-left-width:1px;border-left-color:#000000;border-bottom-style:solid;border-bottom-width:1px;border-bottom-color:#000000;border-right-style:solid;border-right-width:1px;border-right-color:#000000">
                                 <p class="s2"
                                     style="padding-top: 5pt;padding-left: 4pt;text-indent: 0pt;text-align: center;">
                                     {{ $certificate->data['total_result'] ?? 'PASS' }}
