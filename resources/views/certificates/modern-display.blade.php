@@ -113,7 +113,7 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 50px;
-            margin-top: -30px;
+            margin-top: -25px;
         }
 
         .left-info {
@@ -241,7 +241,7 @@
                 </div>
 
                 <!-- Student Name -->
-                <p style="text-indent: 0pt;text-align: left;margin-top: 250px"><br /></p>
+                <p style="text-indent: 0pt;text-align: left;margin-top: 240px"><br /></p>
                 <p style="text-indent: 0pt;text-align: center;">{{ $certificate->student_name }}</p>
                 <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
 
