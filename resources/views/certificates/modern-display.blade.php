@@ -120,7 +120,6 @@
             display: flex;
             flex-direction: column;
             margin-left: 80px;
-            margin-top: -5px;
         }
 
         .certificate-number {
@@ -183,7 +182,7 @@
 
             .qr-code {
                 /* margin-left: 100px !important; */
-                margin-top: -8px !important;
+                margin-top: -12px !important;
             }
         }
     </style>
@@ -256,7 +255,7 @@
                     <span style="margin-left: 330px;">{{ $certificate->grade ?? 'A' }}</span>
                 </p>
 
-                <p style="padding-top: 5pt;text-indent: 0pt;text-align: left;"><br /></p>
+                <p style="padding-top: 3pt;text-indent: 0pt;text-align: left;"><br /></p>
 
                 <!-- Center Name -->
                 <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">{{ $certificate->center->name ?? '' }}
