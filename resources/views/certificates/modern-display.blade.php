@@ -140,12 +140,12 @@
             border: 2px solid #000;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: end;
             font-size: 8pt;
             text-align: center;
             background: #f9f9f9;
             font-family: "Arial", sans-serif;
-            margin-right: 100px;
+            /* margin-right: 100px; */
         }
 
         /* Print Styles */
@@ -178,6 +178,10 @@
             * {
                 box-shadow: none !important;
                 text-shadow: none !important;
+            }
+
+            .qr-code {
+                margin-left: 100px;
             }
         }
     </style>
