@@ -258,9 +258,10 @@
                 <p style="padding-top: 3pt;text-indent: 0pt;text-align: left;"><br /></p>
 
                 <!-- Center Name -->
-                <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">{{ $certificate->center->name ?? '' }}
+                <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">
+                    {{ $certificate->center->name ?? '' }}
                 </p>
-                <p style="padding-top: 4pt;text-indent: 0pt;text-align: left;"><br /></p>
+                <p style="padding-top: 2pt;text-indent: 0pt;text-align: left;"><br /></p>
 
                 <!-- Subjects Table -->
                 <div style="padding: 0 50px;margin-top: 10px;">
