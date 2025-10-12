@@ -120,7 +120,7 @@
             display: flex;
             flex-direction: column;
             margin-left: 80px;
-            margin-top: -10px;
+            margin-top: -8px;
         }
 
         .certificate-number {
@@ -146,7 +146,7 @@
             text-align: center;
             background: #f9f9f9;
             font-family: "Arial", sans-serif;
-            margin-right: 50px;
+            margin-right: 10px;
         }
 
         /* Print Styles */
@@ -182,7 +182,7 @@
             }
 
             .qr-code {
-                margin-left: 100px !important;
+                /* margin-left: 100px !important; */
                 margin-top: -10px !important;
             }
         }
@@ -251,9 +251,9 @@
                 <p style="text-indent: 0pt;text-align: center;">{{ $certificate->course_name }}</p>
 
                 <!-- Percentage and Grade -->
-                <p style="padding-top: 6pt;padding-left: 145pt;text-indent: 0pt;text-align: left;">
+                <p style="padding-top: 5pt;padding-left: 140pt;text-indent: 0pt;text-align: left;">
                     <span>{{ $certificate->percentage ? number_format($certificate->percentage, 2) : '88.50' }}</span>
-                    <span style="margin-left: 300px;">{{ $certificate->grade ?? 'A' }}</span>
+                    <span style="margin-left: 320px;">{{ $certificate->grade ?? 'A' }}</span>
                 </p>
 
                 <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br /></p>
