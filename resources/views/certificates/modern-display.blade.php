@@ -183,7 +183,7 @@
 
             .qr-code {
                 /* margin-left: 100px !important; */
-                margin-top: -10px !important;
+                margin-top: -8px !important;
             }
         }
     </style>
@@ -251,9 +251,9 @@
                 <p style="text-indent: 0pt;text-align: center;">{{ $certificate->course_name }}</p>
 
                 <!-- Percentage and Grade -->
-                <p style="padding-top: 4.5pt;padding-left: 130pt;text-indent: 0pt;text-align: left;">
+                <p style="padding-top: 4pt;padding-left: 100pt;text-indent: 0pt;text-align: left;">
                     <span>{{ $certificate->percentage ? number_format($certificate->percentage, 2) : '88.50' }}</span>
-                    <span style="margin-left: 320px;">{{ $certificate->grade ?? 'A' }}</span>
+                    <span style="margin-left: 330px;">{{ $certificate->grade ?? 'A' }}</span>
                 </p>
 
                 <p style="padding-top: 5pt;text-indent: 0pt;text-align: left;"><br /></p>
