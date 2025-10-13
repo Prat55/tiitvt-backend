@@ -439,9 +439,9 @@ new class extends Component {
         $courseData = DB::select("
             SELECT
                 c.name as course_name,
-                COUNT(s.id) as student_count
+                COUNT(sc.student_id) as student_count
             FROM courses c
-            LEFT JOIN students s ON c.id = s.course_id
+            LEFT JOIN student_courses sc ON c.id = sc.course_id
             GROUP BY c.id, c.name
             ORDER BY student_count DESC
             LIMIT 5
