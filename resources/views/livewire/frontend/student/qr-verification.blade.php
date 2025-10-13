@@ -154,10 +154,23 @@ new class extends Component {
                                 </div>
 
                                 <div>
-                                    <label class="text-sm font-medium text-gray-500">Course</label>
-                                    <p class="text-lg font-semibold text-primary-content">
-                                        {{ $student->course->name ?? 'N/A' }}
-                                    </p>
+                                    <label
+                                        class="text-sm font-medium text-gray-500">Course{{ $student->courses->count() > 1 ? 's' : '' }}</label>
+                                    @if ($student->courses->count() > 0)
+                                        @if ($student->courses->count() == 1)
+                                            <p class="text-lg font-semibold text-primary-content">
+                                                {{ $student->courses->first()->name }}</p>
+                                        @else
+                                            <div class="space-y-1">
+                                                <p class="text-lg font-semibold text-primary-content">
+                                                    {{ $student->courses->first()->name }}</p>
+                                                <p class="text-sm text-gray-400">+{{ $student->courses->count() - 1 }}
+                                                    more course{{ $student->courses->count() > 2 ? 's' : '' }}</p>
+                                            </div>
+                                        @endif
+                                    @else
+                                        <p class="text-lg font-semibold text-primary-content">N/A</p>
+                                    @endif
                                 </div>
 
                                 <div>

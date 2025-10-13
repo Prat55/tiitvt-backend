@@ -876,10 +876,20 @@ new class extends Component {
                         </div>
                     @endif
 
-                    @if ($student->course)
+                    @if ($student->courses->count() > 0)
                         <div>
-                            <label class="text-sm font-medium text-gray-600">Course</label>
-                            <p class="text-sm font-medium">{{ $student->course->name }}</p>
+                            <label class="text-sm font-medium text-gray-600">Courses
+                                ({{ $student->courses->count() }})</label>
+                            <div class="space-y-1">
+                                @foreach ($student->courses as $course)
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm font-medium">{{ $course->name }}</p>
+                                        @if ($course->pivot->batch_time)
+                                            <span class="text-xs text-gray-500">{{ $course->pivot->batch_time }}</span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     @endif
 

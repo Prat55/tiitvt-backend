@@ -804,8 +804,14 @@ new class extends Component {
                         @endscope
 
                         @scope('cell_course_name', $student)
-                            @if ($student->course)
-                                <span class="text-sm font-medium">{{ $student->course->name }}</span>
+                            @if ($student->courses->count() > 0)
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium">{{ $student->courses->first()->name }}</span>
+                                    @if ($student->courses->count() > 1)
+                                        <x-badge value="+{{ $student->courses->count() - 1 }}"
+                                            class="badge-sm badge-primary" />
+                                    @endif
+                                </div>
                             @else
                                 <span class="text-xs text-gray-400">-</span>
                             @endif

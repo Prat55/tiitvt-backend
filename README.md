@@ -16,6 +16,7 @@
 - [Features](#features)
 - [Website Settings Management](#website-settings-management)
 - [QR Code Integration](#qr-code-integration)
+- [Multiple Course Selection](#multiple-course-selection)
 - [Email Notification System](#email-notification-system)
 - [Installment System](#installment-system)
 - [Question Seeder](#question-seeder)
@@ -70,12 +71,13 @@ TIITVT Backend is a comprehensive SaaS-based IT classes management system built 
 
 #### 5. Course
 
-- **Fields**: category_id, name, description, duration, fee, status
+- **Fields**: category_id, name, description, duration, price, status, meta_title, meta_description, meta_keywords
 - **Relationships**:
   - `belongsTo` category
-  - `hasMany` students
+  - `belongsToMany` students (via student_courses pivot table)
   - `hasMany` exams
   - `hasMany` certificates
+  - `hasMany` studentCourses (pivot model)
 
 #### 6. Center
 
@@ -86,15 +88,23 @@ TIITVT Backend is a comprehensive SaaS-based IT classes management system built 
 
 #### 7. Student
 
-- **Fields**: center_id, course_id, user_id, name, phone, address, status, fee, join_date
+- **Fields**: center_id, user_id, tiitvt_reg_no, first_name, fathers_name, surname, address, telephone_no, email, mobile, date_of_birth, age, qualification, additional_qualification, reference, course_fees, down_payment, no_of_installments, installment_date, enrollment_date, student_image, student_signature_image, incharge_name
 - **Relationships**:
   - `belongsTo` center
-  - `belongsTo` course
+  - `belongsToMany` courses (via student_courses pivot table)
   - `belongsTo` user
   - `hasMany` examResults
   - `hasMany` invoices
   - `hasMany` certificates
   - `hasMany` installments
+  - `hasMany` studentCourses (pivot model)
+
+#### 7.1. StudentCourse (Pivot Model)
+
+- **Fields**: student_id, course_id, enrollment_date, course_taken, batch_time, scheme_given, incharge_name
+- **Relationships**:
+  - `belongsTo` student
+  - `belongsTo` course
 
 #### 8. Exam
 
@@ -136,6 +146,8 @@ TIITVT Backend is a comprehensive SaaS-based IT classes management system built 
 ## 🌟 Features
 
 - **Multi-tenant System**: Separate centers with their own students
+- **Multiple Course Selection**: Students can enroll in multiple courses simultaneously
+- **Single Fee Structure**: Unified fee management across all enrolled courses
 - **Exam Management**: Create exams with questions and options
 - **Certification**: Generate certificates with QR codes
 - **Installment Tracking**: Manage payment installments
@@ -237,6 +249,110 @@ private function getQrLogoPath(): string
     return public_path('default/qr_logo.png');
 }
 ```
+
+## 🎓 Multiple Course Selection
+
+### Overview
+
+The system supports multiple course enrollment for students while maintaining a single fee structure. Students can enroll in multiple courses simultaneously, but all fees (course fees, down payment, installments) are managed at the student level, not per course.
+
+### Key Features
+
+- **Many-to-Many Relationship**: Students can enroll in multiple courses
+- **Single Fee Structure**: All fees managed at student level
+- **Course-Specific Details**: Each enrollment stores course-specific information (batch time, instructor, etc.)
+- **Backward Compatibility**: Existing code continues to work with accessor methods
+- **Automatic Fee Calculation**: Course fees automatically calculated from selected courses
+
+### Database Structure
+
+#### Student-Course Relationship
+
+```php
+// Students table (fees stored here)
+students: {
+    id, center_id, user_id, tiitvt_reg_no, first_name, fathers_name, surname,
+    course_fees, down_payment, no_of_installments, installment_date,
+    enrollment_date, student_image, student_signature_image, incharge_name
+}
+
+// Pivot table (course enrollment details)
+student_courses: {
+    id, student_id, course_id, enrollment_date, course_taken,
+    batch_time, scheme_given, incharge_name
+}
+```
+
+### Usage Examples
+
+#### Enrolling a Student in Multiple Courses
+
+```php
+$student = Student::find(1);
+
+// Set single fee amount for all courses
+$student->update([
+    'course_fees' => 8000,  // Single fee for all courses
+    'down_payment' => 2000,
+    'no_of_installments' => 4
+]);
+
+// Enroll in multiple courses
+$student->courses()->attach([
+    1 => [
+        'enrollment_date' => now(),
+        'course_taken' => 'Full Stack Development',
+        'batch_time' => 'Morning',
+        'incharge_name' => 'John Doe'
+    ],
+    2 => [
+        'enrollment_date' => now(),
+        'course_taken' => 'Data Science',
+        'batch_time' => 'Evening',
+        'incharge_name' => 'Jane Smith'
+    ]
+]);
+```
+
+#### Getting Student Course Information
+
+```php
+$student = Student::with('courses')->find(1);
+
+// Display single fee for all courses
+echo "Total Fees: ₹" . $student->course_fees;
+
+foreach ($student->courses as $course) {
+    echo $course->name . ' - Enrollment: ' . $course->pivot->enrollment_date;
+    echo ' - Batch: ' . $course->pivot->batch_time;
+}
+```
+
+#### Backward Compatibility
+
+```php
+// These still work due to accessor methods
+$student->course;        // Returns first enrolled course
+$student->course_id;     // Returns ID of first enrolled course
+$student->course_fees;   // Returns fees from students table
+$student->batch_time;    // Returns batch time from first course
+```
+
+### Form Integration
+
+The student creation and edit forms now support:
+
+- **Multi-select Course Dropdown**: Select multiple courses
+- **Automatic Fee Calculation**: Fees calculated from selected course prices
+- **Course Breakdown Display**: Shows individual course prices and total
+- **Real-time Updates**: Form updates as courses are selected/deselected
+
+### Migration Notes
+
+- **Data Preservation**: All existing student-course relationships preserved
+- **Seamless Transition**: Existing views continue to work
+- **Primary Course**: First enrolled course treated as "primary" for compatibility
+- **Fee Management**: All fees remain in students table for unified management
 
 ## 📧 Email Notification System
 
@@ -388,6 +504,31 @@ php artisan db:seed --class=UserWithRoleSeeder
 
 ## 💡 Usage Examples
 
+### Multiple Course Selection
+
+```php
+// Create student with multiple courses
+$student = Student::create([
+    'first_name' => 'John',
+    'fathers_name' => 'Doe',
+    'email' => 'john@example.com',
+    'course_fees' => 10000,  // Single fee for all courses
+    'center_id' => 1
+]);
+
+// Enroll in multiple courses
+$student->courses()->attach([
+    1 => ['enrollment_date' => now(), 'batch_time' => 'Morning'],
+    2 => ['enrollment_date' => now(), 'batch_time' => 'Evening']
+]);
+
+// Get all courses for a student
+$student = Student::with('courses')->find(1);
+foreach ($student->courses as $course) {
+    echo $course->name . ' - ' . $course->pivot->batch_time;
+}
+```
+
 ### Website Settings Management
 
 ```php
@@ -454,6 +595,22 @@ chmod -R 775 bootstrap/cache/
 ```
 
 ## 🔧 Command Reference
+
+### Multiple Course Management Commands
+
+```bash
+# Check student course enrollments
+php artisan tinker
+>>> Student::with('courses')->get()->each(function($s) { 
+...     echo $s->first_name . ' - Courses: ' . $s->courses->count() . "\n"; 
+... });
+
+# Verify course relationships
+php artisan tinker
+>>> Course::with('students')->get()->each(function($c) { 
+...     echo $c->name . ' - Students: ' . $c->students->count() . "\n"; 
+... });
+```
 
 ### Website Settings Commands
 
@@ -542,7 +699,12 @@ php artisan test --filter=QRServiceTest
    - Check queue worker: `php artisan queue:work`
    - Test email: `php artisan tinker` → test email
 
-4. **Website Settings Not Updating**:
+4. **Multiple Course Selection Issues**:
+   - Verify student_courses table exists: `php artisan migrate:status`
+   - Check course relationships: `php artisan tinker` → test relationships
+   - Clear model cache: `php artisan model:clear`
+
+5. **Website Settings Not Updating**:
    - Clear cache: `php artisan cache:clear`
    - Restart web server
    - Check file permissions
