@@ -253,7 +253,7 @@ class StudentQRService
     {
         return StudentQR::where('qr_token', $token)
             ->where('is_active', true)
-            ->with('student.center', 'student.course')
+            ->with('student.center', 'student.courses')
             ->first();
     }
 

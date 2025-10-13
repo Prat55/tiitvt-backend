@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Student extends Model
 {
@@ -14,7 +15,6 @@ class Student extends Model
 
     protected $fillable = [
         'center_id',
-        'course_id',
         'tiitvt_reg_no',
         'first_name',
         'fathers_name',
@@ -28,9 +28,6 @@ class Student extends Model
         'qualification',
         'additional_qualification',
         'reference',
-        'course_taken',
-        'batch_time',
-        'scheme_given',
         'course_fees',
         'down_payment',
         'no_of_installments',
@@ -38,7 +35,6 @@ class Student extends Model
         'enrollment_date',
         'student_image',
         'student_signature_image',
-        'incharge_name',
     ];
 
     protected $casts = [
@@ -51,7 +47,6 @@ class Student extends Model
         'age' => 'integer',
         'no_of_installments' => 'integer',
         'center_id' => 'integer',
-        'course_id' => 'integer',
     ];
 
     protected static function boot()
@@ -73,11 +68,27 @@ class Student extends Model
     }
 
     /**
-     * Get the course that owns the student.
+     * Get the courses that the student is enrolled in.
      */
-    public function course(): BelongsTo
+    public function courses(): BelongsToMany
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsToMany(Course::class, 'student_courses')
+            ->withPivot([
+                'enrollment_date',
+                'course_taken',
+                'batch_time',
+                'scheme_given',
+                'incharge_name'
+            ])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the student course enrollments.
+     */
+    public function studentCourses(): HasMany
+    {
+        return $this->hasMany(StudentCourse::class);
     }
 
     /**
@@ -195,6 +206,66 @@ class Student extends Model
     public function scopeSearch($query, $search)
     {
         return $query->whereAny(['first_name', 'fathers_name', 'surname', 'tiitvt_reg_no', 'mobile', 'email'], 'like', "%{$search}%");
+    }
+
+    /**
+     * Get the primary course for backward compatibility.
+     * Returns the first enrolled course.
+     */
+    public function getCourseAttribute()
+    {
+        // Check if courses are already loaded
+        if ($this->relationLoaded('courses')) {
+            return $this->courses->first();
+        }
+
+        // If not loaded, load the first course
+        return $this->courses()->first();
+    }
+
+    /**
+     * Get the primary course ID for backward compatibility.
+     */
+    public function getCourseIdAttribute()
+    {
+        $primaryCourse = $this->course; // Use the course accessor
+        return $primaryCourse ? $primaryCourse->id : null;
+    }
+
+    /**
+     * Get the primary course taken for backward compatibility.
+     */
+    public function getCourseTakenAttribute()
+    {
+        $primaryCourse = $this->course;
+        return $primaryCourse ? $primaryCourse->pivot->course_taken : null;
+    }
+
+    /**
+     * Get the primary course batch time for backward compatibility.
+     */
+    public function getBatchTimeAttribute()
+    {
+        $primaryCourse = $this->course;
+        return $primaryCourse ? $primaryCourse->pivot->batch_time : null;
+    }
+
+    /**
+     * Get the primary course scheme given for backward compatibility.
+     */
+    public function getSchemeGivenAttribute()
+    {
+        $primaryCourse = $this->course;
+        return $primaryCourse ? $primaryCourse->pivot->scheme_given : null;
+    }
+
+    /**
+     * Get the primary course incharge name for backward compatibility.
+     */
+    public function getInchargeNameAttribute()
+    {
+        $primaryCourse = $this->course;
+        return $primaryCourse ? $primaryCourse->pivot->incharge_name : null;
     }
 
     public function getInitials()

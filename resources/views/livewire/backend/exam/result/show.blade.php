@@ -411,7 +411,7 @@ new class extends Component {
                 <div class="space-y-3">
                     <div class="flex items-center gap-3">
                         <x-avatar placeholder="RT"
-                            title="{{ $examResult->student?->first_name ?? 'Unknown' }} {{ $examResult->student?->last_name ?? 'Student' }}"
+                            title="{{ $examResult->student?->first_name ?? 'Unknown' }}{{ $examResult->student?->fathers_name ? ' ' . $examResult->student->fathers_name : '' }}{{ $examResult->student?->surname ? ' ' . $examResult->student->surname : '' }}"
                             subtitle="{{ $examResult->student?->email ?? 'N/A' }}" class="!w-10" />
                     </div>
                     <div class="divider my-2"></div>

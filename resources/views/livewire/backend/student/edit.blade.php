@@ -76,7 +76,7 @@ new class extends Component {
 
     // Relationships
     public int $center_id = 0;
-    public int $course_id = 0;
+    public array $course_ids = [];
 
     // File uploads
     public $student_signature_image;
@@ -137,7 +137,22 @@ new class extends Component {
         $this->incharge_name = $this->student->incharge_name ?? '';
 
         $this->center_id = $this->student->center_id ?? 0;
-        $this->course_id = $this->student->course_id ?? 0;
+        $this->course_ids = $this->student->courses->pluck('id')->toArray();
+    }
+
+    // Computed properties
+    public function getSelectedCoursesProperty()
+    {
+        if (empty($this->course_ids)) {
+            return collect();
+        }
+
+        return Course::whereIn('id', $this->course_ids)->get();
+    }
+
+    public function getTotalCourseFeesProperty()
+    {
+        return $this->getSelectedCoursesProperty()->sum('price');
     }
 
     // Load existing installments and calculate totals
@@ -327,7 +342,7 @@ new class extends Component {
         return [
             'tiitvt_reg_no' => 'required|string|max:50|unique:students,tiitvt_reg_no,' . $this->student->id,
             'first_name' => 'required|string|max:100',
-            'fathers_name' => 'required|string|max:100',
+            'fathers_name' => 'nullable|string|max:100',
             'surname' => 'nullable|string|max:100',
             'address' => 'nullable|array',
             'address.street' => 'nullable|string|max:255',
@@ -353,7 +368,8 @@ new class extends Component {
             'enrollment_date' => 'nullable|date',
             'incharge_name' => 'nullable|string|max:100',
             'center_id' => 'required|exists:centers,id',
-            'course_id' => 'required|exists:courses,id',
+            'course_ids' => 'required|array|min:1',
+            'course_ids.*' => 'exists:courses,id',
             'student_signature_image' => 'nullable|image|max:2048',
             'student_image' => 'nullable|image|max:2048',
         ];
@@ -366,14 +382,14 @@ new class extends Component {
             'tiitvt_reg_no.required' => 'TIITVT Registration Number is required.',
             'tiitvt_reg_no.unique' => 'This TIITVT Registration Number already exists.',
             'first_name.required' => 'First name is required.',
-            'fathers_name.required' => 'Father\'s name is required.',
             'email.required' => 'Email is required.',
             'email.unique' => 'This email already exists.',
             'email.email' => 'Please enter a valid email address.',
             'course_fees.required' => 'Course fees is required.',
             'down_payment.lte' => 'Down payment cannot exceed course fees.',
             'center_id.required' => 'Please select a center.',
-            'course_id.required' => 'Please select a course.',
+            'course_ids.required' => 'Please select at least one course.',
+            'course_ids.min' => 'Please select at least one course.',
         ];
     }
 
@@ -436,7 +452,6 @@ new class extends Component {
                 'enrollment_date' => $this->enrollment_date ?: null,
                 'incharge_name' => $this->incharge_name,
                 'center_id' => $this->center_id,
-                'course_id' => $this->course_id,
             ];
 
             if ($this->student_signature_image) {
@@ -456,6 +471,21 @@ new class extends Component {
             }
 
             $this->student->update($data);
+
+            // Update course enrollments
+            if (!empty($this->course_ids)) {
+                $courseEnrollments = [];
+                foreach ($this->course_ids as $courseId) {
+                    $courseEnrollments[$courseId] = [
+                        'enrollment_date' => $this->enrollment_date ?: now(),
+                        'course_taken' => $this->course_taken,
+                        'batch_time' => $this->batch_time,
+                        'scheme_given' => $this->scheme_given,
+                        'incharge_name' => $this->incharge_name,
+                    ];
+                }
+                $this->student->courses()->sync($courseEnrollments);
+            }
 
             // Handle installment updates if needed
             if (($this->no_of_installments ?? 0) > 0 && $this->remaining_amount > 0) {
@@ -610,6 +640,26 @@ new class extends Component {
     }
 
     // Calculate age from date of birth
+    public function updatedCourseIds(): void
+    {
+        if (!empty($this->course_ids)) {
+            // Calculate total fees from selected courses
+            $totalFees = 0;
+
+            foreach ($this->course_ids as $courseId) {
+                $course = Course::find($courseId);
+                if ($course && $course->price) {
+                    $totalFees += $course->price;
+                }
+            }
+
+            if ($totalFees > 0) {
+                $this->course_fees = $totalFees;
+                $this->calculateInstallments();
+            }
+        }
+    }
+
     public function updatedDateOfBirth(): void
     {
         if ($this->date_of_birth) {
@@ -908,7 +958,7 @@ new class extends Component {
 
                 <x-input label="First Name" wire:model="first_name" placeholder="Enter first name" icon="o-user" />
 
-                <x-input label="Father's Name" wire:model="fathers_name" placeholder="Enter father's name"
+                <x-input label="Father's Name" wire:model="fathers_name" placeholder="Enter father's name (optional)"
                     icon="o-user" />
 
                 <x-input label="Surname" wire:model="surname" placeholder="Enter surname (optional)" icon="o-user" />
@@ -925,8 +975,9 @@ new class extends Component {
                         icon="o-building-office" :options="$centers" single searchable clearable />
                 @endrole
 
-                <x-choices-offline label="Course" wire:model="course_id" placeholder="Select course"
-                    icon="o-academic-cap" :options="$courses" single searchable clearable />
+                <x-choices-offline label="Courses" wire:model="course_ids" placeholder="Select courses"
+                    icon="o-academic-cap" :options="$courses" searchable clearable
+                    hint="Select one or more courses for the student" />
 
                 <x-input label="Course Taken" wire:model="course_taken" placeholder="Enter course taken (optional)"
                     icon="o-book-open" />
@@ -1008,7 +1059,8 @@ new class extends Component {
                 </div>
 
                 <x-input label="Course Fees" wire:model.live="course_fees" step="0.01"
-                    placeholder="Enter course fees" icon="o-currency-rupee" />
+                    placeholder="Enter course fees" icon="o-currency-rupee"
+                    hint="{{ $this->selectedCourses->count() > 0 ? 'Automatically calculated from selected courses' : 'Enter total course fees' }}" />
 
                 <x-input label="Down Payment" wire:model.live="down_payment" step="0.01"
                     placeholder="Enter down payment (optional)" icon="o-currency-rupee"
@@ -1035,9 +1087,29 @@ new class extends Component {
                         <h3 class="text-lg font-semibold text-primary mb-4">Fees Summary</h3>
 
                         <div class="bg-base-200 rounded-lg p-4 space-y-3">
+                            @if ($this->selectedCourses->count() > 0)
+                                <div class="mb-4">
+                                    <h5 class="font-medium text-sm text-gray-600 mb-2">Course Breakdown:</h5>
+                                    @foreach ($this->selectedCourses as $course)
+                                        <div class="flex justify-between items-center text-sm py-1">
+                                            <span>{{ $course->name }}</span>
+                                            <span class="font-medium">₹{{ number_format($course->price, 2) }}</span>
+                                        </div>
+                                    @endforeach
+                                    <div class="border-t border-gray-300 pt-2 mt-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium">Subtotal:</span>
+                                            <span
+                                                class="font-bold">{{ $this->formatCurrency($this->totalCourseFees) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div class="flex justify-between items-center">
                                 <span class="font-medium">Total Course Fees:</span>
-                                <span class="font-bold text-lg">{{ $this->formatCurrency($total_payable ?? 0) }}</span>
+                                <span
+                                    class="font-bold text-lg">{{ $this->formatCurrency($total_payable ?? 0) }}</span>
                             </div>
 
                             @if (($down_payment ?? 0) > 0)

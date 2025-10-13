@@ -172,7 +172,7 @@ class ExamService
      */
     public function getStudentCourse(int $studentId): ?Course
     {
-        $student = Student::with('course')->find($studentId);
+        $student = Student::with('courses')->find($studentId);
         return $student?->course;
     }
 

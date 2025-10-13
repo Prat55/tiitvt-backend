@@ -90,7 +90,7 @@ new class extends Component {
 
     public function rendering(View $view): void
     {
-        $query = Student::with(['center', 'course']);
+        $query = Student::with(['center', 'courses']);
 
         // Apply center filter for center users
         if (hasAuthRole(RolesEnum::Center->value)) {

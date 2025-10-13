@@ -207,7 +207,10 @@ new class extends Component {
 
         $searchTerm = strtolower($this->studentSearch);
 
-        $query = Student::where('course_id', $this->selectedCourse);
+        $selectedCourse = $this->selectedCourse;
+        $query = Student::whereHas('courses', function ($q) use ($selectedCourse) {
+            $q->where('course_id', $selectedCourse);
+        });
 
         if (hasAuthRole(RolesEnum::Center->value)) {
             $query->where('center_id', auth()->user()->center->id);
@@ -248,7 +251,10 @@ new class extends Component {
             return;
         }
 
-        $query = Student::where('course_id', $this->selectedCourse);
+        $selectedCourse = $this->selectedCourse;
+        $query = Student::whereHas('courses', function ($q) use ($selectedCourse) {
+            $q->where('course_id', $selectedCourse);
+        });
 
         if (hasAuthRole(RolesEnum::Center->value)) {
             $query->where('center_id', auth()->user()->center->id);

@@ -40,7 +40,7 @@ new class extends Component {
         $student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'course_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments')
             ->where('tiitvt_reg_no', $this->tiitvt_reg_no)
             ->where('date_of_birth', $this->date_of_birth)
-            ->with(['center', 'course'])
+            ->with(['center', 'courses'])
             ->first();
 
         if (!$student) {

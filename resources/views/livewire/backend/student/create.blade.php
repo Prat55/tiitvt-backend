@@ -114,7 +114,7 @@ new class extends Component {
 
     // Relationships
     public int $center_id = 0;
-    public $course_id = 0;
+    public array $course_ids = [];
 
     // File uploads
     public $student_signature_image;
@@ -127,7 +127,7 @@ new class extends Component {
     {
         return [
             'first_name' => 'required|string|max:100',
-            'fathers_name' => 'required|string|max:100',
+            'fathers_name' => 'nullable|string|max:100',
             'surname' => 'nullable|string|max:100',
             'address' => 'nullable|array',
             'address.street' => 'required|string|max:190',
@@ -143,7 +143,7 @@ new class extends Component {
             'qualification' => 'required|string|max:500',
             'additional_qualification' => 'nullable|string|max:500',
             'reference' => 'nullable|string|max:100',
-            'batch_time' => 'required|string|max:100',
+            'batch_time' => 'nullable|string|max:100',
             'scheme_given' => 'nullable|string|max:500',
             'course_fees' => 'required|numeric|min:0',
             'down_payment' => 'nullable|numeric|min:0|lte:course_fees',
@@ -152,7 +152,8 @@ new class extends Component {
             'enrollment_date' => 'nullable|date',
             'incharge_name' => 'nullable|string|max:100',
             'center_id' => 'required|exists:centers,id',
-            'course_id' => 'required|exists:courses,id',
+            'course_ids' => 'required|array|min:1',
+            'course_ids.*' => 'exists:courses,id',
             'student_signature_image' => 'nullable|image|max:2048',
             'student_image' => 'nullable|image|max:2048',
         ];
@@ -163,13 +164,13 @@ new class extends Component {
     {
         return [
             'first_name.required' => 'First name is required.',
-            'fathers_name.required' => 'Father\'s name is required.',
             'email.required' => 'Email is required.',
             'email.email' => 'Please enter a valid email address.',
             'course_fees.required' => 'Course fees is required.',
             'down_payment.lte' => 'Down payment cannot exceed course fees.',
             'center_id.required' => 'Please select a center.',
-            'course_id.required' => 'Please select a course.',
+            'course_ids.required' => 'Please select at least one course.',
+            'course_ids.min' => 'Please select at least one course.',
             'address.street.required' => 'Street field is required',
             'address.city.required' => 'City field is required',
             'address.state.required' => 'State field is required',
@@ -219,8 +220,6 @@ new class extends Component {
             'qualification' => $this->qualification,
             'additional_qualification' => $this->additional_qualification,
             'reference' => $this->reference,
-            'batch_time' => $this->batch_time,
-            'scheme_given' => $this->scheme_given,
             'course_fees' => $this->course_fees,
             'down_payment' => $this->down_payment ?: null,
             'no_of_installments' => $this->no_of_installments ?: null,
@@ -228,7 +227,6 @@ new class extends Component {
             'enrollment_date' => $this->enrollment_date ?: null,
             'incharge_name' => $this->incharge_name,
             'center_id' => $this->center_id,
-            'course_id' => $this->course_id,
         ];
 
         if ($this->student_signature_image) {
@@ -239,6 +237,21 @@ new class extends Component {
         }
 
         $student = Student::create($data);
+
+        // Enroll student in selected courses
+        if (!empty($this->course_ids)) {
+            $courseEnrollments = [];
+            foreach ($this->course_ids as $courseId) {
+                $courseEnrollments[$courseId] = [
+                    'enrollment_date' => $this->enrollment_date ?: now(),
+                    'course_taken' => $this->course_taken,
+                    'batch_time' => $this->batch_time,
+                    'scheme_given' => $this->scheme_given,
+                    'incharge_name' => $this->incharge_name,
+                ];
+            }
+            $student->courses()->attach($courseEnrollments);
+        }
 
         // Generate QR code for the student
         $studentQRService = app(StudentQRService::class);
@@ -266,7 +279,7 @@ new class extends Component {
     // Reset form
     public function resetForm(): void
     {
-        $this->reset(['first_name', 'fathers_name', 'surname', 'address', 'telephone_no', 'email', 'mobile', 'date_of_birth', 'age', 'qualification', 'additional_qualification', 'reference', 'batch_time', 'scheme_given', 'course_fees', 'down_payment', 'no_of_installments', 'installment_date', 'enrollment_date', 'incharge_name', 'center_id', 'course_id', 'student_signature_image', 'student_image']);
+        $this->reset(['first_name', 'fathers_name', 'surname', 'address', 'telephone_no', 'email', 'mobile', 'date_of_birth', 'age', 'qualification', 'additional_qualification', 'reference', 'batch_time', 'scheme_given', 'course_fees', 'down_payment', 'no_of_installments', 'installment_date', 'enrollment_date', 'incharge_name', 'center_id', 'course_ids', 'student_signature_image', 'student_image']);
         $this->resetValidation();
         $this->address = [
             'street' => '',
@@ -537,23 +550,51 @@ new class extends Component {
         }
     }
 
-    public function updatedCourseId(): void
+    public function updatedCourseIds(): void
     {
-        if ($this->course_id) {
-            $course = Course::find($this->course_id);
-            if ($course && $course->price) {
-                $this->course_fees = $course->price;
-                // Set default number of installments to 1 when course is selected
+        if (!empty($this->course_ids)) {
+            // Calculate total fees from selected courses
+            $totalFees = 0;
+            $courseDetails = [];
+
+            foreach ($this->course_ids as $courseId) {
+                $course = Course::find($courseId);
+                if ($course && $course->price) {
+                    $totalFees += $course->price;
+                    $courseDetails[] = [
+                        'name' => $course->name,
+                        'price' => $course->price,
+                    ];
+                }
+            }
+
+            if ($totalFees > 0) {
+                $this->course_fees = $totalFees;
+                // Set default number of installments to 1 when courses are selected
                 if ($this->no_of_installments == 0) {
                     $this->no_of_installments = 1;
                 }
-
                 $this->calculateInstallments();
             }
         } else {
             $this->course_fees = 0;
             $this->calculateInstallments();
         }
+    }
+
+    // Computed properties
+    public function getSelectedCoursesProperty()
+    {
+        if (empty($this->course_ids)) {
+            return collect();
+        }
+
+        return Course::whereIn('id', $this->course_ids)->get();
+    }
+
+    public function getTotalCourseFeesProperty()
+    {
+        return $this->getSelectedCoursesProperty()->sum('price');
     }
 
     // Toggle installment amount editing mode
@@ -708,7 +749,7 @@ new class extends Component {
 
                 <x-input label="First Name" wire:model="first_name" placeholder="Enter first name" icon="o-user" />
 
-                <x-input label="Father's Name" wire:model="fathers_name" placeholder="Enter father's name"
+                <x-input label="Father's Name" wire:model="fathers_name" placeholder="Enter father's name (optional)"
                     icon="o-user" />
 
                 <x-input label="Surname" wire:model="surname" placeholder="Enter surname (optional)" icon="o-user" />
@@ -725,9 +766,9 @@ new class extends Component {
                         icon="o-building-office" :options="$centers" single searchable clearable />
                 @endrole
 
-                <x-choices-offline label="Course" wire:model.live="course_id" placeholder="Select course"
-                    icon="o-academic-cap" :options="$courses" single searchable clearable
-                    hint="Course price will be automatically loaded when a course is selected" />
+                <x-choices-offline label="Courses" wire:model.live="course_ids" placeholder="Select courses"
+                    icon="o-academic-cap" :options="$courses" searchable clearable
+                    hint="Select one or more courses for the student" />
 
                 <x-input label="Batch Time" wire:model="batch_time" placeholder="Enter batch time (optional)" />
 
@@ -801,7 +842,8 @@ new class extends Component {
                 </div>
 
                 <x-input label="Course Fees" wire:model.live="course_fees" placeholder="Enter course fees"
-                    icon="o-currency-rupee" />
+                    icon="o-currency-rupee"
+                    hint="{{ $this->selectedCourses->count() > 0 ? 'Automatically calculated from selected courses' : 'Enter total course fees' }}" />
 
                 <x-input label="Down Payment" wire:model.live="down_payment"
                     placeholder="Enter down payment (optional)" icon="o-currency-rupee"
@@ -828,6 +870,25 @@ new class extends Component {
                         <h3 class="text-lg font-semibold text-primary mb-4">Fees Summary</h3>
 
                         <div class="bg-base-200 rounded-lg p-4 space-y-3">
+                            @if ($this->selectedCourses->count() > 0)
+                                <div class="mb-4">
+                                    <h5 class="font-medium text-sm text-gray-600 mb-2">Course Breakdown:</h5>
+                                    @foreach ($this->selectedCourses as $course)
+                                        <div class="flex justify-between items-center text-sm py-1">
+                                            <span>{{ $course->name }}</span>
+                                            <span class="font-medium">₹{{ number_format($course->price, 2) }}</span>
+                                        </div>
+                                    @endforeach
+                                    <div class="border-t border-gray-300 pt-2 mt-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium">Subtotal:</span>
+                                            <span
+                                                class="font-bold">{{ $this->formatCurrency($this->totalCourseFees) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div class="flex justify-between items-center">
                                 <span class="font-medium">Total Course Fees:</span>
                                 <span class="font-bold text-lg">{{ $this->formatCurrency($total_payable) }}</span>

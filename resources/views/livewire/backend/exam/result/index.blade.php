@@ -478,7 +478,7 @@ new class extends Component {
                                     <td>
                                         <div class="flex items-center gap-3">
                                             <x-avatar placeholder="{{ $student->getInitials() }}"
-                                                title="{{ $student->first_name }} {{ $student->surname }}"
+                                                title="{{ $student->first_name }}{{ $student->fathers_name ? ' ' . $student->fathers_name : '' }}{{ $student->surname ? ' ' . $student->surname : '' }}"
                                                 subtitle="{{ $student->email }}" class="!w-10" />
                                         </div>
                                     </td>

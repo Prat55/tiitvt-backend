@@ -303,7 +303,7 @@ new class extends Component {
         )[0];
 
         // Get students data for the table - filtered by center ID for security
-        $students = Student::with('course:id,name')->where('center_id', $center->id)->orderBy('tiitvt_reg_no', 'desc')->limit(10)->get();
+        $students = Student::with('courses:id,name')->where('center_id', $center->id)->orderBy('tiitvt_reg_no', 'desc')->limit(10)->get();
 
         return [
             'total_students' => $stats->total_students,
@@ -343,7 +343,7 @@ new class extends Component {
         // Optimized queries with proper eager loading and limits
         return [
             'enrollments' => Student::select('id', 'first_name', 'surname', 'created_at', 'center_id', 'course_id')
-                ->with(['center:id,name', 'course:id,name'])
+                ->with(['center:id,name', 'courses:id,name'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get(),
@@ -370,7 +370,7 @@ new class extends Component {
         $studentIds = $center->students()->pluck('id');
 
         return [
-            'enrollments' => Student::select('id', 'first_name', 'surname', 'created_at', 'course_id')->with('course:id,name')->where('center_id', $center->id)->orderBy('created_at', 'desc')->limit(5)->get(),
+            'enrollments' => Student::select('id', 'first_name', 'surname', 'created_at', 'course_id')->with('courses:id,name')->where('center_id', $center->id)->orderBy('created_at', 'desc')->limit(5)->get(),
 
             'exam_results' => ExamResult::select('id', 'student_id', 'exam_id', 'score', 'result_status', 'created_at')
                 ->with(['student:id,first_name,surname', 'exam:id,title'])

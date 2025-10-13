@@ -54,10 +54,10 @@ new class extends Component {
     {
         $view->students = $this->center
             ->students()
-            ->with('course')
+            ->with('courses')
             ->orderBy(...array_values($this->sortBy))
             ->whereAny(['tiitvt_reg_no', 'first_name', 'fathers_name', 'mobile', 'email', 'telephone_no'], 'like', "%$this->search%")
-            ->orWhereHas('course', function ($query) {
+            ->orWhereHas('courses', function ($query) {
                 $query->where('name', 'like', "%$this->search%");
             })
             ->paginate(20);

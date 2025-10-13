@@ -38,9 +38,9 @@ new class extends Component {
     public function mount($student)
     {
         if (hasAuthRole(RolesEnum::Admin->value)) {
-            $this->student = Student::with(['qrCode', 'center', 'course'])->findOrFail($student);
+            $this->student = Student::with(['qrCode', 'center', 'courses'])->findOrFail($student);
         } else {
-            $this->student = Student::with(['qrCode', 'center', 'course'])
+            $this->student = Student::with(['qrCode', 'center', 'courses'])
                 ->where('center_id', auth()->user()->center->id)
                 ->findOrFail($student);
         }

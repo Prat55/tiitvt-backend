@@ -63,11 +63,27 @@ class Course extends Model
     }
 
     /**
-     * Get the students for the course.
+     * Get the students enrolled in this course.
      */
-    public function students(): HasMany
+    public function students(): BelongsToMany
     {
-        return $this->hasMany(Student::class);
+        return $this->belongsToMany(Student::class, 'student_courses')
+            ->withPivot([
+                'enrollment_date',
+                'course_taken',
+                'batch_time',
+                'scheme_given',
+                'incharge_name'
+            ])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the student course enrollments for this course.
+     */
+    public function studentCourses(): HasMany
+    {
+        return $this->hasMany(StudentCourse::class);
     }
 
     /**

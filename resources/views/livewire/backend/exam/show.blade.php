@@ -347,8 +347,9 @@ new class extends Component {
                                         <x-icon name="o-user" class="w-4 h-4 text-primary" />
                                     </div>
                                     <div>
-                                        <p class="font-medium">{{ $examStudent->student->first_name }}
-                                            {{ $examStudent->student->fathers_name }}</p>
+                                        <p class="font-medium">
+                                            {{ $examStudent->student->first_name }}{{ $examStudent->student->fathers_name ? ' ' . $examStudent->student->fathers_name : '' }}{{ $examStudent->student->surname ? ' ' . $examStudent->student->surname : '' }}
+                                        </p>
                                         <p class="text-xs text-gray-500">
                                             {{ $examStudent->student->email ?? 'No email' }}</p>
                                     </div>

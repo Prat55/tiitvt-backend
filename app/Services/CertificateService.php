@@ -179,7 +179,7 @@ class CertificateService
     {
         return Certificate::where('qr_token', $token)
             ->where('status', 'active')
-            ->with(['student', 'course'])
+            ->with(['student', 'courses'])
             ->first();
     }
 
@@ -210,7 +210,7 @@ class CertificateService
      */
     public function getStudentCertificates(Student $student): \Illuminate\Database\Eloquent\Collection
     {
-        return $student->certificates()->with('course')->get();
+        return $student->certificates()->with('courses')->get();
     }
 
     /**
