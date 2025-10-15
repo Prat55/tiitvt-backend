@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\StudentController;
 use Livewire\Volt\Volt;
 use Illuminate\Support\Facades\Route;
 
@@ -173,16 +175,6 @@ Route::get('/certificate/external/show/{id}', function ($id) {
 // Student QR verification route (public) - by QR token using Volt
 Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');
 
-// Modern certificate display route (public)
-Route::get('/certificate/{id}', function ($id) {
-    $certificate = \App\Models\ExternalCertificate::with('center')->findOrFail($id);
-
-    // Generate QR code data URI if not exists
-    $qrDataUri = null;
-    if ($certificate->qr_code_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($certificate->qr_code_path)) {
-        $contents = \Illuminate\Support\Facades\Storage::disk('public')->get($certificate->qr_code_path);
-        $qrDataUri = 'data:image/png;base64,' . base64_encode($contents);
-    }
-
-    return view('certificates.modern-display', compact('certificate', 'qrDataUri'));
-})->name('certificate.display');
+Route::get('/certificate/{id}', [CertificateController::class, 'display'])->name('certificate.display');
+Route::get('/certificate/preview/{regNo}', [CertificateController::class, 'preview'])->name('certificate.exam.preview');
+Route::get('/student/result/{regNo}', [StudentController::class, 'resultView'])->name('student.result.view');

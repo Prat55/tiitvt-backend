@@ -393,6 +393,9 @@ new class extends Component {
             @endif
             <x-button label="View Answers" icon="o-document-text" class="btn-info btn-sm"
                 wire:click="openAnswersModal" />
+            <x-button label="Preview Certificate" icon="o-document" class="btn-success btn-sm"
+                link="{{ route('certificate.exam.preview', str_replace('/', '_', $examResult->student->tiitvt_reg_no)) }}"
+                target="_blank" />
             <x-button label="Back to Results" icon="o-arrow-left" class="btn-ghost btn-sm"
                 link="{{ route('admin.exam.results') }}" />
         </div>

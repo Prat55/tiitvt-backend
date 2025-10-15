@@ -268,7 +268,17 @@ class CertificateService
      */
     public function generateCertificateQRCodeWithLogo(string $token, int $certificateId): string
     {
-        $verificationUrl = route('certificate.display', $certificateId);
+        // Get the external certificate to find the registration number
+        $certificate = \App\Models\ExternalCertificate::find($certificateId);
+
+        if (!$certificate) {
+            // Fallback to certificate display if certificate not found
+            $verificationUrl = route('certificate.display', $certificateId);
+        } else {
+            // Point to student result view using registration number
+            $verificationUrl = route('student.result.view', str_replace('/', '_', $certificate->reg_no));
+        }
+
         $logoPath = $this->getQrLogoPath();
 
         $builder = Builder::create()
