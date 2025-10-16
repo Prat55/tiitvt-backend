@@ -348,38 +348,6 @@ new class extends Component {
                             </x-card>
                         @endif
 
-                        <!-- Financial Information -->
-                        <x-card title="Financial Information" class="bg-base-200">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                <div class="text-center p-3 sm:p-4 bg-base-100 rounded-lg">
-                                    <x-icon name="o-currency-rupee"
-                                        class="h-6 w-6 sm:h-8 sm:w-8 text-green-600 mx-auto mb-2" />
-                                    <p class="text-xs sm:text-sm font-medium">Course Fees</p>
-                                    <p class="text-lg sm:text-xl font-bold">
-                                        ₹{{ number_format($student->course_fees, 2) }}</p>
-                                </div>
-                                @if ($student->down_payment)
-                                    <div class="text-center p-3 sm:p-4 bg-base-100 rounded-lg">
-                                        <x-icon name="o-banknotes"
-                                            class="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mx-auto mb-2" />
-                                        <p class="text-xs sm:text-sm font-medium">Down Payment</p>
-                                        <p class="text-lg sm:text-xl font-bold">
-                                            ₹{{ number_format($student->down_payment, 2) }}</p>
-                                    </div>
-                                @endif
-                                @if ($student->no_of_installments)
-                                    <div
-                                        class="text-center p-3 sm:p-4 bg-base-100 rounded-lg sm:col-span-2 lg:col-span-1">
-                                        <x-icon name="o-calendar-days"
-                                            class="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 mx-auto mb-2" />
-                                        <p class="text-xs sm:text-sm font-medium">Installments</p>
-                                        <p class="text-lg sm:text-xl font-bold">
-                                            {{ $student->no_of_installments }}</p>
-                                    </div>
-                                @endif
-                            </div>
-                        </x-card>
-
                         <!-- Exam Results -->
                         @if ($student->examResults && $student->examResults->count() > 0)
                             <x-card title="Exam Results" class="bg-base-200">
