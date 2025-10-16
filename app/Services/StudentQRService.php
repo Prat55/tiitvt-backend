@@ -253,7 +253,10 @@ class StudentQRService
     {
         return StudentQR::where('qr_token', $token)
             ->where('is_active', true)
-            ->with('student.center', 'student.courses')
+            ->with(['student' => function ($query) {
+                $query->select('id', 'tiitvt_reg_no', 'first_name', 'fathers_name', 'surname', 'center_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments')
+                    ->with(['center:id,name', 'courses:id,name']);
+            }])
             ->first();
     }
 

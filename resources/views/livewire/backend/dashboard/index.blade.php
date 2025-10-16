@@ -342,7 +342,7 @@ new class extends Component {
     {
         // Optimized queries with proper eager loading and limits
         return [
-            'enrollments' => Student::select('id', 'first_name', 'surname', 'created_at', 'center_id', 'course_id')
+            'enrollments' => Student::select('id', 'first_name', 'surname', 'created_at', 'center_id')
                 ->with(['center:id,name', 'courses:id,name'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
@@ -370,7 +370,7 @@ new class extends Component {
         $studentIds = $center->students()->pluck('id');
 
         return [
-            'enrollments' => Student::select('id', 'first_name', 'surname', 'created_at', 'course_id')->with('courses:id,name')->where('center_id', $center->id)->orderBy('created_at', 'desc')->limit(5)->get(),
+            'enrollments' => Student::select('id', 'first_name', 'surname', 'created_at')->with('courses:id,name')->where('center_id', $center->id)->orderBy('created_at', 'desc')->limit(5)->get(),
 
             'exam_results' => ExamResult::select('id', 'student_id', 'exam_id', 'score', 'result_status', 'created_at')
                 ->with(['student:id,first_name,surname', 'exam:id,title'])
@@ -393,7 +393,13 @@ new class extends Component {
         return [
             'exam_results' => ExamResult::select('id', 'exam_id', 'score', 'result_status', 'created_at')->with('exam:id,title')->where('student_id', $student->id)->orderBy('created_at', 'desc')->limit(5)->get(),
 
-            'upcoming_exams' => Exam::select('id', 'title', 'course_id', 'duration')->with('course:id,name')->where('is_active', true)->where('course_id', $student->course_id)->orderBy('created_at', 'desc')->limit(5)->get(),
+            'upcoming_exams' => Exam::select('id', 'title', 'course_id', 'duration')
+                ->with('course:id,name')
+                ->where('is_active', true)
+                ->whereIn('course_id', $student->courses->pluck('id'))
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get(),
         ];
     }
 

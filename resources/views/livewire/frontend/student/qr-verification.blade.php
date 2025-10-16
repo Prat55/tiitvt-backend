@@ -37,10 +37,10 @@ new class extends Component {
         }
 
         // Find student by registration number and date of birth
-        $student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'course_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments')
+        $student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments')
             ->where('tiitvt_reg_no', $this->tiitvt_reg_no)
             ->where('date_of_birth', $this->date_of_birth)
-            ->with(['center', 'courses'])
+            ->with(['center', 'courses', 'examResults.exam.course', 'examResults.category'])
             ->first();
 
         if (!$student) {
@@ -61,6 +61,32 @@ new class extends Component {
     public function resetForm()
     {
         $this->reset(['tiitvt_reg_no', 'date_of_birth', 'student', 'verified', 'error_message']);
+    }
+
+    /**
+     * Calculate grade based on percentage
+     */
+    private function calculateGrade($percentage)
+    {
+        if ($percentage >= 90) {
+            return 'A+';
+        }
+        if ($percentage >= 80) {
+            return 'A';
+        }
+        if ($percentage >= 70) {
+            return 'B+';
+        }
+        if ($percentage >= 60) {
+            return 'B';
+        }
+        if ($percentage >= 50) {
+            return 'C+';
+        }
+        if ($percentage >= 40) {
+            return 'C';
+        }
+        return 'F';
     }
 }; ?>
 @section('cdn')
@@ -213,6 +239,101 @@ new class extends Component {
                                 @endif
                             </div>
                         </div>
+
+                        <!-- Exam Results and Certificates Section -->
+                        @if ($student->examResults && $student->examResults->count() > 0)
+                            <div class="bg-base-100 rounded-lg p-4 space-y-4">
+                                <h3 class="text-lg font-semibold text-primary-content border-b pb-2">
+                                    <x-icon name="o-academic-cap" class="inline w-5 h-5 mr-2" />
+                                    Exam Results & Certificates
+                                </h3>
+
+                                @php
+                                    $groupedResults = $student->examResults->groupBy('exam_id');
+                                @endphp
+
+                                @foreach ($groupedResults as $examId => $examResults)
+                                    @php
+                                        $exam = $examResults->first()->exam;
+                                        $overallPercentage = $examResults->avg('percentage');
+                                        $totalMarks = $examResults->sum('total_points') ?: $examResults->count() * 100;
+                                        $totalMarksObtained =
+                                            $examResults->sum('points_earned') ?: $examResults->sum('score');
+                                        $overallGrade = $this->calculateGrade($overallPercentage);
+                                    @endphp
+
+                                    <div class="border rounded-lg p-4 space-y-3">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-semibold text-primary-content">
+                                                    {{ $exam->course->name }}</h4>
+                                                <p class="text-sm text-gray-600">{{ $exam->name }}</p>
+                                                <p class="text-xs text-gray-500">
+                                                    {{ $exam->date ? $exam->date->format('d M Y') : 'Date not set' }}
+                                                </p>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-2xl font-bold text-primary">
+                                                    {{ number_format($overallPercentage, 1) }}%</div>
+                                                <div class="text-sm font-semibold text-gray-600">{{ $overallGrade }}
+                                                </div>
+                                                <div class="text-xs text-gray-500">
+                                                    {{ $totalMarksObtained }}/{{ $totalMarks }} marks
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Category-wise Results -->
+                                        <div class="space-y-2">
+                                            <h5 class="text-sm font-medium text-gray-700">Category-wise Results:</h5>
+                                            <div class="grid grid-cols-1 gap-2">
+                                                @foreach ($examResults as $result)
+                                                    @php
+                                                        $categoryGrade = $this->calculateGrade($result->percentage);
+                                                    @endphp
+                                                    <div
+                                                        class="flex justify-between items-center bg-gray-50 rounded px-3 py-2">
+                                                        <div>
+                                                            <span
+                                                                class="text-sm font-medium">{{ $result->category->name ?? 'Unknown Category' }}</span>
+                                                        </div>
+                                                        <div class="text-right">
+                                                            <span
+                                                                class="text-sm font-semibold">{{ number_format($result->percentage, 1) }}%</span>
+                                                            <span
+                                                                class="text-xs text-gray-600 ml-2">{{ $categoryGrade }}</span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        <!-- Certificate Link -->
+                                        <div class="pt-2 border-t">
+                                            <a href="{{ route('certificate.exam.preview', str_replace('/', '_', $student->tiitvt_reg_no)) }}"
+                                                target="_blank"
+                                                class="inline-flex items-center text-sm text-primary hover:text-primary-focus font-medium">
+                                                <x-icon name="o-document" class="w-4 h-4 mr-1" />
+                                                View Certificate
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="bg-base-100 rounded-lg p-4 space-y-4">
+                                <h3 class="text-lg font-semibold text-primary-content border-b pb-2">
+                                    <x-icon name="o-academic-cap" class="inline w-5 h-5 mr-2" />
+                                    Exam Results & Certificates
+                                </h3>
+                                <div class="text-center py-8">
+                                    <x-icon name="o-document-text" class="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                    <p class="text-gray-500">No exam results available yet.</p>
+                                    <p class="text-sm text-gray-400">Results will appear here once exams are completed.
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 @endif
             </div>

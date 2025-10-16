@@ -103,7 +103,9 @@ new class extends Component {
         }
 
         if ($this->selectedCourse) {
-            $query->where('course_id', $this->selectedCourse);
+            $query->whereHas('courses', function ($q) {
+                $q->where('course_id', $this->selectedCourse);
+            });
         }
 
         $view->students = $query->orderBy(...array_values($this->sortBy))->search($this->search)->paginate(20);
