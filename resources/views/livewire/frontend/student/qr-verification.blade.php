@@ -24,6 +24,12 @@ new class extends Component {
         if (!$this->studentQR) {
             abort(404, 'Student QR code not found or has been deactivated.');
         }
+
+        // Check if student is already verified in session
+        if (session()->has('qr_verified_student_' . $this->studentQR->student_id)) {
+            $this->student = session('qr_verified_student_' . $this->studentQR->student_id);
+            $this->verified = true;
+        }
     }
 
     public function verifyStudent()
@@ -56,11 +62,19 @@ new class extends Component {
 
         $this->student = $student;
         $this->verified = true;
+
+        // Store student data in session for persistence across page refreshes
+        session(['qr_verified_student_' . $student->id => $student]);
     }
 
     public function resetForm()
     {
         $this->reset(['tiitvt_reg_no', 'date_of_birth', 'student', 'verified', 'error_message']);
+
+        // Clear session data when form is reset
+        if ($this->studentQR && $this->studentQR->student_id) {
+            session()->forget('qr_verified_student_' . $this->studentQR->student_id);
+        }
     }
 
     /**
@@ -88,52 +102,75 @@ new class extends Component {
         }
         return 'F';
     }
+
+    /**
+     * Logout and clear session data
+     */
+    public function logout()
+    {
+        // Clear session data
+        if ($this->studentQR && $this->studentQR->student_id) {
+            session()->forget('qr_verified_student_' . $this->studentQR->student_id);
+        }
+
+        // Reset component state
+        $this->reset(['student', 'verified', 'error_message']);
+    }
 }; ?>
 @section('cdn')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 @endsection
-<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md mx-auto">
-        <div class="bg-base-100 shadow-lg rounded-lg overflow-hidden relative">
-            <div class="absolute top-0 right-0">
-                <x-theme-toggle class="w-12 h-12 btn-sm" lightTheme="light" darkTheme="dark" />
+<div class="min-h-screen bg-base-300 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header Card -->
+        <div class="bg-base-100 shadow-xl rounded-2xl overflow-hidden relative mb-8">
+            <div class="absolute top-4 right-4 flex gap-2">
+                @if ($verified)
+                    <x-button icon="o-arrow-right-on-rectangle" wire:click="logout"
+                        class="w-12 h-12 btn-sm btn-ghost btn-circle text-white" tooltip-left="Logout" />
+                @endif
+                <x-theme-toggle class="w-12 h-12 btn-sm text-white" lightTheme="light" darkTheme="dark" />
             </div>
 
             <!-- Header -->
-            <div class="bg-primary px-6 py-4">
-                <h1 class="text-xl font-semibold text-white text-center">
-                    Student Verification
-                </h1>
-                <p class="text-primary-content text-sm text-center mt-1">
-                    Verify your identity to view registration details
-                </p>
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-white/20 mb-4">
+                        <x-icon name="o-academic-cap" class="h-8 w-8 text-white" />
+                    </div>
+                    <h1 class="text-3xl font-bold text-white mb-2">
+                        Student Verification Portal
+                    </h1>
+                    <p class="text-blue-100 text-lg">
+                        TIITVT - Technology Institute of Information Technology & Vocational Training
+                    </p>
+                </div>
             </div>
 
-            <div class="p-6">
+            <div class="p-8">
                 @if (!$verified)
                     <!-- Verification Form -->
-                    <div class="space-y-6">
-                        <div class="text-center">
+                    <div class="max-w-md mx-auto">
+                        <div class="text-center mb-8">
                             <div
-                                class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary mb-4">
-                                <x-icon name="o-identification" class="h-6 w-6 text-primary-content" />
+                                class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                                <x-icon name="o-identification" class="h-8 w-8 text-blue-600" />
                             </div>
-                            <h2 class="text-lg font-medium text-primary-content">Verify Your Identity</h2>
-                            <p class="text-sm text-gray-600 mt-2">
-                                Please enter your TIITVT Registration Number and Date of Birth to view your registration
-                                details.
+                            <h2 class="text-2xl font-semibold mb-2">Verify Your Identity</h2>
+                            <p>
+                                Enter your TIITVT Registration Number and Date of Birth to access your academic records
                             </p>
                         </div>
 
                         @if ($error_message)
-                            <x-alert class="alert-error" title="Oops! Something went wrong"
+                            <x-alert class="alert-error mb-6" title="Verification Failed"
                                 description="{{ $error_message }}" />
                         @endif
 
-                        <form wire:submit.prevent="verifyStudent" class="space-y-4">
+                        <form wire:submit.prevent="verifyStudent" class="space-y-6">
                             <div>
-                                <x-input lable="TIITVT Registration Number" id="tiitvt_reg_no"
+                                <x-input label="TIITVT Registration Number" id="tiitvt_reg_no"
                                     wire:model="tiitvt_reg_no" icon="o-identification"
                                     placeholder="Enter your TIITVT Registration Number" readonly />
                             </div>
@@ -143,207 +180,283 @@ new class extends Component {
                                     required />
                             </div>
 
-                            <div class="flex space-x-3 justify-center">
-                                <x-button label="Verify Identity" type="submit" icon="o-check" class="btn-primary"
-                                    spinner="verifyStudent" />
-
-                                <x-button label="Reset" type="button" icon="o-x-mark" class="btn-error"
+                            <div class="flex space-x-4 justify-center">
+                                <x-button label="Verify Identity" type="submit" icon="o-check"
+                                    class="btn-primary btn-lg" spinner="verifyStudent" />
+                                <x-button label="Reset" type="button" icon="o-x-mark" class="btn-outline btn-lg"
                                     wire:click="resetForm" spinner="resetForm" />
                             </div>
                         </form>
                     </div>
                 @else
-                    <!-- Student Details Display -->
-                    <div class="space-y-6">
-                        <div class="text-center">
-                            <div
-                                class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary mb-4">
-                                <x-icon name="o-check" class="h-6 w-6 text-primary-content" />
-                            </div>
-                            <h2 class="text-lg font-medium text-primary-content">Verification Successful</h2>
-                            <p class="text-sm text-gray-600 mt-2">
-                                Your identity has been verified. Here are your registration details:
-                            </p>
-                        </div>
-
-                        <div class="bg-base-100 rounded-lg p-4 space-y-4">
-                            <div class="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label class="text-sm font-medium text-gray-500">Full Name</label>
-                                    <p class="text-lg font-semibold text-primary-content">{{ $student->full_name }}</p>
+                    <!-- Student Information Display -->
+                    <div class="space-y-8">
+                        <!-- Student Profile Header -->
+                        <x-card class="bg-base-200">
+                            <div class="flex items-center space-x-6">
+                                <div class="flex-shrink-0">
+                                    <div
+                                        class="h-20 w-20 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                                        <x-icon name="o-user" class="h-10 w-10 text-white" />
+                                    </div>
                                 </div>
-
-                                <div>
-                                    <label class="text-sm font-medium text-gray-500">TIITVT Registration Number</label>
-                                    <p class="text-lg font-semibold text-primary-content">{{ $student->tiitvt_reg_no }}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label
-                                        class="text-sm font-medium text-gray-500">Course{{ $student->courses->count() > 1 ? 's' : '' }}</label>
-                                    @if ($student->courses->count() > 0)
-                                        @if ($student->courses->count() == 1)
-                                            <p class="text-lg font-semibold text-primary-content">
-                                                {{ $student->courses->first()->name }}</p>
-                                        @else
-                                            <div class="space-y-1">
-                                                <p class="text-lg font-semibold text-primary-content">
-                                                    {{ $student->courses->first()->name }}</p>
-                                                <p class="text-sm text-gray-400">+{{ $student->courses->count() - 1 }}
-                                                    more course{{ $student->courses->count() > 2 ? 's' : '' }}</p>
-                                            </div>
+                                <div class="flex-1">
+                                    <h2 class="text-3xl font-bold mb-1">
+                                        {{ $student->first_name }}
+                                        @if ($student->fathers_name)
+                                            {{ $student->fathers_name }}
                                         @endif
-                                    @else
-                                        <p class="text-lg font-semibold text-primary-content">N/A</p>
+                                        @if ($student->surname)
+                                            {{ $student->surname }}
+                                        @endif
+                                    </h2>
+                                    <p class="text-xl mb-2">{{ $student->tiitvt_reg_no }}</p>
+                                    <div class="flex items-center space-x-4 text-sm">
+                                        <span class="flex items-center">
+                                            <x-icon name="o-building-office" class="h-4 w-4 mr-1" />
+                                            {{ $student->center->name ?? 'N/A' }}
+                                        </span>
+                                        @if ($student->enrollment_date)
+                                            <span class="flex items-center">
+                                                <x-icon name="o-calendar" class="h-4 w-4 mr-1" />
+                                                Enrolled:
+                                                {{ \Carbon\Carbon::parse($student->enrollment_date)->format('d M Y') }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </x-card>
+
+                        <!-- Information Grid -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Personal Information -->
+                            <x-card title="Personal Information" class="bg-base-200">
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center py-2 border-b border-base-300">
+                                        <span class="text-sm font-medium">Full Name</span>
+                                        <span class="text-sm font-semibold">
+                                            {{ $student->first_name }}
+                                            @if ($student->fathers_name)
+                                                {{ $student->fathers_name }}
+                                            @endif
+                                            @if ($student->surname)
+                                                {{ $student->surname }}
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                        <span class="text-sm font-medium">Registration Number</span>
+                                        <span class="text-sm font-semibold">{{ $student->tiitvt_reg_no }}</span>
+                                    </div>
+                                    @if ($student->date_of_birth)
+                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                            <span class="text-sm font-medium">Date of Birth</span>
+                                            <span
+                                                class="text-sm font-semibold">{{ \Carbon\Carbon::parse($student->date_of_birth)->format('d M Y') }}</span>
+                                        </div>
+                                    @endif
+                                    @if ($student->email)
+                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                            <span class="text-sm font-medium">Email</span>
+                                            <span class="text-sm font-semibold">{{ $student->email }}</span>
+                                        </div>
+                                    @endif
+                                    @if ($student->mobile)
+                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                            <span class="text-sm font-medium">Mobile</span>
+                                            <span class="text-sm font-semibold">{{ $student->mobile }}</span>
+                                        </div>
                                     @endif
                                 </div>
+                            </x-card>
 
-                                <div>
-                                    <label class="text-sm font-medium text-gray-500">Center</label>
-                                    <p class="text-lg font-semibold text-primary-content">
-                                        {{ $student->center->name ?? 'N/A' }}
-                                    </p>
+                            <!-- Academic Information -->
+                            <x-card title="Academic Information" class="bg-base-200">
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                        <span class="text-sm font-medium">Center</span>
+                                        <span
+                                            class="text-sm font-semibold">{{ $student->center->name ?? 'N/A' }}</span>
+                                    </div>
+                                    @if ($student->enrollment_date)
+                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                            <span class="text-sm font-medium">Enrollment Date</span>
+                                            <span
+                                                class="text-sm font-semibold">{{ \Carbon\Carbon::parse($student->enrollment_date)->format('d M Y') }}</span>
+                                        </div>
+                                    @endif
+                                    @if ($student->qualification)
+                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                            <span class="text-sm font-medium">Qualification</span>
+                                            <span class="text-sm font-semibold">{{ $student->qualification }}</span>
+                                        </div>
+                                    @endif
+                                    @if ($student->additional_qualification)
+                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
+                                            <span class="text-sm font-medium">Additional
+                                                Qualification</span>
+                                            <span
+                                                class="text-sm font-semibold">{{ $student->additional_qualification }}</span>
+                                        </div>
+                                    @endif
                                 </div>
+                            </x-card>
+                        </div>
 
-                                <div>
-                                    <label class="text-sm font-medium text-gray-500">Enrollment Date</label>
-                                    <p class="text-lg font-semibold text-primary-content">
-                                        {{ $student->enrollment_date ? $student->enrollment_date->format('d M Y') : 'N/A' }}
-                                    </p>
+                        <!-- Courses Enrolled -->
+                        @if ($student->courses && $student->courses->count() > 0)
+                            <x-card title="Enrolled Courses" class="bg-base-200">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    @foreach ($student->courses as $course)
+                                        <div class="bg-base-100 rounded-lg p-4">
+                                            <div class="flex items-start space-x-3">
+                                                <div class="flex-shrink-0">
+                                                    <div
+                                                        class="h-10 w-10 rounded-lg bg-blue-500 flex items-center justify-center">
+                                                        <x-icon name="o-book-open" class="h-5 w-5 text-white" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold mb-1">{{ $course->name }}
+                                                    </h4>
+                                                    @if ($course->pivot->enrollment_date)
+                                                        <p class="text-sm">
+                                                            Enrolled:
+                                                            {{ \Carbon\Carbon::parse($course->pivot->enrollment_date)->format('d M Y') }}
+                                                        </p>
+                                                    @endif
+                                                    @if ($course->pivot->batch_time)
+                                                        <p class="text-sm">
+                                                            Batch: {{ $course->pivot->batch_time }}
+                                                        </p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
+                            </x-card>
+                        @endif
 
-                                <div>
-                                    <label class="text-sm font-medium text-gray-500">Course Fees</label>
-                                    <p class="text-lg font-semibold text-primary-content">
-                                        ₹{{ number_format($student->course_fees, 2) }}
-                                    </p>
+                        <!-- Financial Information -->
+                        <x-card title="Financial Information" class="bg-base-200">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="text-center p-4 bg-base-100 rounded-lg">
+                                    <x-icon name="o-currency-rupee" class="h-8 w-8 text-green-600 mx-auto mb-2" />
+                                    <p class="text-sm font-medium">Course Fees</p>
+                                    <p class="text-xl font-bold">
+                                        ₹{{ number_format($student->course_fees, 2) }}</p>
                                 </div>
-
                                 @if ($student->down_payment)
-                                    <div>
-                                        <label class="text-sm font-medium text-gray-500">Down Payment</label>
-                                        <p class="text-lg font-semibold text-primary-content">
-                                            ₹{{ number_format($student->down_payment, 2) }}
-                                        </p>
+                                    <div class="text-center p-4 bg-base-100 rounded-lg">
+                                        <x-icon name="o-banknotes" class="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                                        <p class="text-sm font-medium">Down Payment</p>
+                                        <p class="text-xl font-bold">
+                                            ₹{{ number_format($student->down_payment, 2) }}</p>
                                     </div>
                                 @endif
-
                                 @if ($student->no_of_installments)
-                                    <div>
-                                        <label class="text-sm font-medium text-gray-500">Installments</label>
-                                        <p class="text-lg font-semibold text-primary-content">
-                                            {{ $student->no_of_installments }} installments
-                                        </p>
+                                    <div class="text-center p-4 bg-base-100 rounded-lg">
+                                        <x-icon name="o-calendar-days" class="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                                        <p class="text-sm font-medium">Installments</p>
+                                        <p class="text-xl font-bold">
+                                            {{ $student->no_of_installments }}</p>
                                     </div>
                                 @endif
                             </div>
-                        </div>
+                        </x-card>
 
-                        <!-- Exam Results and Certificates Section -->
+                        <!-- Exam Results -->
                         @if ($student->examResults && $student->examResults->count() > 0)
-                            <div class="bg-base-100 rounded-lg p-4 space-y-4">
-                                <h3 class="text-lg font-semibold text-primary-content border-b pb-2">
-                                    <x-icon name="o-academic-cap" class="inline w-5 h-5 mr-2" />
-                                    Exam Results & Certificates
-                                </h3>
-
+                            <x-card title="Exam Results" class="bg-base-200">
                                 @php
                                     $groupedResults = $student->examResults->groupBy('exam_id');
                                 @endphp
 
-                                @foreach ($groupedResults as $examId => $examResults)
-                                    @php
-                                        $exam = $examResults->first()->exam;
-                                        $overallPercentage = $examResults->avg('percentage');
-                                        $totalMarks = $examResults->sum('total_points') ?: $examResults->count() * 100;
-                                        $totalMarksObtained =
-                                            $examResults->sum('points_earned') ?: $examResults->sum('score');
-                                        $overallGrade = $this->calculateGrade($overallPercentage);
-                                    @endphp
+                                <div class="space-y-6">
+                                    @foreach ($groupedResults as $examId => $examResults)
+                                        @php
+                                            $exam = $examResults->first()->exam;
+                                            $overallPercentage = $examResults->avg('percentage');
+                                            $totalMarks =
+                                                $examResults->sum('total_points') ?: $examResults->count() * 100;
+                                            $totalMarksObtained =
+                                                $examResults->sum('points_earned') ?: $examResults->sum('score');
+                                            $overallGrade = $this->calculateGrade($overallPercentage);
+                                        @endphp
 
-                                    <div class="border rounded-lg p-4 space-y-3">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <h4 class="font-semibold text-primary-content">
-                                                    {{ $exam->course->name }}</h4>
-                                                <p class="text-sm text-gray-600">{{ $exam->name }}</p>
-                                                <p class="text-xs text-gray-500">
-                                                    {{ $exam->date ? $exam->date->format('d M Y') : 'Date not set' }}
-                                                </p>
-                                            </div>
-                                            <div class="text-right">
-                                                <div class="text-2xl font-bold text-primary">
-                                                    {{ number_format($overallPercentage, 1) }}%</div>
-                                                <div class="text-sm font-semibold text-gray-600">{{ $overallGrade }}
+                                        <div class="bg-base-100 rounded-xl p-6">
+                                            <div class="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h4 class="text-xl font-bold mb-1">
+                                                        {{ $exam->course->name }}</h4>
+                                                    <p class="mb-1">{{ $exam->name }}</p>
+                                                    <p class="text-sm">
+                                                        {{ $exam->date ? \Carbon\Carbon::parse($exam->date)->format('d M Y') : 'Date not set' }}
+                                                    </p>
                                                 </div>
-                                                <div class="text-xs text-gray-500">
-                                                    {{ $totalMarksObtained }}/{{ $totalMarks }} marks
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Category-wise Results -->
-                                        <div class="space-y-2">
-                                            <h5 class="text-sm font-medium text-gray-700">Category-wise Results:</h5>
-                                            <div class="grid grid-cols-1 gap-2">
-                                                @foreach ($examResults as $result)
-                                                    @php
-                                                        $categoryGrade = $this->calculateGrade($result->percentage);
-                                                    @endphp
-                                                    <div
-                                                        class="flex justify-between items-center bg-gray-50 rounded px-3 py-2">
-                                                        <div>
-                                                            <span
-                                                                class="text-sm font-medium">{{ $result->category->name ?? 'Unknown Category' }}</span>
-                                                        </div>
-                                                        <div class="text-right">
-                                                            <span
-                                                                class="text-sm font-semibold">{{ number_format($result->percentage, 1) }}%</span>
-                                                            <span
-                                                                class="text-xs text-gray-600 ml-2">{{ $categoryGrade }}</span>
-                                                        </div>
+                                                <div class="text-right">
+                                                    <div class="text-3xl font-bold mb-1">
+                                                        {{ number_format($overallPercentage, 1) }}%
                                                     </div>
-                                                @endforeach
+                                                    <div class="text-lg font-semibold mb-1">
+                                                        {{ $overallGrade }}</div>
+                                                    <div class="text-sm">
+                                                        {{ $totalMarksObtained }}/{{ $totalMarks }} marks
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Category-wise Results -->
+                                            <div class="space-y-3">
+                                                <h5 class="text-sm font-semibold uppercase tracking-wide">
+                                                    Category-wise Results</h5>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    @foreach ($examResults as $result)
+                                                        @php
+                                                            $categoryGrade = $this->calculateGrade($result->percentage);
+                                                        @endphp
+                                                        <div
+                                                            class="flex justify-between items-center bg-base-300 rounded-lg px-4 py-3">
+                                                            <div>
+                                                                <span class="text-sm font-medium">
+                                                                    {{ $result->category->name ?? 'Unknown Category' }}
+                                                                </span>
+                                                            </div>
+                                                            <div class="text-right">
+                                                                <span class="text-sm font-semibold">
+                                                                    {{ number_format($result->percentage, 1) }}%
+                                                                </span>
+                                                                <span class="text-xs ml-2">{{ $categoryGrade }}</span>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
                                             </div>
                                         </div>
-
-                                        <!-- Certificate Link -->
-                                        <div class="pt-2 border-t">
-                                            <a href="{{ route('certificate.exam.preview', str_replace('/', '_', $student->tiitvt_reg_no)) }}"
-                                                target="_blank"
-                                                class="inline-flex items-center text-sm text-primary hover:text-primary-focus font-medium">
-                                                <x-icon name="o-document" class="w-4 h-4 mr-1" />
-                                                View Certificate
-                                            </a>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @else
-                            <div class="bg-base-100 rounded-lg p-4 space-y-4">
-                                <h3 class="text-lg font-semibold text-primary-content border-b pb-2">
-                                    <x-icon name="o-academic-cap" class="inline w-5 h-5 mr-2" />
-                                    Exam Results & Certificates
-                                </h3>
-                                <div class="text-center py-8">
-                                    <x-icon name="o-document-text" class="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                    <p class="text-gray-500">No exam results available yet.</p>
-                                    <p class="text-sm text-gray-400">Results will appear here once exams are completed.
-                                    </p>
+                                    @endforeach
                                 </div>
-                            </div>
+                            </x-card>
+                        @else
+                            <x-card title="Exam Results" class="bg-base-200">
+                                <div class="text-center py-12">
+                                    <x-icon name="o-document-text" class="h-16 w-16 mx-auto mb-4" />
+                                    <h3 class="text-lg font-semibold mb-2">No Exam Results Available</h3>
+                                    <p>Exam results will appear here once you complete your examinations.</p>
+                                </div>
+                            </x-card>
                         @endif
                     </div>
                 @endif
             </div>
-
-            <!-- Footer -->
-            <div class="bg-base-100 px-6 py-4 text-center">
-                <p class="text-xs text-gray-500">
-                    This verification system is secure and your information is protected.
-                </p>
-            </div>
         </div>
-    </div>
-</div>
+
+        <!-- Footer -->
+        <div class="text-center text-sm">
+            <p class="flex items-center justify-center space-x-2">
+                <x-icon name="o-shield-check" class="h-4 w-4" />
+                <span>Secure Student Verification System</span>
+            </p>
+            <p class="mt-1">Generated on {{ now()->format('F d, Y \a\t g:i A') }}</p>
+        </div>
