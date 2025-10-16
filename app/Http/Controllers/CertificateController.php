@@ -50,15 +50,20 @@ class CertificateController extends Controller
             abort(404, 'Student not found');
         }
 
-        // Get the latest exam result for this student
-        $examResult = ExamResult::with(['exam.course', 'student'])
+        // Get all exam results for this student grouped by exam
+        $examResults = ExamResult::with(['exam.course', 'student', 'category'])
             ->where('student_id', $student->id)
-            ->latest()
-            ->first();
+            ->get()
+            ->groupBy('exam_id');
 
-        if (!$examResult) {
+        if ($examResults->isEmpty()) {
             abort(404, 'No exam result found for this student');
         }
+
+        // Get the latest exam (most recent)
+        $latestExamId = $examResults->keys()->max();
+        $latestExamResults = $examResults[$latestExamId];
+        $latestExamResult = $latestExamResults->first();
 
         // Generate QR code for the student using StudentQRService
         $qrDataUri = null;
@@ -72,27 +77,39 @@ class CertificateController extends Controller
         // Generate QR code data URI
         $qrDataUri = $this->studentQRService->generateQRCodeDataUri($studentQR->qr_data);
 
-        // Create certificate data from exam result
+        // Calculate overall statistics from all categories
+        $totalMarks = $latestExamResults->sum('total_points') ?: $latestExamResults->count() * 100;
+        $totalMarksObtained = $latestExamResults->sum('points_earned') ?: $latestExamResults->sum('score');
+        $overallPercentage = $totalMarks > 0 ? ($totalMarksObtained / $totalMarks) * 100 : 0;
+
+        // Create subjects array from categories
+        $subjects = $latestExamResults->map(function ($result) {
+            $maxMarks = $result->total_points ?: 100;
+            $obtainedMarks = $result->points_earned ?: $result->score;
+            $percentage = $maxMarks > 0 ? ($obtainedMarks / $maxMarks) * 100 : 0;
+
+            return [
+                'name' => $result->category->name ?? 'Subject',
+                'maximum' => $maxMarks,
+                'obtained' => round($obtainedMarks),
+                'result' => $percentage >= 50 ? 'PASS' : 'FAIL'
+            ];
+        })->values()->toArray();
+
+        // Create certificate data from exam results
         $certificate = (object) [
             'reg_no' => $student->tiitvt_reg_no,
             'student_name' => $student->first_name . ($student->fathers_name ? ' ' . $student->fathers_name : '') . ($student->surname ? ' ' . $student->surname : ''),
-            'course_name' => $examResult->exam->course->name,
-            'percentage' => $examResult->percentage,
-            'grade' => $this->calculateGrade($examResult->percentage),
-            'issued_on' => $examResult->submitted_at ?? now(),
+            'course_name' => $latestExamResult->exam->course->name,
+            'percentage' => round($overallPercentage, 2),
+            'grade' => $this->calculateGrade($overallPercentage),
+            'issued_on' => $latestExamResult->submitted_at ?? now(),
             'center_name' => $student->center->name ?? 'TIITVT',
             'data' => [
-                'subjects' => [
-                    [
-                        'name' => $examResult->exam->course->name,
-                        'maximum' => 100,
-                        'obtained' => round($examResult->percentage),
-                        'result' => $examResult->percentage >= 50 ? 'PASS' : 'FAIL'
-                    ]
-                ],
-                'total_marks' => 100,
-                'total_marks_obtained' => round($examResult->percentage),
-                'total_result' => $examResult->percentage >= 50 ? 'PASS' : 'FAIL'
+                'subjects' => $subjects,
+                'total_marks' => $totalMarks,
+                'total_marks_obtained' => round($totalMarksObtained),
+                'total_result' => $overallPercentage >= 50 ? 'PASS' : 'FAIL'
             ]
         ];
 
