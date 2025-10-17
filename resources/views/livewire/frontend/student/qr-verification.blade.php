@@ -146,7 +146,7 @@ new class extends Component {
                         Student Verification Portal
                     </h1>
                     <p class="text-blue-100 text-sm sm:text-base lg:text-lg">
-                        TIITVT - Technical Institute of Information Technology & Vocational Training
+                        TIITVT - Technical Institute for IT & Vocational Training
                     </p>
                 </div>
             </div>
