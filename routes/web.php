@@ -26,8 +26,8 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('certificate')->name('certificate.')->group(function () {
                 Volt::route('/', 'backend.certificate.index')->name('index');
                 Volt::route('/create', 'backend.certificate.create')->name('create');
-                Volt::route('/{certificate}/show', 'backend.certificate.show')->name('show');
                 Volt::route('/{certificate}/edit', 'backend.certificate.edit')->name('edit');
+                Route::get('/{id}/show', [CertificateController::class, 'display'])->name('show');
             });
 
             Route::prefix('center')->name('center.')->group(function () {
@@ -106,75 +106,7 @@ Route::get('/certificate/verify/{token}', function ($token) {
     return view('certificates.verify', compact('certificate'));
 })->name('certificate.verify');
 
-// External certificate show (PDF-like demo rendering)
-Route::get('/certificate/external/show/{id}', function ($id) {
-    $ext = \App\Models\ExternalCertificate::findOrFail($id);
-
-    // Map external certificate to expected variables in the blade
-    $certificate = (object) [
-        'tiitvt_reg_no' => $ext->reg_no,
-        'center_name' => $ext->center->name,
-        'issued_on' => $ext->issued_on ? \Illuminate\Support\Carbon::parse($ext->issued_on) : now(),
-        'qr_token' => $ext->qr_token,
-    ];
-
-    $student = (object) [
-        'full_name' => $ext->student_name,
-        'percentage' => $ext->percentage,
-        'grade' => $ext->grade,
-        'course' => (object) ['name' => $ext->course_name],
-        'examResult' => (object) ['data' => [
-            'subjects' => $ext->data['subjects'] ?? [],
-            'total_marks' => $ext->data['total_marks'] ?? null,
-            'total_marks_obtained' => $ext->data['total_marks_obtained'] ?? null,
-            'total_result' => $ext->data['total_result'] ?? null,
-        ]],
-    ];
-
-    $qrUrl = $ext->qr_code_path ? asset('storage/' . ltrim($ext->qr_code_path, '/')) : null;
-    $qrDataUri = null;
-    if ($ext->qr_code_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($ext->qr_code_path)) {
-        $contents = \Illuminate\Support\Facades\Storage::disk('public')->get($ext->qr_code_path);
-        $qrDataUri = 'data:image/png;base64,' . base64_encode($contents);
-    }
-
-    // Fallback: generate on the fly if missing
-    if (!$qrDataUri) {
-        try {
-            $verificationUrl = route('certificate.external.show', $ext->id);
-            $websiteSettings = app(\App\Services\WebsiteSettingsService::class);
-            $logoPath = null;
-            if (($s = $websiteSettings->getSettings()) && $s->qr_code_image) {
-                $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->path($s->qr_code_image);
-            }
-
-            $builder = Endroid\QrCode\Builder\Builder::create()
-                ->writer(new Endroid\QrCode\Writer\PngWriter())
-                ->writerOptions([])
-                ->data($verificationUrl)
-                ->encoding(new Endroid\QrCode\Encoding\Encoding('UTF-8'))
-                ->errorCorrectionLevel(Endroid\QrCode\ErrorCorrectionLevel::High)
-                ->size(300)
-                ->margin(10)
-                ->roundBlockSizeMode(Endroid\QrCode\RoundBlockSizeMode::Margin);
-
-            if ($logoPath && file_exists($logoPath)) {
-                $builder->logoPath($logoPath)->logoResizeToWidth(60)->logoPunchoutBackground(true);
-            }
-
-            $result = $builder->build();
-            $qrDataUri = $result->getDataUri();
-        } catch (\Throwable $e) {
-            // ignore
-        }
-    }
-
-    return view('certificates.tiiitvt-merit-external', compact('certificate', 'student', 'qrUrl', 'qrDataUri'));
-})->middleware(['web'])->name('certificate.external.show');
-
 // Student QR verification route (public) - by QR token using Volt
 Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');
 
-Route::get('/certificate/{id}', [CertificateController::class, 'display'])->name('certificate.display');
-Route::get('/certificate/preview/{regNo}', [CertificateController::class, 'preview'])->name('certificate.exam.preview');
 Route::get('/student/result/{regNo}', [StudentController::class, 'resultView'])->name('student.result.view');
