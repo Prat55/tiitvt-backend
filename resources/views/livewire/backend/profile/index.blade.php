@@ -251,14 +251,14 @@ new class extends Component {
     <x-modal wire:model="showChangePasswordModal" title="Change Password" class="backdrop-blur" separator>
         <x-form wire:submit.prevent="changePassword">
             <div class="space-y-4">
-                <x-input label="Current Password" wire:model.defer="currentPassword" type="password"
-                    placeholder="Enter your current password" required />
+                <x-password label="Current Password" wire:model.defer="currentPassword"
+                    placeholder="Enter your current password" required right icon="fas.lock" />
 
-                <x-input label="New Password" wire:model.defer="newPassword" type="password"
-                    placeholder="Enter your new password" required />
+                <x-password label="New Password" wire:model.defer="newPassword" placeholder="Enter your new password"
+                    required right icon="fas.lock" />
 
-                <x-input label="Confirm New Password" wire:model.defer="confirmPassword" type="password"
-                    placeholder="Confirm your new password" required />
+                <x-password label="Confirm New Password" wire:model.defer="confirmPassword"
+                    placeholder="Confirm your new password" required right icon="fas.lock" />
 
                 <x-alert class="text-sm text-gray-500">
                     <x-icon name="o-information-circle" class="w-4 h-4" />
