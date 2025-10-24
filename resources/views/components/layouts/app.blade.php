@@ -25,7 +25,15 @@
     {{-- NAVBAR mobile only --}}
     <x-nav sticky class="lg:hidden">
         <x-slot:brand>
-            <x-app-brand />
+            <div class="flex justify-center items-center cursor-pointer">
+                @if ($websiteSettings->getLogoUrl())
+                    <img src="{{ $websiteSettings->getLogoUrl() }}" alt="Logo" class="light-logo"
+                        style="height: 60px">
+                @else
+                    <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo" class="light-logo"
+                        style="height: 60px">
+                @endif
+            </div>
         </x-slot:brand>
         <x-slot:actions>
             <label for="main-drawer" class="lg:hidden me-3">
