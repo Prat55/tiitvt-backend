@@ -452,7 +452,6 @@ new class extends Component {
                             Duration: {{ $selectedExam->duration }} minutes
                         </p>
                     </div>
-                    <x-button icon="o-x-mark" class="btn-circle btn-ghost btn-sm" wire:click="closeStudentsModal" />
                 </div>
 
                 {{-- Students Table --}}
