@@ -89,6 +89,13 @@ Route::middleware(['admin.auth'])->group(function () {
             });
         });
     });
+
+    // Certificate preview route (authenticated users only - admin or center)
+    Route::group(['middleware' => ['role:admin|center']], function () {
+        Route::prefix('certificate')->name('certificate.')->group(function () {
+            Route::get('/exam/preview/{regNo}', [CertificateController::class, 'preview'])->name('exam.preview');
+        });
+    });
 });
 
 require __DIR__ . '/auth.php';
