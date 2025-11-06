@@ -32,7 +32,7 @@
                         Certificate Results Portal
                     </h1>
                     <p class="text-blue-100 text-sm sm:text-base lg:text-lg">
-                        TIITVT - Technical Institute for IT & Vocational Training
+                        {{ $websiteSettings->getWebsiteName() }}
                     </p>
                 </div>
             </div>

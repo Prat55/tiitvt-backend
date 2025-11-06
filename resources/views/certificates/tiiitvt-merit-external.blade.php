@@ -5,7 +5,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>{{ $certificate->tiitvt_reg_no }} - {{ $student->full_name ?? 'Student Name' }}</title>
-    <meta name="author" content="TIITVT" />
+    <meta name="author" content="{{ $websiteSettings->getWebsiteName() }}" />
     <style type="text/css">
         * {
             margin: 0;

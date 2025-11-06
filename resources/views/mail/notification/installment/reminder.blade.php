@@ -85,7 +85,7 @@
                 This is an automated reminder. Please do not reply to this email.
             </p>
             <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
-                © {{ date('Y') }} TIITVT. All rights reserved.
+                © {{ date('Y') }} {{ $websiteSettings->getWebsiteName() }}. All rights reserved.
             </p>
         </div>
     </div>

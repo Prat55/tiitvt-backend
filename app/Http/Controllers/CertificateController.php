@@ -6,16 +6,19 @@ use App\Models\ExternalCertificate;
 use App\Models\Student;
 use App\Models\ExamResult;
 use App\Services\StudentQRService;
+use App\Services\WebsiteSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class CertificateController extends Controller
 {
     protected StudentQRService $studentQRService;
+    protected WebsiteSettingsService $websiteSettings;
 
-    public function __construct(StudentQRService $studentQRService)
+    public function __construct(StudentQRService $studentQRService, WebsiteSettingsService $websiteSettings)
     {
         $this->studentQRService = $studentQRService;
+        $this->websiteSettings = $websiteSettings;
     }
 
     /**
@@ -104,7 +107,7 @@ class CertificateController extends Controller
             'percentage' => round($overallPercentage, 2),
             'grade' => $this->calculateGrade($overallPercentage),
             'issued_on' => $latestExamResult->submitted_at ?? now(),
-            'center_name' => $student->center->name ?? 'TIITVT',
+            'center_name' => $student->center->name ?? $this->websiteSettings->getWebsiteName(),
             'data' => [
                 'subjects' => $subjects,
                 'total_marks' => $totalMarks,

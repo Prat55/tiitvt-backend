@@ -269,7 +269,8 @@ class MailHelper
     public static function sendWelcomeEmail(string $email, string $studentName, array $courseInfo = [], bool $queue = true): bool
     {
         try {
-            $subject = 'Welcome to TIITVT - Your Journey Begins Here!';
+            $websiteSettings = app(\App\Services\WebsiteSettingsService::class);
+            $subject = 'Welcome to ' . $websiteSettings->getWebsiteName() . ' - Your Journey Begins Here!';
             $body = view('mail.notification.welcome', [
                 'studentName' => $studentName,
                 'courseInfo' => $courseInfo
@@ -385,7 +386,8 @@ class MailHelper
     public static function testEmailConfiguration(string $testEmail): array
     {
         try {
-            $subject = 'Test Email - TIITVT System';
+            $websiteSettings = app(\App\Services\WebsiteSettingsService::class);
+            $subject = 'Test Email - ' . $websiteSettings->getWebsiteName() . ' System';
             $body = 'This is a test email to verify the email configuration is working correctly.';
 
             $result = self::sendNotification($testEmail, $subject, $body, [], [], false);
@@ -415,7 +417,8 @@ class MailHelper
     public static function sendCenterCreationNotification(string $email, string $centerOwnerName, array $centerData, ?string $password = null, bool $queue = true): bool
     {
         try {
-            $subject = 'Welcome to TIITVT - Center Registration Successful!';
+            $websiteSettings = app(\App\Services\WebsiteSettingsService::class);
+            $subject = 'Welcome to ' . $websiteSettings->getWebsiteName() . ' - Center Registration Successful!';
 
             // Get the center ID from the database (it should be created by now)
             $center = \App\Models\Center::where('email', $email)->first();

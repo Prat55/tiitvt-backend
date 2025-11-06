@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Services\WebsiteSettingsService;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
@@ -11,12 +12,16 @@ class MailTemplateHelper
     /**
      * Default template variables
      */
-    private static array $defaultVariables = [
-        'app_name' => 'TIITVT',
-        'app_url' => null,
-        'support_email' => null,
-        'current_year' => null
-    ];
+    private static function getDefaultVariables(): array
+    {
+        $websiteSettings = app(WebsiteSettingsService::class);
+        return [
+            'app_name' => $websiteSettings->getWebsiteName(),
+            'app_url' => config('app.url'),
+            'support_email' => config('app.mail.support.address', 'support@tiitvt.com'),
+            'current_year' => date('Y')
+        ];
+    }
 
     /**
      * Template fallbacks for different notification types
@@ -30,15 +35,6 @@ class MailTemplateHelper
         'system_maintenance' => 'mail.notification.system.maintenance'
     ];
 
-    /**
-     * Initialize default variables
-     */
-    public static function initialize(): void
-    {
-        self::$defaultVariables['app_url'] = config('app.url');
-        self::$defaultVariables['support_email'] = config('app.mail.support.address', 'support@tiitvt.com');
-        self::$defaultVariables['current_year'] = date('Y');
-    }
 
     /**
      * Render email template with fallback support
@@ -52,7 +48,7 @@ class MailTemplateHelper
     {
         try {
             // Merge default variables with provided data
-            $mergedData = array_merge(self::$defaultVariables, $data);
+            $mergedData = array_merge(self::getDefaultVariables(), $data);
 
             // Try to render the primary template
             if (View::exists($templatePath)) {
@@ -89,7 +85,8 @@ class MailTemplateHelper
      */
     private static function generateBasicHtmlFallback(array $data): string
     {
-        $appName = $data['app_name'] ?? 'TIITVT';
+        $websiteSettings = app(WebsiteSettingsService::class);
+        $appName = $data['app_name'] ?? $websiteSettings->getWebsiteName();
         $studentName = $data['studentName'] ?? $data['student']['first_name'] ?? 'Student';
         $content = $data['content'] ?? 'You have a notification from our system.';
 
@@ -130,7 +127,7 @@ class MailTemplateHelper
      */
     public static function getTemplateVariables(string $type, array $data): array
     {
-        $baseVariables = self::$defaultVariables;
+        $baseVariables = self::getDefaultVariables();
 
         switch ($type) {
             case 'installment_reminder':

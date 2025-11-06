@@ -5,7 +5,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>{{ $certificate->reg_no }} - {{ $certificate->student_name }}</title>
-    <meta name="author" content="TIITVT" />
+    <meta name="author" content="{{ $websiteSettings->getWebsiteName() }}" />
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>

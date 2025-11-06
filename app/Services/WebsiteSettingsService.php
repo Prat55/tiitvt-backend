@@ -68,7 +68,7 @@ class WebsiteSettingsService
     public function getWebsiteName(): string
     {
         $settings = $this->getSettings();
-        return $settings?->website_name ?? 'TIITVT';
+        return $settings?->website_name ?? 'TIITVT - Technical Institute for IT & Vocational Training';
     }
 
     /**
