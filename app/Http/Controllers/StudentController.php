@@ -112,6 +112,9 @@ class StudentController extends Controller
         $studentName = $student->first_name . ' ' . $student->surname;
         $studentTitle = 'Mr./Ms./Mrs.';
 
+        // Get website name
+        $websiteName = getWebsiteName();
+
         return view('receipt.payment', compact(
             'installment',
             'student',
@@ -128,7 +131,8 @@ class StudentController extends Controller
             'paymentType',
             'amountInWords',
             'studentName',
-            'studentTitle'
+            'studentTitle',
+            'websiteName'
         ));
     }
 }
