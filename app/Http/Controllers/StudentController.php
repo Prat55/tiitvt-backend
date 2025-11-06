@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ExternalCertificate;
+use App\Models\Installment;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
@@ -56,6 +57,78 @@ class StudentController extends Controller
             'averagePercentage',
             'passedExams',
             'certificate'
+        ));
+    }
+
+    /**
+     * Display payment receipt for an installment
+     */
+    public function receipt($installmentId)
+    {
+        $installment = Installment::with(['student.center', 'student.courses'])
+            ->findOrFail($installmentId);
+
+        $student = $installment->student;
+
+        // Check if center user can access this student's receipt
+        if (!canAccessStudent($student)) {
+            abort(404, 'Receipt not found');
+        }
+
+        $center = $student->center;
+        $course = $student->course; // Use the accessor which returns the first course (may be null)
+
+        // Calculate payment details
+        $currentPaymentAmount = $installment->paid_amount ?? 0;
+        $totalFees = $student->installments->sum('amount');
+
+        // Calculate previous paid (from other installments only, excluding current installment)
+        $totalPreviousPaid = $student->installments
+            ->where('id', '!=', $installment->id)
+            ->sum('paid_amount');
+
+        // Total paid after including this installment
+        $totalPaidAfter = $totalPreviousPaid + $currentPaymentAmount;
+        $balanceAmount = max(0, $totalFees - $totalPaidAfter);
+
+        // Generate receipt number
+        $receiptNumber = 'RCP-' . date('Y') . '-' . str_pad($installment->id, 6, '0', STR_PAD_LEFT);
+
+        // Format address
+        $centerAddress = trim(implode(', ', array_filter([
+            $center->address,
+            $center->state,
+            $center->country
+        ])));
+
+        // Payment method and details
+        $paymentMethod = $installment->payment_method?->value ?? 'cash';
+        $paymentType = $installment->status->isPaid() ? 'full' : ($installment->status->isPartial() ? 'part' : 'full');
+
+        // Amount in words
+        $amountInWords = numberToWords($currentPaymentAmount);
+
+        // Student name with title
+        $studentName = $student->first_name . ' ' . $student->surname;
+        $studentTitle = 'Mr./Ms./Mrs.';
+
+        return view('receipt.payment', compact(
+            'installment',
+            'student',
+            'center',
+            'course',
+            'currentPaymentAmount',
+            'totalFees',
+            'totalPreviousPaid',
+            'totalPaidAfter',
+            'balanceAmount',
+            'receiptNumber',
+            'centerAddress',
+            'paymentMethod',
+            'paymentType',
+            'amountInWords',
+            'studentName',
+            'studentTitle'
         ));
     }
 }

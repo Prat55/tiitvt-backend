@@ -1275,6 +1275,12 @@ new class extends Component {
                                             Mark Overdue
                                         </button>
                                     @endif
+                                    @if (($installment->status->isPaid() || $installment->status->isPartial()) && ($installment->paid_amount ?? 0) > 0)
+                                        <a href="{{ route('receipt.payment', $installment->id) }}" target="_blank"
+                                            class="btn btn-sm btn-outline btn-success">
+                                            Print Receipt
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         </x-card>

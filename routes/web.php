@@ -161,3 +161,8 @@ Route::post('/certificate/verify/{token}', function ($token) {
 Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');
 
 Route::get('/student/result/{regNo}', [StudentController::class, 'resultView'])->name('student.result.view');
+
+// Payment receipt route (authenticated users only - admin or center)
+Route::group(['middleware' => ['role:admin|center']], function () {
+    Route::get('/receipt/{installmentId}', [StudentController::class, 'receipt'])->name('receipt.payment');
+});
