@@ -98,18 +98,31 @@ class Installment extends Model
      */
     public function markAsPaid(float $paidAmount = null, string $notes = null, PaymentMethodEnum $paymentMethod = null, string $chequeNumber = null, $withdrawnDate = null): void
     {
+        $previousPaidAmount = $this->paid_amount ?? 0;
+
+        // If paidAmount is provided, use it; otherwise, mark as fully paid (use full installment amount)
+        $currentPaymentAmount = $paidAmount ?? $this->amount;
+
+        // Ensure the payment amount is not less than what was already paid
+        if ($currentPaymentAmount < $previousPaidAmount) {
+            $currentPaymentAmount = $previousPaidAmount;
+        }
+
+        // Calculate the actual amount being paid in this transaction
+        $amountPaidInThisTransaction = max(0, $currentPaymentAmount - $previousPaidAmount);
+
         $this->update([
             'status' => InstallmentStatusEnum::Paid,
             'paid_date' => now(),
-            'paid_amount' => $paidAmount ?? $this->amount,
+            'paid_amount' => $currentPaymentAmount,
             'payment_method' => $paymentMethod,
             'cheque_number' => $chequeNumber,
             'withdrawn_date' => $withdrawnDate,
             'notes' => $notes,
         ]);
 
-        // Send payment notification email
-        $this->sendPaymentNotification('full');
+        // Send payment notification email with the actual amount paid in this transaction
+        $this->sendPaymentNotification('full', $amountPaidInThisTransaction, $previousPaidAmount);
     }
 
     /**
@@ -117,8 +130,8 @@ class Installment extends Model
      */
     public function addPartialPayment(float $partialAmount, string $notes = null, PaymentMethodEnum $paymentMethod = null, string $chequeNumber = null, $withdrawnDate = null): void
     {
-        $currentPaidAmount = $this->paid_amount ?? 0;
-        $newPaidAmount = $currentPaidAmount + $partialAmount;
+        $previousPaidAmount = $this->paid_amount ?? 0;
+        $newPaidAmount = $previousPaidAmount + $partialAmount;
 
         // If the new paid amount equals or exceeds the installment amount, mark as fully paid
         if ($newPaidAmount >= $this->amount) {
@@ -135,8 +148,8 @@ class Installment extends Model
                 'notes' => $notes,
             ]);
 
-            // Send partial payment notification email
-            $this->sendPaymentNotification('partial');
+            // Send partial payment notification email with the amount paid in this transaction
+            $this->sendPaymentNotification('partial', $partialAmount, $previousPaidAmount);
         }
     }
 
@@ -226,23 +239,45 @@ class Installment extends Model
     /**
      * Send payment notification email
      */
-    private function sendPaymentNotification(string $paymentType = 'full'): void
+    private function sendPaymentNotification(string $paymentType = 'full', float $currentPaymentAmount = null, float $previousPaidOnThisInstallment = null): void
     {
         try {
             $student = $this->student;
 
+            // If not provided, calculate the current payment amount
+            if ($currentPaymentAmount === null) {
+                $currentPaymentAmount = $this->paid_amount ?? $this->amount;
+            }
+
+            // If not provided, get previous paid amount on this installment
+            if ($previousPaidOnThisInstallment === null) {
+                $previousPaidOnThisInstallment = 0;
+            }
+
+            // Calculate total previous paid (from other installments + previous payments on this installment)
+            $totalPreviousPaid = $this->calculateTotalPreviousPaid($student, $previousPaidOnThisInstallment);
+
+            // Calculate total paid after this payment
+            $totalPaidAfterThisPayment = $totalPreviousPaid + $currentPaymentAmount;
+
+            // Calculate balance amount after current payment
+            $totalFees = $student->installments->sum('amount');
+            $balanceAmount = max(0, $totalFees - $totalPaidAfterThisPayment);
+
             // Prepare data for the email template
             $data = [
                 'student' => $student,
-                'amount' => $this->paid_amount ?? $this->amount,
-                'amount_in_words' => numberToWords($this->paid_amount ?? $this->amount),
+                'amount' => $currentPaymentAmount, // Amount paid in this transaction
+                'amount_in_words' => numberToWords($currentPaymentAmount),
                 'payment_type' => $paymentType,
                 'payment_method' => $this->payment_method?->value ?? 'cash',
                 'cheque_number' => $this->cheque_number,
                 'withdrawn_date' => $this->withdrawn_date?->format('Y-m-d'),
-                'total_fees' => $student->installments->sum('amount'),
-                'previous_paid' => $this->calculatePreviousPaid($student),
-                'balance_amount' => $this->calculateBalanceAmount($student),
+                'total_fees' => $totalFees,
+                'previous_paid' => $totalPreviousPaid, // Total paid before this transaction
+                'current_payment' => $currentPaymentAmount, // Amount paid in this transaction
+                'total_paid_after' => $totalPaidAfterThisPayment, // Total paid after this transaction
+                'balance_amount' => $balanceAmount, // Remaining balance
             ];
 
             // Generate email body using the payment receipt template
@@ -257,22 +292,16 @@ class Installment extends Model
     }
 
     /**
-     * Calculate previous paid amount (excluding current installment)
+     * Calculate total previous paid amount (from other installments + previous payments on current installment)
      */
-    private function calculatePreviousPaid(Student $student): float
+    private function calculateTotalPreviousPaid(Student $student, float $previousPaidOnThisInstallment = 0): float
     {
-        return $student->installments
+        // Sum of paid amounts from other installments
+        $paidFromOtherInstallments = $student->installments
             ->where('id', '!=', $this->id)
             ->sum('paid_amount');
-    }
 
-    /**
-     * Calculate balance amount after current payment
-     */
-    private function calculateBalanceAmount(Student $student): float
-    {
-        $totalFees = $student->installments->sum('amount');
-        $totalPaid = $student->installments->sum('paid_amount');
-        return max(0, $totalFees - $totalPaid);
+        // Add previous payments on this installment
+        return $paidFromOtherInstallments + $previousPaidOnThisInstallment;
     }
 }
