@@ -75,6 +75,15 @@ class StudentController extends Controller
             abort(404, 'Receipt not found');
         }
 
+        // Explicit check: If authenticated user is a center, verify center_id matches
+        if (hasAuthRole('center')) {
+            $userCenterId = getUserCenterId();
+
+            if ($userCenterId !== null && $student->center_id !== $userCenterId) {
+                abort(404, 'Receipt not found');
+            }
+        }
+
         $center = $student->center;
         $course = $student->course; // Use the accessor which returns the first course (may be null)
 
