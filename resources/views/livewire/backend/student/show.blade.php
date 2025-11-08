@@ -902,6 +902,10 @@ new class extends Component {
                         <div>
                             <label class="text-sm font-medium text-gray-600">Down Payment</label>
                             <p class="text-sm">₹{{ number_format($student->down_payment, 2) }}</p>
+                            <a href="{{ route('receipt.payment', ['type' => 'down-payment', 'id' => $student->id]) }}"
+                                target="_blank" class="btn btn-xs btn-outline btn-success mt-2">
+                                Print Receipt
+                            </a>
                         </div>
                     @endif
 
@@ -1276,8 +1280,8 @@ new class extends Component {
                                         </button>
                                     @endif
                                     @if (($installment->status->isPaid() || $installment->status->isPartial()) && ($installment->paid_amount ?? 0) > 0)
-                                        <a href="{{ route('receipt.payment', $installment->id) }}" target="_blank"
-                                            class="btn btn-sm btn-outline btn-success">
+                                        <a href="{{ route('receipt.payment', ['type' => 'installment', 'id' => $installment->id]) }}"
+                                            target="_blank" class="btn btn-sm btn-outline btn-success">
                                             Print Receipt
                                         </a>
                                     @endif

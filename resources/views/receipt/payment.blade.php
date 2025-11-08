@@ -421,7 +421,7 @@
                 <div class="receipt-info">
                     <div class="receipt-number"><strong>Receipt No:</strong> {{ $receiptNumber }}</div>
                     <div class="receipt-date"><strong>Date:</strong>
-                        <strong>{{ $installment->paid_date ? $installment->paid_date->format('d/m/Y') : now()->format('d/m/Y') }}</strong>
+                        <strong>{{ isset($paymentDate) ? $paymentDate->format('d/m/Y') : (isset($installment) && $installment->paid_date ? $installment->paid_date->format('d/m/Y') : now()->format('d/m/Y')) }}</strong>
                     </div>
                 </div>
 
@@ -433,10 +433,12 @@
                         {{ $paymentType }} payment by
                         <strong>{{ ucfirst($paymentMethod) }}</strong>
                         on account of course <strong>{{ $course?->name ?? 'N/A' }}</strong>
-                        @if ($paymentMethod === 'cheque' && $installment->cheque_number)
-                            , Cheque No: <strong>{{ $installment->cheque_number }}</strong>
-                            @if ($installment->withdrawn_date)
-                                Drawn at {{ $installment->withdrawn_date->format('d/m/Y') }}
+                        @if (
+                            $paymentMethod === 'cheque' &&
+                                (isset($chequeNumber) ? $chequeNumber : isset($installment) && $installment->cheque_number))
+                            , Cheque No: <strong>{{ $chequeNumber ?? $installment->cheque_number }}</strong>
+                            @if (isset($withdrawnDate) ? $withdrawnDate : isset($installment) && $installment->withdrawn_date)
+                                Drawn at {{ ($withdrawnDate ?? $installment->withdrawn_date)->format('d/m/Y') }}
                             @endif
                         @endif
                         .
@@ -496,7 +498,7 @@
                 <div class="receipt-info">
                     <div class="receipt-number"><strong>Receipt No:</strong> {{ $receiptNumber }}</div>
                     <div class="receipt-date"><strong>Date:</strong>
-                        <strong>{{ $installment->paid_date ? $installment->paid_date->format('d/m/Y') : now()->format('d/m/Y') }}</strong>
+                        <strong>{{ isset($paymentDate) ? $paymentDate->format('d/m/Y') : (isset($installment) && $installment->paid_date ? $installment->paid_date->format('d/m/Y') : now()->format('d/m/Y')) }}</strong>
                     </div>
                 </div>
 
@@ -508,10 +510,12 @@
                         {{ $paymentType }} payment by
                         <strong>{{ ucfirst($paymentMethod) }}</strong>
                         on account of course <strong>{{ $course?->name ?? 'N/A' }}</strong>
-                        @if ($paymentMethod === 'cheque' && $installment->cheque_number)
-                            , Cheque No: <strong>{{ $installment->cheque_number }}</strong>
-                            @if ($installment->withdrawn_date)
-                                Drawn at {{ $installment->withdrawn_date->format('d/m/Y') }}
+                        @if (
+                            $paymentMethod === 'cheque' &&
+                                (isset($chequeNumber) ? $chequeNumber : isset($installment) && $installment->cheque_number))
+                            , Cheque No: <strong>{{ $chequeNumber ?? $installment->cheque_number }}</strong>
+                            @if (isset($withdrawnDate) ? $withdrawnDate : isset($installment) && $installment->withdrawn_date)
+                                Drawn at {{ ($withdrawnDate ?? $installment->withdrawn_date)->format('d/m/Y') }}
                             @endif
                         @endif
                         .
