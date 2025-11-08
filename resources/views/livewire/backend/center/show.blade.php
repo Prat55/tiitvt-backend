@@ -268,7 +268,7 @@ new class extends Component {
     <div class="grid grid-cols-1 gap-6 mb-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Center Logo and Basic Info -->
-            <x-card class="lg:col-span-1" title="Center Information">
+            <x-card title="Center Information">
                 <x-slot:menu>
                     <x-badge value="{{ $center->user->is_active ? 'Active' : 'Inactive' }}"
                         class="{{ $center->user->is_active ? 'badge-success' : 'badge-error' }}" />
@@ -311,7 +311,7 @@ new class extends Component {
             </x-card>
 
             <!-- Contact Information -->
-            <x-card class="lg:col-span-1 mt-3">
+            <x-card>
                 <x-slot:title>
                     <div class="flex items-center gap-2">
                         <x-icon name="o-user" class="w-5 h-5" />
