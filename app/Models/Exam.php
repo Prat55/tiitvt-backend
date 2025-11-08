@@ -172,9 +172,11 @@ class Exam extends Model
 
         $scores = $results->pluck('score')->filter();
 
+        $completedStudentsCount = $results->pluck('student_id')->unique()->count();
+
         return [
             'total_students' => $this->enrolled_students_count ?? 0,
-            'completed_students' => $results->count(),
+            'completed_students' => $completedStudentsCount,
             'average_score' => round($scores->avg(), 2),
             'pass_rate' => $this->calculatePassRate($scores),
             'highest_score' => $scores->max(),
@@ -321,8 +323,11 @@ class Exam extends Model
     {
         return $query->withCount([
             'examStudents as enrolled_students_count',
-            'examResults as completed_students_count' => function (Builder $query) {
-                $query->whereNotIn('result_status', [ExamResultStatusEnum::NotDeclared]);
+            'examStudents as completed_students_count' => function (Builder $query) {
+                $query->whereHas('examResults', function (Builder $q) use ($query) {
+                    $q->whereColumn('exam_results.exam_id', 'exam_students.exam_id')
+                        ->where('exam_results.result_status', '!=', ExamResultStatusEnum::NotDeclared->value);
+                });
             }
         ]);
     }

@@ -30,7 +30,17 @@ new class extends Component {
 
     public function mount(Exam $exam): void
     {
-        $this->exam = $exam->load(['course', 'examStudents.student', 'examCategories.category', 'examResults.student']);
+        $this->exam = Exam::withStudentCounts()
+            ->with([
+                'course',
+                'examStudents.student',
+                'examStudents.examResults' => function ($query) use ($exam) {
+                    $query->where('exam_id', $exam->id);
+                },
+                'examCategories.category',
+                'examResults.student',
+            ])
+            ->findOrFail($exam->id);
 
         // Initialize edit form with current values
         $this->editDate = $this->exam->date->format('Y-m-d');
@@ -47,6 +57,19 @@ new class extends Component {
 
     public function rendering(View $view): void
     {
+        // Calculate completed students count using ExamStudent's completion logic
+        if (!$this->exam->relationLoaded('examStudents')) {
+            $this->exam->load('examStudents.examResults');
+        }
+
+        $completedCount = $this->exam->examStudents
+            ->filter(function ($examStudent) {
+                return $examStudent->examResult && $examStudent->examResult->result_status !== \App\Enums\ExamResultStatusEnum::NotDeclared;
+            })
+            ->count();
+
+        $this->exam->setAttribute('completed_students_count', $completedCount);
+
         $view->exam = $this->exam;
     }
 
