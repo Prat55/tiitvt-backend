@@ -3,12 +3,15 @@
 use App\Models\Center;
 use Mary\Traits\Toast;
 use App\Models\Student;
+use App\Models\Installment;
 use Illuminate\View\View;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\{Layout};
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 new class extends Component {
     use WithPagination, Toast;
@@ -21,6 +24,10 @@ new class extends Component {
     public string $search = '';
     public $sortBy = ['column' => 'first_name', 'direction' => 'asc'];
 
+    // Chart data
+    public $revenueChart = [];
+    public $paymentStatusChart = [];
+
     public function mount($uid)
     {
         $this->center = Center::whereUid($uid)->first();
@@ -29,6 +36,159 @@ new class extends Component {
             $this->error('Center not found!', position: 'toast-bottom', redirect: route('admin.center.index'));
             return;
         }
+
+        $this->loadChartsData();
+    }
+
+    public function loadChartsData()
+    {
+        $this->prepareRevenueChart();
+        $this->preparePaymentStatusChart();
+    }
+
+    private function prepareRevenueChart()
+    {
+        // Get revenue data for current year by month
+        $currentYear = Carbon::now()->year;
+        $studentIds = $this->center->students()->pluck('id');
+
+        // Get installment payments by month
+        $installmentRevenue = DB::table('installments')->join('students', 'installments.student_id', '=', 'students.id')->where('students.center_id', $this->center->id)->where('installments.status', 'paid')->whereYear('installments.paid_date', $currentYear)->select(DB::raw("DATE_FORMAT(installments.paid_date, '%Y-%m') as month"), DB::raw('SUM(installments.paid_amount) as total'))->groupBy('month')->orderBy('month')->get();
+
+        // Get down payments by enrollment date month
+        $downPaymentRevenue = DB::table('students')->where('center_id', $this->center->id)->whereNotNull('down_payment')->where('down_payment', '>', 0)->whereYear('enrollment_date', $currentYear)->select(DB::raw("DATE_FORMAT(enrollment_date, '%Y-%m') as month"), DB::raw('SUM(down_payment) as total'))->groupBy('month')->orderBy('month')->get();
+
+        // Combine both revenue sources
+        $combinedRevenue = collect();
+
+        // Add installment revenue
+        foreach ($installmentRevenue as $item) {
+            $existing = $combinedRevenue->firstWhere('month', $item->month);
+            if ($existing) {
+                $existing->total += $item->total;
+            } else {
+                $combinedRevenue->push(
+                    (object) [
+                        'month' => $item->month,
+                        'total' => $item->total,
+                    ],
+                );
+            }
+        }
+
+        // Add down payment revenue
+        foreach ($downPaymentRevenue as $item) {
+            $existing = $combinedRevenue->firstWhere('month', $item->month);
+            if ($existing) {
+                $existing->total += $item->total;
+            } else {
+                $combinedRevenue->push(
+                    (object) [
+                        'month' => $item->month,
+                        'total' => $item->total,
+                    ],
+                );
+            }
+        }
+
+        // Create a complete year array with all months
+        $allMonths = [];
+        $monthlyData = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            $monthKey = sprintf('%04d-%02d', $currentYear, $month);
+            $allMonths[] = Carbon::createFromDate($currentYear, $month, 1)->format('M Y');
+
+            // Find data for this month or set to 0
+            $monthData = $combinedRevenue->firstWhere('month', $monthKey);
+            $monthlyData[] = $monthData ? (float) $monthData->total : 0;
+        }
+
+        $this->revenueChart = [
+            'type' => 'bar',
+            'data' => [
+                'labels' => $allMonths,
+                'datasets' => [
+                    [
+                        'label' => 'Revenue (₹)',
+                        'data' => $monthlyData,
+                        'backgroundColor' => 'rgba(34, 197, 94, 0.8)',
+                        'borderColor' => 'rgb(34, 197, 94)',
+                        'borderWidth' => 2,
+                        'borderRadius' => 8,
+                        'borderSkipped' => false,
+                    ],
+                ],
+            ],
+            'options' => [
+                'responsive' => true,
+                'maintainAspectRatio' => false,
+                'plugins' => [
+                    'legend' => [
+                        'display' => true,
+                        'position' => 'top',
+                    ],
+                    'title' => [
+                        'display' => true,
+                        'text' => 'Current Year Monthly Revenue Trend',
+                        'font' => [
+                            'size' => 16,
+                            'weight' => 'bold',
+                        ],
+                    ],
+                ],
+                'scales' => [
+                    'y' => [
+                        'beginAtZero' => true,
+                        'grid' => [
+                            'color' => 'rgba(0, 0, 0, 0.1)',
+                        ],
+                    ],
+                    'x' => [
+                        'grid' => [
+                            'color' => 'rgba(0, 0, 0, 0.1)',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    private function preparePaymentStatusChart()
+    {
+        // Get all students for this center
+        $studentIds = $this->center->students()->pluck('id');
+
+        // Total revenue = course_fees (includes down payments + installments)
+        $totalRevenue = Student::whereIn('id', $studentIds)->sum('course_fees');
+
+        // Calculate paid amount:
+        // 1. Down payments
+        $downPayments = Student::whereIn('id', $studentIds)->sum('down_payment');
+
+        // 2. Paid installments
+        $paidInstallments = Installment::whereIn('student_id', $studentIds)->where('status', 'paid')->sum('paid_amount');
+
+        // 3. Partial payments (only the paid portion)
+        $partialPaid = Installment::whereIn('student_id', $studentIds)->where('status', 'partial')->sum('paid_amount');
+
+        $totalPaid = $downPayments + $paidInstallments + $partialPaid;
+        $pendingAmount = max(0, $totalRevenue - $totalPaid);
+
+        $this->paymentStatusChart = [
+            'type' => 'pie',
+            'data' => [
+                'labels' => ['Paid', 'Pending'],
+                'datasets' => [
+                    [
+                        'data' => [(float) round($totalPaid, 2), (float) round($pendingAmount, 2)],
+                        'backgroundColor' => ['rgba(34, 197, 94, 0.8)', 'rgba(251, 146, 60, 0.8)'],
+                        'borderColor' => ['rgb(34, 197, 94)', 'rgb(251, 146, 60)'],
+                        'borderWidth' => 2,
+                    ],
+                ],
+            ],
+        ];
     }
 
     public function boot(): void
@@ -66,7 +226,9 @@ new class extends Component {
     }
 };
 ?>
-
+@section('cdn')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+@endsection
 <div>
     <!-- Header Section -->
     <div class="flex justify-between items-start lg:items-center flex-col lg:flex-row mt-3 mb-5 gap-2">
@@ -103,8 +265,8 @@ new class extends Component {
     <hr class="mb-5">
 
     <!-- Center Information Cards -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div>
+    <div class="grid grid-cols-1 gap-6 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Center Logo and Basic Info -->
             <x-card class="lg:col-span-1" title="Center Information">
                 <x-slot:menu>
@@ -202,6 +364,14 @@ new class extends Component {
                     @endif
                 </div>
             </x-card>
+
+            <!-- Payment Status Pie Chart -->
+            <x-card title="Payment Status Distribution" shadow
+                class="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center">
+                <div class="h-80 p-4">
+                    <x-chart wire:model="paymentStatusChart" class="h-full w-full" />
+                </div>
+            </x-card>
         </div>
 
         <!-- Statistics -->
@@ -225,6 +395,32 @@ new class extends Component {
                         ₹{{ number_format($center->students()->sum('course_fees'), 2) }}
                     </div>
                 </div>
+
+                @php
+                    $studentIds = $center->students()->pluck('id');
+                    $downPayments = \App\Models\Student::whereIn('id', $studentIds)->sum('down_payment');
+                    $paidInstallments = \App\Models\Installment::whereIn('student_id', $studentIds)
+                        ->whereIn('status', ['paid', 'partial'])
+                        ->sum('paid_amount');
+                    $totalPaid = $downPayments + $paidInstallments;
+                @endphp
+                <div class="stat">
+                    <div class="stat-title">Total Paid</div>
+                    <div class="stat-value text-success">
+                        ₹{{ number_format($totalPaid, 2) }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 gap-6 mt-5">
+                <!-- Revenue Chart -->
+                <x-card title="Current Year Revenue Trend" shadow
+                    class="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20">
+                    <div class="h-80 p-4">
+                        <x-chart wire:model="revenueChart" class="h-full w-full" />
+                    </div>
+                </x-card>
             </div>
         </x-card>
     </div>
