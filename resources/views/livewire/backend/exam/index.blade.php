@@ -188,7 +188,8 @@ new class extends Component {
 
     {{-- Main Table --}}
     <x-card shadow>
-        <x-table :headers="$headers" :rows="$exams" with-pagination :sort-by="$sortBy">
+        <x-table :headers="$headers" :rows="$exams" with-pagination :sort-by="$sortBy" per-page="perPage"
+            :per-page-values="[20, 50, 100]">
             {{-- Course Column --}}
             @scope('cell_course', $exam)
                 <div class="flex items-center gap-3">
@@ -313,8 +314,8 @@ new class extends Component {
                         @endif
                     </p>
                     @if (!$search && !$statusFilter && !$dateFilter)
-                        <x-button label="Schedule Exam" icon="o-calendar" class="btn-primary" tooltip="Schedule Exam"
-                            link="{{ route('admin.exam.schedule') }}" responsive />
+                        <x-button label="Schedule Exam" icon="o-calendar" class="btn-primary"
+                            tooltip="Schedule Exam" link="{{ route('admin.exam.schedule') }}" responsive />
                     @endif
                 </div>
             </x-slot>

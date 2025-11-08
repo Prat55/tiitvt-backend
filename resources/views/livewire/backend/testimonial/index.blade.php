@@ -17,6 +17,7 @@ new class extends Component {
     #[Url]
     public string $search = '';
     public $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
+    public $perPage = 20;
     public $testimonialId;
     public $subject,
         $description,
@@ -45,7 +46,7 @@ new class extends Component {
                     ->orWhere('student_name', 'like', "%$this->search%")
                     ->orWhere('description', 'like', "%$this->search%");
             })
-            ->paginate(20);
+            ->paginate($this->perPage);
         $view->title('All Testimonials');
     }
 
@@ -122,7 +123,7 @@ new class extends Component {
         $testimonial->rating = $this->rating;
         $testimonial->student_name = $this->student_name;
         $testimonial->is_active = $this->is_active;
-        
+
         if ($this->student_image) {
             if ($testimonial->student_image) {
                 $imagePath = str_replace('/storage/', '', $testimonial->student_image);
@@ -180,7 +181,7 @@ new class extends Component {
     </div>
     <hr class="mb-5">
 
-    <x-table :headers="$headers" :rows="$testimonials" with-pagination :sort-by="$sortBy">
+    <x-table :headers="$headers" :rows="$testimonials" with-pagination :sort-by="$sortBy" per-page="perPage" :per-page-values="[20, 50, 100]">
         @scope('cell_student_image', $testimonial)
             @if ($testimonial->student_image)
                 <div class="avatar select-none">

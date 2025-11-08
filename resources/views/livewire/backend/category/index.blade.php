@@ -29,6 +29,7 @@ new class extends Component {
     public $cropConfig = [
         'aspectRatio' => 1,
     ];
+    public $perPage = 20;
 
     public function boot(): void
     {
@@ -39,7 +40,7 @@ new class extends Component {
     {
         $view->categories = Category::orderBy(...array_values($this->sortBy))
             ->where('name', 'like', "%$this->search%")
-            ->paginate(20);
+            ->paginate($this->perPage);
         $view->title('All Categories');
     }
 
@@ -192,7 +193,7 @@ new class extends Component {
     </div>
     <hr class="mb-5">
 
-    <x-table :headers="$headers" :rows="$categories" with-pagination :sort-by="$sortBy">
+    <x-table :headers="$headers" :rows="$categories" with-pagination :sort-by="$sortBy" per-page="perPage" :per-page-values="[20, 50, 100]">
         @scope('cell_image', $category)
             @if ($category->image)
                 <div class="avatar select-none">

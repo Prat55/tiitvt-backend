@@ -19,6 +19,7 @@ new class extends Component {
     public string $search = '';
 
     public $sortBy = ['column' => 'id', 'direction' => 'desc'];
+    public $perPage = 20;
 
     // Filter properties
     public $filterDrawer = false;
@@ -358,7 +359,7 @@ new class extends Component {
             $query->where('question_text', 'like', '%' . $this->search . '%');
         }
 
-        $view->questions = $query->orderBy(...array_values($this->sortBy))->paginate(20);
+        $view->questions = $query->orderBy(...array_values($this->sortBy))->paginate($this->perPage);
     }
 
     // Clear all filters
@@ -445,7 +446,7 @@ new class extends Component {
     @endif
 
     <!-- Questions Table -->
-    <x-table :headers="$headers" :rows="$questions" with-pagination :sort-by="$sortBy">
+    <x-table :headers="$headers" :rows="$questions" with-pagination :sort-by="$sortBy" per-page="perPage" :per-page-values="[20, 50, 100]">
         @scope('cell_question_text', $question)
             <div class="max-w-xs">
                 <div class="font-medium">{{ Str::limit($question->question_text, 80) }}</div>

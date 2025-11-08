@@ -18,6 +18,7 @@ new class extends Component {
     public $filterDrawer = false;
 
     public $sortBy = ['column' => 'tiitvt_reg_no', 'direction' => 'desc'];
+    public $perPage = 20;
 
     // Filter properties
     #[Url]
@@ -108,7 +109,7 @@ new class extends Component {
             });
         }
 
-        $view->students = $query->orderBy(...array_values($this->sortBy))->search($this->search)->paginate(20);
+        $view->students = $query->orderBy(...array_values($this->sortBy))->search($this->search)->paginate($this->perPage);
 
         $view->title('All Students');
     }
@@ -184,7 +185,7 @@ new class extends Component {
 
     <hr class="mb-5">
 
-    <x-table :headers="$headers" :rows="$students" with-pagination :sort-by="$sortBy">
+    <x-table :headers="$headers" :rows="$students" with-pagination :sort-by="$sortBy" per-page="perPage" :per-page-values="[20, 50, 100]">
         @scope('cell_tiitvt_reg_no', $student)
             <span class="font-mono text-sm font-medium">{{ $student->tiitvt_reg_no }}</span>
         @endscope

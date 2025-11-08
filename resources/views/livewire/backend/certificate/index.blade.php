@@ -11,6 +11,7 @@ new class extends Component {
     public $search = '';
     public $headers = [['key' => 'reg_no', 'label' => 'Reg No', 'class' => 'w-48'], ['key' => 'student_name', 'label' => 'Student', 'class' => 'w-64'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-64'], ['key' => 'issued_on', 'label' => 'Issued On', 'class' => 'w-40'], ['key' => 'actions', 'label' => 'Actions', 'class' => 'w-32']];
     public $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
+    public $perPage = 20;
 
     public function with()
     {
@@ -18,7 +19,7 @@ new class extends Component {
         if (!empty($this->search)) {
             $query->whereAny(['reg_no', 'student_name', 'course_name'], 'like', "%{$this->search}%");
         }
-        $certificates = $query->orderBy($this->sortBy['column'], $this->sortBy['direction'])->paginate(10);
+        $certificates = $query->orderBy($this->sortBy['column'], $this->sortBy['direction'])->paginate($this->perPage);
 
         return ['certificates' => $certificates];
     }
@@ -85,7 +86,7 @@ new class extends Component {
     </div>
     <hr class="mb-5">
 
-    <x-table :headers="$headers" :rows="$certificates" :sort-by="$sortBy" with-pagination>
+    <x-table :headers="$headers" :rows="$certificates" :sort-by="$sortBy" with-pagination per-page="perPage" :per-page-values="[20, 50, 100]">
         @scope('cell_reg_no', $certificate)
             <span class="font-mono">{{ $certificate->reg_no }}</span>
         @endscope

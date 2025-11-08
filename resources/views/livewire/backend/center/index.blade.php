@@ -16,6 +16,7 @@ new class extends Component {
     public string $search = '';
 
     public $sortBy = ['column' => 'name', 'direction' => 'asc'];
+    public $perPage = 20;
     // boot
     public function boot(): void
     {
@@ -26,7 +27,7 @@ new class extends Component {
     {
         $view->centers = Center::orderBy(...array_values($this->sortBy))
             ->whereAny(['name', 'phone', 'email', 'owner_name', 'state', 'country'], 'like', "%$this->search%")
-            ->paginate(20);
+            ->paginate($this->perPage);
         $view->title('All Centers');
     }
 };
@@ -59,7 +60,7 @@ new class extends Component {
         </div>
     </div>
     <hr class="mb-5">
-    <x-table :headers="$headers" :rows="$centers" with-pagination :sort-by="$sortBy">
+    <x-table :headers="$headers" :rows="$centers" with-pagination :sort-by="$sortBy" per-page="perPage" :per-page-values="[20, 50, 100]">
         @scope('cell_name', $center)
             <div class="flex items-center gap-2">
                 <span class="badge badge-xs {{ $center->status === 'active' ? 'badge-success' : 'badge-error' }}">

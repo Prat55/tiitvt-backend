@@ -124,7 +124,33 @@ new class extends Component {
             $groupedResults = $groupedResults->sortBy('total_students', SORT_REGULAR, $this->sortBy['direction'] === 'desc');
         }
 
-        $view->examResults = $groupedResults;
+        // Convert to array for pagination
+        $groupedResultsArray = $groupedResults->values()->all();
+
+        // Calculate statistics from full dataset (before pagination)
+        $totalExams = count($groupedResultsArray);
+        $totalStudents = collect($groupedResultsArray)->sum('total_students');
+        $totalPassed = collect($groupedResultsArray)->sum('passed_count');
+        $totalFailed = collect($groupedResultsArray)->sum('failed_count');
+
+        // Get current page from Livewire pagination
+        $currentPage = $this->getPage();
+        $perPage = $this->perPage;
+        $offset = ($currentPage - 1) * $perPage;
+        $paginatedResults = array_slice($groupedResultsArray, $offset, $perPage);
+
+        // Create a paginator instance compatible with Livewire using constructor
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator($paginatedResults, count($groupedResultsArray), $perPage, $currentPage, [
+            'path' => request()->url(),
+            'pageName' => 'page',
+        ]);
+        $paginator->withQueryString();
+
+        $view->examResults = $paginator;
+        $view->totalExams = $totalExams;
+        $view->totalStudents = $totalStudents;
+        $view->totalPassed = $totalPassed;
+        $view->totalFailed = $totalFailed;
     }
 
     public function toggleFilters(): void
@@ -299,7 +325,7 @@ new class extends Component {
                 <x-icon name="o-academic-cap" class="w-8 h-8" />
             </div>
             <div class="stat-title">Total Exams</div>
-            <div class="stat-value text-primary">{{ $examResults->count() }}</div>
+            <div class="stat-value text-primary">{{ $totalExams }}</div>
         </div>
 
         <div class="stat bg-base-100 shadow-sm rounded-lg">
@@ -308,7 +334,7 @@ new class extends Component {
             </div>
             <div class="stat-title">Total Students</div>
             <div class="stat-value text-info">
-                {{ $examResults->sum('total_students') }}
+                {{ $totalStudents }}
             </div>
         </div>
 
@@ -318,7 +344,7 @@ new class extends Component {
             </div>
             <div class="stat-title">Passed</div>
             <div class="stat-value text-success">
-                {{ $examResults->sum('passed_count') }}
+                {{ $totalPassed }}
             </div>
         </div>
 
@@ -328,14 +354,15 @@ new class extends Component {
             </div>
             <div class="stat-title">Failed</div>
             <div class="stat-value text-error">
-                {{ $examResults->sum('failed_count') }}
+                {{ $totalFailed }}
             </div>
         </div>
     </div>
 
     {{-- Results Table --}}
     <x-card shadow>
-        <x-table :headers="$headers" :rows="$examResults" :sort-by="$sortBy">
+        <x-table :headers="$headers" :rows="$examResults" with-pagination :sort-by="$sortBy" per-page="perPage"
+            :per-page-values="[20, 50, 100]">
             {{-- Exam Information Column --}}
             @scope('cell_exam_info', $examGroup)
                 <div class="flex items-center gap-3">
@@ -440,150 +467,150 @@ new class extends Component {
     {{-- Students Modal --}}
     @if ($showStudentsModal && $selectedExam)
         <x-modal wire:model="showStudentsModal" class="backdrop-blur" box-class="max-w-6xl">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
-                            Students Results - {{ $selectedExam->course->name }}
-                        </h3>
-                        <p class="text-gray-600 dark:text-gray-400">
-                            Exam ID: {{ $selectedExam->exam_id }} |
-                            Date: {{ $selectedExam->date?->format('M d, Y') }} |
-                            Duration: {{ $selectedExam->duration }} minutes
-                        </p>
-                    </div>
+            <div class="p-6"></div>
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                        Students Results - {{ $selectedExam->course->name }}
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-400">
+                        Exam ID: {{ $selectedExam->exam_id }} |
+                        Date: {{ $selectedExam->date?->format('M d, Y') }} |
+                        Duration: {{ $selectedExam->duration }} minutes
+                    </p>
                 </div>
+            </div>
 
-                {{-- Students Table --}}
-                <div class="overflow-x-auto">
-                    <table class="table table-zebra w-full">
-                        <thead>
+            {{-- Students Table --}}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Categories</th>
+                            <th>Total Score</th>
+                            <th>Avg Percentage</th>
+                            <th>Overall Result</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($examStudents as $studentData)
+                            @php
+                                $student = $studentData['student'];
+                            @endphp
                             <tr>
-                                <th>Student</th>
-                                <th>Categories</th>
-                                <th>Total Score</th>
-                                <th>Avg Percentage</th>
-                                <th>Overall Result</th>
-                                <th>Submitted</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($examStudents as $studentData)
-                                @php
-                                    $student = $studentData['student'];
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <div class="flex items-center gap-3">
-                                            <x-avatar placeholder="{{ $student->getInitials() }}"
-                                                title="{{ $student->first_name }}{{ $student->fathers_name ? ' ' . $student->fathers_name : '' }}{{ $student->surname ? ' ' . $student->surname : '' }}"
-                                                subtitle="{{ $student->email }}" class="!w-10" />
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <x-badge value="{{ $studentData['categories_count'] }} Categories"
-                                            icon="o-tag" class="badge-info badge-sm" />
-                                    </td>
-                                    <td>
-                                        <div class="flex items-center gap-2">
-                                            <x-icon name="o-star" class="w-4 h-4 text-yellow-500" />
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <x-avatar placeholder="{{ $student->getInitials() }}"
+                                            title="{{ $student->first_name }}{{ $student->fathers_name ? ' ' . $student->fathers_name : '' }}{{ $student->surname ? ' ' . $student->surname : '' }}"
+                                            subtitle="{{ $student->email }}" class="!w-10" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <x-badge value="{{ $studentData['categories_count'] }} Categories" icon="o-tag"
+                                        class="badge-info badge-sm" />
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <x-icon name="o-star" class="w-4 h-4 text-yellow-500" />
+                                        <span
+                                            class="font-mono font-bold">{{ $studentData['total_score'] ?? 'N/A' }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if ($studentData['avg_percentage'])
+                                        <div class="radial-progress"
+                                            style="--value:{{ $studentData['avg_percentage'] }}; --size:2rem; --thickness:3px;">
                                             <span
-                                                class="font-mono font-bold">{{ $studentData['total_score'] ?? 'N/A' }}</span>
+                                                class="text-xs font-medium">{{ number_format($studentData['avg_percentage'], 1) }}%</span>
                                         </div>
-                                    </td>
-                                    <td>
-                                        @if ($studentData['avg_percentage'])
-                                            <div class="radial-progress"
-                                                style="--value:{{ $studentData['avg_percentage'] }}; --size:2rem; --thickness:3px;">
-                                                <span
-                                                    class="text-xs font-medium">{{ number_format($studentData['avg_percentage'], 1) }}%</span>
-                                            </div>
-                                        @else
-                                            <span class="text-gray-500">N/A</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if ($studentData['overall_result'] === 'passed')
-                                            <span class="badge badge-success badge-sm">
-                                                <x-icon name="o-check-circle" class="w-3 h-3 mr-1" />
-                                                Passed
+                                    @else
+                                        <span class="text-gray-500">N/A</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($studentData['overall_result'] === 'passed')
+                                        <span class="badge badge-success badge-sm">
+                                            <x-icon name="o-check-circle" class="w-3 h-3 mr-1" />
+                                            Passed
+                                        </span>
+                                    @elseif ($studentData['overall_result'] === 'failed')
+                                        <span class="badge badge-error badge-sm">
+                                            <x-icon name="o-x-circle" class="w-3 h-3 mr-1" />
+                                            Failed
+                                        </span>
+                                    @else
+                                        <span class="badge badge-warning badge-sm">
+                                            <x-icon name="o-exclamation-triangle" class="w-3 h-3 mr-1" />
+                                            Mixed
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($studentData['submitted_at'])
+                                        <div class="flex flex-col">
+                                            <span class="font-medium text-sm">
+                                                {{ $studentData['submitted_at']->format('M d, Y') }}
                                             </span>
-                                        @elseif ($studentData['overall_result'] === 'failed')
-                                            <span class="badge badge-error badge-sm">
-                                                <x-icon name="o-x-circle" class="w-3 h-3 mr-1" />
-                                                Failed
+                                            <span class="text-xs text-gray-500">
+                                                {{ $studentData['submitted_at']->format('g:i A') }}
                                             </span>
-                                        @else
-                                            <span class="badge badge-warning badge-sm">
-                                                <x-icon name="o-exclamation-triangle" class="w-3 h-3 mr-1" />
-                                                Mixed
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if ($studentData['submitted_at'])
-                                            <div class="flex flex-col">
-                                                <span class="font-medium text-sm">
-                                                    {{ $studentData['submitted_at']->format('M d, Y') }}
-                                                </span>
-                                                <span class="text-xs text-gray-500">
-                                                    {{ $studentData['submitted_at']->format('g:i A') }}
-                                                </span>
-                                            </div>
-                                        @else
-                                            <span class="text-gray-500">Not submitted</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="flex items-center gap-1">
-                                            <x-button icon="o-eye"
-                                                link="{{ route('admin.exam.result.show', [$selectedExam->exam_id, encodeTiitvtRegNo($student->tiitvt_reg_no)]) }}"
-                                                class="btn-xs btn-ghost hover:btn-primary transition-colors"
-                                                tooltip="View Details" />
                                         </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="text-center py-8 text-gray-500">
-                                        No students found for this exam.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                                    @else
+                                        <span class="text-gray-500">Not submitted</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-1">
+                                        <x-button icon="o-eye"
+                                            link="{{ route('admin.exam.result.show', [$selectedExam->exam_id, encodeTiitvtRegNo($student->tiitvt_reg_no)]) }}"
+                                            class="btn-xs btn-ghost hover:btn-primary transition-colors"
+                                            tooltip="View Details" />
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center py-8 text-gray-500">
+                                    No students found for this exam.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Summary Stats --}}
+            <div class="mt-6 grid grid-cols-4 gap-4">
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Total Students</div>
+                    <div class="stat-value text-primary">{{ $examStudents->count() }}</div>
                 </div>
 
-                {{-- Summary Stats --}}
-                <div class="mt-6 grid grid-cols-4 gap-4">
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Total Students</div>
-                        <div class="stat-value text-primary">{{ $examStudents->count() }}</div>
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Passed</div>
+                    <div class="stat-value text-success">
+                        {{ $examStudents->where('overall_result', 'passed')->count() }}
                     </div>
+                </div>
 
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Passed</div>
-                        <div class="stat-value text-success">
-                            {{ $examStudents->where('overall_result', 'passed')->count() }}
-                        </div>
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Failed</div>
+                    <div class="stat-value text-error">
+                        {{ $examStudents->where('overall_result', 'failed')->count() }}
                     </div>
+                </div>
 
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Failed</div>
-                        <div class="stat-value text-error">
-                            {{ $examStudents->where('overall_result', 'failed')->count() }}
-                        </div>
-                    </div>
-
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Mixed</div>
-                        <div class="stat-value text-warning">
-                            {{ $examStudents->where('overall_result', 'mixed')->count() }}
-                        </div>
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Mixed</div>
+                    <div class="stat-value text-warning">
+                        {{ $examStudents->where('overall_result', 'mixed')->count() }}
                     </div>
                 </div>
             </div>
-        </x-modal>
-    @endif
+</div>
+</x-modal>
+@endif
 </div>

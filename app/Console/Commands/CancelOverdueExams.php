@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Exam;
 use App\Enums\ExamStatusEnum;
 use Illuminate\Console\Command;
+use App\Enums\ExamResultStatusEnum;
 use Illuminate\Support\Facades\Log;
 
 class CancelOverdueExams extends Command
@@ -21,7 +22,7 @@ class CancelOverdueExams extends Command
      *
      * @var string
      */
-    protected $description = 'Cancel exams that were scheduled but never completed and are past their end time';
+    protected $description = 'Cancel exams that were scheduled but never completed and are past their end time. Also re-evaluate cancelled exams to check for partial completion.';
 
     /**
      * Execute the console command.
@@ -34,39 +35,92 @@ class CancelOverdueExams extends Command
             // Get all scheduled exams that are past their end time
             $overdueExams = Exam::overdue()->get();
 
-            if ($overdueExams->isEmpty()) {
-                $this->info('No overdue exams found.');
+            // Get all cancelled exams that are past their end time (to re-evaluate for partial completion)
+            $cancelledExams = Exam::where('status', ExamStatusEnum::CANCELLED)
+                ->where('date', '<=', now()->toDateString())
+                ->where('end_time', '<', now()->format('H:i:s'))
+                ->get();
+
+            $allExamsToProcess = $overdueExams->merge($cancelledExams);
+
+            if ($allExamsToProcess->isEmpty()) {
+                $this->info('No overdue or cancelled exams found to process.');
                 return 0;
             }
 
-            $this->info("Found {$overdueExams->count()} overdue exam(s) to cancel.");
+            $this->info("Found {$overdueExams->count()} overdue exam(s) and {$cancelledExams->count()} cancelled exam(s) to process.");
 
-            $cancelledCount = 0;
+            $updatedCount = 0;
             $failedCount = 0;
 
-            foreach ($overdueExams as $exam) {
+            foreach ($allExamsToProcess as $exam) {
                 try {
-                    $exam->update([
-                        'status' => ExamStatusEnum::CANCELLED
-                    ]);
+                    // Get all enrolled students
+                    $enrolledStudents = $exam->examStudents;
+                    $totalStudents = $enrolledStudents->count();
 
-                    $cancelledCount++;
+                    // Count students who have completed (have results with result_status != NotDeclared)
+                    $completedStudents = $exam->examResults()
+                        ->whereNotIn('result_status', [ExamResultStatusEnum::NotDeclared->value])
+                        ->distinct('student_id')
+                        ->count('student_id');
 
-                    $studentNames = $exam->examStudents->map(function ($examStudent) {
+                    // Count students who have failed (result = 'failed')
+                    $failedStudents = $exam->examResults()
+                        ->where('result', 'failed')
+                        ->distinct('student_id')
+                        ->count('student_id');
+
+                    // Determine status based on completion
+                    $oldStatus = $exam->status;
+                    $newStatus = ExamStatusEnum::CANCELLED;
+                    $statusReason = 'Automatically cancelled due to being overdue - no students completed';
+
+                    if ($completedStudents > 0 && $completedStudents < $totalStudents) {
+                        // Some students completed but not all
+                        $newStatus = ExamStatusEnum::PARTIAL_COMPLETED;
+                        $statusReason = "Automatically marked as partial completed - {$completedStudents} out of {$totalStudents} students completed";
+                    } elseif ($completedStudents === $totalStudents && $totalStudents > 0) {
+                        // All students completed
+                        $newStatus = ExamStatusEnum::COMPLETED;
+                        $statusReason = "All students completed the exam";
+                    }
+
+                    // Only update if status has changed
+                    if ($oldStatus !== $newStatus) {
+                        $exam->update([
+                            'status' => $newStatus
+                        ]);
+                        $updatedCount++;
+                    } else {
+                        // Status unchanged, skip logging
+                        continue;
+                    }
+
+                    $studentNames = $enrolledStudents->map(function ($examStudent) {
                         return $examStudent->student->full_name;
                     })->implode(', ');
 
-                    $this->line("✓ Cancelled exam: {$exam->exam_id} for students: {$studentNames}");
+                    $statusLabel = $newStatus->label();
+                    $this->line("✓ Updated exam: {$exam->exam_id} to status: {$statusLabel}");
+                    $this->line("  - Total students: {$totalStudents}");
+                    $this->line("  - Completed: {$completedStudents}");
+                    $this->line("  - Failed: {$failedStudents}");
+                    $this->line("  - Students: {$studentNames}");
 
-                    // Log the cancellation
-                    Log::info("Exam automatically cancelled", [
+                    // Log the status update
+                    Log::info("Exam status updated", [
                         'exam_id' => $exam->exam_id,
-                        'student_count' => $exam->examStudents->count(),
+                        'old_status' => $oldStatus->value,
+                        'new_status' => $newStatus->value,
+                        'total_students' => $totalStudents,
+                        'completed_students' => $completedStudents,
+                        'failed_students' => $failedStudents,
                         'course_id' => $exam->course_id,
                         'scheduled_date' => $exam->date,
                         'scheduled_end_time' => $exam->end_time,
-                        'cancelled_at' => now(),
-                        'reason' => 'Automatically cancelled due to being overdue'
+                        'updated_at' => now(),
+                        'reason' => $statusReason
                     ]);
                 } catch (\Exception $e) {
                     $failedCount++;
@@ -81,13 +135,15 @@ class CancelOverdueExams extends Command
 
             $this->newLine();
             $this->info("Process completed:");
-            $this->info("  ✓ Successfully cancelled: {$cancelledCount}");
-            $this->info("  ✗ Failed to cancel: {$failedCount}");
+            $this->info("  ✓ Successfully updated: {$updatedCount}");
+            $this->info("  ✗ Failed to update: {$failedCount}");
 
-            if ($cancelledCount > 0) {
-                Log::info("Overdue exam cancellation completed", [
-                    'total_processed' => $overdueExams->count(),
-                    'successfully_cancelled' => $cancelledCount,
+            if ($updatedCount > 0) {
+                Log::info("Exam status update completed", [
+                    'total_processed' => $allExamsToProcess->count(),
+                    'overdue_exams' => $overdueExams->count(),
+                    'cancelled_exams' => $cancelledExams->count(),
+                    'successfully_updated' => $updatedCount,
                     'failed' => $failedCount
                 ]);
             }
