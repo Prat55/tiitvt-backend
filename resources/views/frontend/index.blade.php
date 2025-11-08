@@ -11,7 +11,7 @@
                         <div class="info">
                             <h4>
                                 <img src="{{ asset('frontend/img/shape/91.png') }}" alt="Image Not Found">
-                                Discover 20,000+ World-Class Courses
+                                Discover 50+ World-Class Courses
                             </h4>
                             <h2>Learn <strong>Smarter</strong> Achieve knowledge</h2>
                             <p>
@@ -138,7 +138,8 @@
     </div>
 
     @if ($courses->count() > 0)
-        <div class="course-style-two-area default-padding bottom-less bg-gray-gradient-secondary overflow-hidden">
+        <div class="course-style-two-area default-padding bottom-less bg-gray-gradient-secondary overflow-hidden"
+            id="courses">
             <div class="container">
                 <div class="row">
                     <div class="col-lg-8 offset-lg-2">

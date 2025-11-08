@@ -181,7 +181,7 @@
                             <h4 class="widget-title">Quick Link</h4>
                             <ul>
                                 <li>
-                                    <a href="#0">Courses</a>
+                                    <a href="#courses">Courses</a>
                                 </li>
                                 <li>
                                     <a href="#0">News & Blogs</a>

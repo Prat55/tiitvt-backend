@@ -39,7 +39,7 @@
                      <ul class="nav navbar-nav navbar-right" data-in="fadeInDown" data-out="fadeOutUp">
                          <li><a href="{{ route('frontend.index') }}">Home</a></li>
                          <li><a href="{{ route('frontend.about') }}">About</a></li>
-                         <li><a href="{{ route('frontend.index') }}">Courses</a></li>
+                         <li><a href="{{ route('frontend.index') }}#courses">Courses</a></li>
                          <li><a href="{{ route('frontend.contact') }}">Contact</a></li>
                          @guest
                              <li><a href="{{ route('login') }}">Login</a></li>
