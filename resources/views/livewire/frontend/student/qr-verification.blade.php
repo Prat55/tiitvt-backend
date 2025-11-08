@@ -9,72 +9,32 @@ use App\Models\{Student, StudentQR};
 new class extends Component {
     #[Layout('components.layouts.guest')]
     public $studentQR;
-    public $tiitvt_reg_no = '';
-    public $date_of_birth = '';
     public $student = null;
-    public $verified = false;
-    public $error_message = '';
 
     public function mount($token)
     {
         $studentQRService = app(StudentQRService::class);
         $this->studentQR = $studentQRService->verifyStudentQR($token);
-        $this->tiitvt_reg_no = $this->studentQR->student->tiitvt_reg_no;
 
         if (!$this->studentQR) {
             abort(404, 'Student QR code not found or has been deactivated.');
         }
 
-        // Check if student is already verified in session
-        if (session()->has('qr_verified_student_' . $this->studentQR->student_id)) {
-            $this->student = session('qr_verified_student_' . $this->studentQR->student_id);
-            $this->verified = true;
-        }
-    }
-
-    public function verifyStudent()
-    {
-        $this->reset(['error_message']);
-
-        // Validate inputs
-        if (empty($this->tiitvt_reg_no) || empty($this->date_of_birth)) {
-            $this->error_message = 'Please enter Date of Birth.';
-            return;
-        }
-
-        // Find student by registration number and date of birth
-        $student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments')
-            ->where('tiitvt_reg_no', $this->tiitvt_reg_no)
-            ->where('date_of_birth', $this->date_of_birth)
+        // Automatically load student data without verification
+        $this->student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments', 'email', 'mobile', 'qualification', 'additional_qualification')
+            ->where('id', $this->studentQR->student_id)
             ->with(['center', 'courses', 'examResults.exam.course', 'examResults.category'])
             ->first();
 
-        if (!$student) {
-            $this->error_message = 'Invalid Date of Birth. Please check your details and try again.';
-            return;
+        if (!$this->student) {
+            abort(404, 'Student not found.');
         }
 
-        // Verify that this student matches the QR code
-        if ($student->id !== $this->studentQR->student_id) {
-            $this->error_message = 'The provided details do not match this QR code.';
-            return;
-        }
-
-        $this->student = $student;
-        $this->verified = true;
-
-        // Store student data in session for persistence across page refreshes
-        session(['qr_verified_student_' . $student->id => $student]);
-    }
-
-    public function resetForm()
-    {
-        $this->reset(['tiitvt_reg_no', 'date_of_birth', 'student', 'verified', 'error_message']);
-
-        // Clear session data when form is reset
-        if ($this->studentQR && $this->studentQR->student_id) {
-            session()->forget('qr_verified_student_' . $this->studentQR->student_id);
-        }
+        // Track page visit
+        trackPageVisit('student_qr', [
+            'token' => $token,
+            'student_id' => $this->student->id,
+        ]);
     }
 
     /**
@@ -102,35 +62,12 @@ new class extends Component {
         }
         return 'F';
     }
-
-    /**
-     * Logout and clear session data
-     */
-    public function logout()
-    {
-        // Clear session data
-        if ($this->studentQR && $this->studentQR->student_id) {
-            session()->forget('qr_verified_student_' . $this->studentQR->student_id);
-        }
-
-        // Reset component state
-        $this->reset(['student', 'verified', 'error_message']);
-    }
 }; ?>
-@section('cdn')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-@endsection
 <div class="min-h-screen bg-base-300 py-4 px-2 sm:py-8 sm:px-4 lg:px-8">
     <div class="max-w-4xl mx-auto">
         <!-- Header Card -->
         <div class="bg-base-100 shadow-xl rounded-xl sm:rounded-2xl overflow-hidden relative mb-4 sm:mb-8">
             <div class="absolute top-2 right-2 sm:top-4 sm:right-4 flex gap-1 sm:gap-2">
-                @if ($verified)
-                    <x-button icon="o-arrow-right-on-rectangle" wire:click="logout"
-                        class="w-8 h-8 sm:w-12 sm:h-12 btn-xs sm:btn-sm btn-ghost btn-circle text-white"
-                        tooltip-left="Logout" />
-                @endif
                 <x-theme-toggle class="w-8 h-8 sm:w-12 sm:h-12 btn-xs sm:btn-sm text-white" lightTheme="light"
                     darkTheme="dark" />
             </div>
@@ -152,46 +89,7 @@ new class extends Component {
             </div>
 
             <div class="p-4 sm:p-8">
-                @if (!$verified)
-                    <!-- Verification Form -->
-                    <div class="max-w-md mx-auto">
-                        <div class="text-center mb-6 sm:mb-8">
-                            <div
-                                class="mx-auto flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-blue-100 mb-3 sm:mb-4">
-                                <x-icon name="o-identification" class="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-                            </div>
-                            <h2 class="text-lg sm:text-2xl font-semibold mb-2">Verify Your Identity</h2>
-                            <p class="text-sm sm:text-base">
-                                Enter your TIITVT Registration Number and Date of Birth to access your academic records
-                            </p>
-                        </div>
-
-                        @if ($error_message)
-                            <x-alert class="alert-error mb-6" title="Verification Failed"
-                                description="{{ $error_message }}" />
-                        @endif
-
-                        <form wire:submit.prevent="verifyStudent" class="space-y-6">
-                            <div>
-                                <x-input label="TIITVT Registration Number" id="tiitvt_reg_no"
-                                    wire:model="tiitvt_reg_no" icon="o-identification"
-                                    placeholder="Enter your TIITVT Registration Number" readonly />
-                            </div>
-
-                            <div>
-                                <x-datepicker label="Date of Birth" wire:model="date_of_birth" icon="o-calendar"
-                                    required />
-                            </div>
-
-                            <div class="flex space-x-4 justify-center">
-                                <x-button label="Verify Identity" type="submit" icon="o-check"
-                                    class="btn-primary btn-lg" spinner="verifyStudent" />
-                                <x-button label="Reset" type="button" icon="o-x-mark" class="btn-outline btn-lg"
-                                    wire:click="resetForm" spinner="resetForm" />
-                            </div>
-                        </form>
-                    </div>
-                @else
+                @if ($student)
                     <!-- Student Information Display -->
                     <div class="space-y-4 sm:space-y-8">
                         <!-- Student Profile Header -->
@@ -431,6 +329,12 @@ new class extends Component {
                                 </div>
                             </x-card>
                         @endif
+                    </div>
+                @else
+                    <div class="text-center py-12">
+                        <x-icon name="o-exclamation-triangle" class="h-16 w-16 mx-auto mb-4 text-warning" />
+                        <h3 class="text-lg font-semibold mb-2">Student Not Found</h3>
+                        <p class="text-sm">Unable to load student information.</p>
                     </div>
                 @endif
             </div>

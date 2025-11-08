@@ -110,6 +110,13 @@ Route::get('/certificate/verify/{token}', function ($token) {
         abort(404, 'Certificate not found or has been revoked.');
     }
 
+    // Track page visit
+    trackPageVisit('certificate_verify', [
+        'token' => $token,
+        'certificate_id' => $certificate->id,
+        'student_id' => $certificate->student_id ?? null,
+    ]);
+
     // Always show certificate without verification
     return view('certificates.verify', compact('certificate'));
 })->name('certificate.verify');

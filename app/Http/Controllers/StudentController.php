@@ -6,6 +6,7 @@ use App\Models\ExternalCertificate;
 use App\Models\Installment;
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class StudentController extends Controller
 {
@@ -25,6 +26,12 @@ class StudentController extends Controller
         if (!$certificate) {
             abort(404, 'Certificate not found');
         }
+
+        // Track page visit
+        trackPageVisit('student_result', [
+            'registration_number' => $originalRegNo,
+            'certificate_id' => $certificate->id,
+        ]);
 
         // Create a student-like object for compatibility with the view
         $student = (object) [
