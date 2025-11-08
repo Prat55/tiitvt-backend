@@ -619,7 +619,7 @@ new class extends Component {
                             <p class="text-sm text-gray-600 dark:text-gray-400">Total Centers</p>
                             <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_centers'] ?? 0) }}
                             </p>
-                            <p class="text-sm text-success mt-2">
+                            <p class="text-sm text-success mt-2 flex items-center gap-2">
                                 <x-icon name="o-arrow-trending-up" class="w-4 h-4 inline" />
                                 {{ $statistics['total_centers'] ?? 0 }} active
                             </p>
@@ -637,7 +637,7 @@ new class extends Component {
                             <p class="text-sm text-gray-600 dark:text-gray-400">Total Students</p>
                             <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_students'] ?? 0) }}
                             </p>
-                            <p class="text-sm text-success mt-2">
+                            <p class="text-sm text-success mt-2 flex items-center gap-2">
                                 <x-icon name="o-user-group" class="w-4 h-4 inline" />
                                 {{ $statistics['total_students'] ?? 0 }} active
                             </p>
@@ -652,13 +652,13 @@ new class extends Component {
                 <x-card shadow>
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Current Year Enrollments</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Enrollments</p>
                             <p class="text-3xl font-bold mt-1">
                                 {{ number_format($statistics['current_year_enrollments'] ?? 0) }}
                             </p>
-                            <p class="text-sm text-info mt-2">
+                            <p class="text-sm text-info mt-2 flex items-center gap-2">
                                 <x-icon name="o-calendar" class="w-4 h-4 inline" />
-                                {{ Carbon::now()->year }} enrollments
+                                {{ Carbon::now()->year }}
                             </p>
                         </div>
                         <div class="p-4 bg-info/10 rounded-full">
@@ -674,7 +674,7 @@ new class extends Component {
                             <p class="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
                             <p class="text-3xl font-bold mt-1">₹{{ number_format($statistics['total_revenue'] ?? 0) }}
                             </p>
-                            <p class="text-sm text-warning mt-2">
+                            <p class="text-sm text-warning mt-2 flex items-center gap-2">
                                 <x-icon name="o-clock" class="w-4 h-4 inline" />
                                 ₹{{ number_format($statistics['pending_payments'] ?? 0) }} pending
                             </p>
@@ -691,7 +691,7 @@ new class extends Component {
                         <div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">Courses & Exams</p>
                             <p class="text-3xl font-bold mt-1">{{ $statistics['total_courses'] ?? 0 }}</p>
-                            <p class="text-sm text-info mt-2">
+                            <p class="text-sm text-info mt-2 flex items-center gap-2">
                                 <x-icon name="o-document-text" class="w-4 h-4 inline" />
                                 {{ $statistics['total_exams'] ?? 0 }} exams
                             </p>
@@ -711,7 +711,7 @@ new class extends Component {
                             <p class="text-sm text-gray-600 dark:text-gray-400">Your Students</p>
                             <p class="text-3xl font-bold mt-1">{{ number_format($statistics['total_students'] ?? 0) }}
                             </p>
-                            <p class="text-sm text-success mt-2">
+                            <p class="text-sm text-success mt-2 flex items-center gap-2">
                                 <x-icon name="o-user-group" class="w-4 h-4 inline" />
                                 {{ $statistics['total_students'] ?? 0 }} active
                             </p>
@@ -730,7 +730,7 @@ new class extends Component {
                             <p class="text-3xl font-bold mt-1">
                                 {{ number_format($statistics['current_year_enrollments'] ?? 0) }}
                             </p>
-                            <p class="text-sm text-info mt-2">
+                            <p class="text-sm text-info mt-2 flex items-center gap-2">
                                 <x-icon name="o-calendar" class="w-4 h-4 inline" />
                                 {{ Carbon::now()->year }} enrollments
                             </p>
@@ -748,7 +748,7 @@ new class extends Component {
                             <p class="text-sm text-gray-600 dark:text-gray-400">Revenue</p>
                             <p class="text-3xl font-bold mt-1">₹{{ number_format($statistics['total_revenue'] ?? 0) }}
                             </p>
-                            <p class="text-sm text-warning mt-2">
+                            <p class="text-sm text-warning mt-2 flex items-center gap-2 ">
                                 <x-icon name="o-clock" class="w-4 h-4 inline" />
                                 ₹{{ number_format($statistics['pending_payments'] ?? 0) }} pending
                             </p>
