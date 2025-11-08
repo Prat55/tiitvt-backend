@@ -293,94 +293,68 @@
         </div>
 
         <div class="verification-content">
-            @if (!$isVerified)
-                <!-- Date of Birth Verification Form -->
-                <div class="verification-info" style="background: #eff6ff; border-color: #3b82f6;">
-                    <h3 style="color: #1e40af;">Identity Verification Required</h3>
-                    <p style="color: #1e40af;">Please enter your Date of Birth to verify and view the certificate
-                        details.</p>
-                </div>
+            <!-- Certificate Details (always shown) -->
+            <div class="status-badge">✓ Certificate Verified</div>
 
-                <form method="POST" action="{{ route('certificate.verify.post', $certificate->qr_token) }}"
-                    class="verification-form">
-                    @csrf
-                    <div class="form-group">
-                        <label for="date_of_birth" class="form-label">Date of Birth</label>
-                        <input type="date" id="date_of_birth" name="date_of_birth"
-                            class="form-input @error('date_of_birth') error @enderror" required autofocus>
-                        @error('date_of_birth')
-                            <div class="error-message">{{ $message }}</div>
-                        @enderror
+            <div class="verification-info">
+                <h3>Certificate Status: Valid</h3>
+                <p>This certificate has been successfully verified and is authentic. The student has completed the
+                    course requirements and is eligible for this certification.</p>
+            </div>
+
+            <div class="student-name">{{ $certificate->student->full_name ?? 'Student Name' }}</div>
+
+            <div class="certificate-details">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Certificate Number</span>
+                        <span class="detail-value">{{ $certificate->certificate_number ?? 'N/A' }}</span>
                     </div>
-
-                    <button type="submit" class="verify-button">Verify Identity</button>
-                </form>
-            @else
-                <!-- Certificate Details (shown only after verification) -->
-                <div class="status-badge">✓ Certificate Verified</div>
-
-                <div class="verification-info">
-                    <h3>Certificate Status: Valid</h3>
-                    <p>This certificate has been successfully verified and is authentic. The student has completed the
-                        course requirements and is eligible for this certification.</p>
-                </div>
-
-                <div class="student-name">{{ $certificate->student->full_name ?? 'Student Name' }}</div>
-
-                <div class="certificate-details">
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <span class="detail-label">Certificate Number</span>
-                            <span class="detail-value">{{ $certificate->certificate_number ?? 'N/A' }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Registration Number</span>
-                            <span class="detail-value">{{ $certificate->student->tiitvt_reg_no ?? 'N/A' }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Course</span>
-                            <span class="detail-value">{{ $certificate->course->name ?? 'N/A' }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Center</span>
-                            <span class="detail-value">{{ $certificate->student->center->name ?? 'N/A' }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Issue Date</span>
-                            <span class="detail-value">{{ $certificate->issued_on->format('F d, Y') ?? 'N/A' }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Status</span>
-                            <span class="detail-value">{{ ucfirst($certificate->status ?? 'Active') }}</span>
-                        </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Registration Number</span>
+                        <span class="detail-value">{{ $certificate->student->tiitvt_reg_no ?? 'N/A' }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Course</span>
+                        <span class="detail-value">{{ $certificate->course->name ?? 'N/A' }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Center</span>
+                        <span class="detail-value">{{ $certificate->student->center->name ?? 'N/A' }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Issue Date</span>
+                        <span class="detail-value">{{ $certificate->issued_on->format('F d, Y') ?? 'N/A' }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value">{{ ucfirst($certificate->status ?? 'Active') }}</span>
                     </div>
                 </div>
+            </div>
 
-                @if (isset($certificate->qr_token))
-                    <div class="qr-section">
-                        <div class="qr-code">
-                            <div>
-                                <div style="font-size: 10px; margin-bottom: 5px;">VERIFICATION</div>
-                                <div style="font-size: 8px;">QR Code</div>
-                                <div style="font-size: 6px; margin-top: 5px;">
-                                    {{ substr($certificate->qr_token, 0, 12) }}...
-                                </div>
+            @if (isset($certificate->qr_token))
+                <div class="qr-section">
+                    <div class="qr-code">
+                        <div>
+                            <div style="font-size: 10px; margin-bottom: 5px;">VERIFICATION</div>
+                            <div style="font-size: 8px;">QR Code</div>
+                            <div style="font-size: 6px; margin-top: 5px;">
+                                {{ substr($certificate->qr_token, 0, 12) }}...
                             </div>
                         </div>
-                        <p style="color: #64748b; font-size: 12px;">Certificate verification QR code</p>
                     </div>
-                @endif
-
-                <button class="print-button" onclick="window.print()">Print Verification</button>
+                    <p style="color: #64748b; font-size: 12px;">Certificate verification QR code</p>
+                </div>
             @endif
+
+            <button class="print-button" onclick="window.print()">Print Verification</button>
         </div>
 
         <div class="verification-footer">
-            @if ($isVerified)
-                <p class="footer-text">
-                    This certificate has been verified on {{ now()->format('F d, Y \a\t g:i A') }}
-                </p>
-            @endif
+            <p class="footer-text">
+                This certificate has been verified on {{ now()->format('F d, Y \a\t g:i A') }}
+            </p>
 
             <p class="footer-text">
                 For more information, visit

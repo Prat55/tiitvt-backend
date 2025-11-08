@@ -110,52 +110,9 @@ Route::get('/certificate/verify/{token}', function ($token) {
         abort(404, 'Certificate not found or has been revoked.');
     }
 
-    // Check if date of birth has been verified for this certificate
-    $verificationKey = 'certificate_verified_' . $certificate->id;
-    $isVerified = session()->has($verificationKey) && session($verificationKey) === true;
-
-    return view('certificates.verify', compact('certificate', 'isVerified'));
+    // Always show certificate without verification
+    return view('certificates.verify', compact('certificate'));
 })->name('certificate.verify');
-
-// Certificate date of birth verification route (public)
-Route::post('/certificate/verify/{token}', function ($token) {
-    $certificateService = app(\App\Services\CertificateService::class);
-    $certificate = $certificateService->verifyCertificate($token);
-
-    if (!$certificate) {
-        abort(404, 'Certificate not found or has been revoked.');
-    }
-
-    // Validate date of birth
-    $dateOfBirth = request()->input('date_of_birth');
-
-    if (!$dateOfBirth) {
-        return redirect()->route('certificate.verify', $token)
-            ->withErrors(['date_of_birth' => 'Date of Birth is required.']);
-    }
-
-    // Verify date of birth matches the student's date of birth
-    $student = $certificate->student;
-    if (!$student || !$student->date_of_birth) {
-        return redirect()->route('certificate.verify', $token)
-            ->withErrors(['date_of_birth' => 'Unable to verify certificate.']);
-    }
-
-    // Compare dates (format: Y-m-d)
-    $providedDate = \Carbon\Carbon::parse($dateOfBirth)->format('Y-m-d');
-    $studentDate = $student->date_of_birth->format('Y-m-d');
-
-    if ($providedDate !== $studentDate) {
-        return redirect()->route('certificate.verify', $token)
-            ->withErrors(['date_of_birth' => 'Invalid Date of Birth. Please check your details and try again.']);
-    }
-
-    // Store verification in session
-    $verificationKey = 'certificate_verified_' . $certificate->id;
-    session([$verificationKey => true]);
-
-    return redirect()->route('certificate.verify', $token);
-})->name('certificate.verify.post');
 
 // Student QR verification route (public) - by QR token using Volt
 Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');
