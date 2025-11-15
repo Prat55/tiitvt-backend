@@ -236,15 +236,15 @@ new class extends Component {
             <!-- Certificate Preview -->
             <div class="space-y-4">
                 <h3 class="text-lg font-semibold text-primary">Certificate Preview</h3>
-                <div class="bg-gray-50 rounded-lg p-4">
+                <div class="bg-base-200 rounded-lg p-4">
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <h4 class="font-semibold text-gray-800">{{ $student_name ?: 'Student Name' }}</h4>
-                            <p class="text-sm text-gray-600">{{ $course_name ?: 'Course Name' }}</p>
+                            <h4 class="font-semibold text-content">{{ $student_name ?: 'Student Name' }}</h4>
+                            <p class="text-sm text-content">{{ $course_name ?: 'Course Name' }}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm text-gray-500">Reg No: {{ $reg_no ?: 'REG-XXX' }}</p>
-                            <p class="text-sm text-gray-500">
+                            <p class="text-sm text-content">Reg No: {{ $reg_no ?: 'REG-XXX' }}</p>
+                            <p class="text-sm text-content">
                                 {{ $issued_on ? \Carbon\Carbon::parse($issued_on)->format('d M Y') : 'Date' }}</p>
                         </div>
                     </div>
@@ -273,7 +273,7 @@ new class extends Component {
                     @endif
 
                     <div class="text-center">
-                        <a href="{{ route('certificate.display', $certificate->id) }}" target="_blank"
+                        <a href="{{ route('admin.certificate.show', $certificate->id) }}" target="_blank"
                             class="btn btn-primary btn-sm">
                             <i class="fas fa-eye mr-1"></i>
                             View Certificate
