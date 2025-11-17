@@ -129,7 +129,7 @@ class ExamStudent extends Model
      */
     public static function generatePassword(): string
     {
-        return Str::random(6);
+        return '12345';
     }
 
     /**
