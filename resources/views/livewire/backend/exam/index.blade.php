@@ -275,7 +275,7 @@ new class extends Component {
             @scope('cell_status', $exam)
                 <div class="flex items-center gap-2">
                     @if ($exam->status)
-                        <span class="{{ $exam->status->badge() }} badge-sm">
+                        <span class="{{ $exam->status->badge() }} badge-sm h-fit">
                             {{ $exam->status->label() }}
                         </span>
                         @if ($exam->status === ExamStatusEnum::SCHEDULED)
