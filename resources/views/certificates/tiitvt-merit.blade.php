@@ -4,7 +4,7 @@
 
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>{{ $certificate->tiitvt_reg_no }} - {{ $student->full_name ?? 'Student Name' }}</title>
+    <title>{{ $certificate->tiitvt_reg_no ?? '-' }} - {{ $student->full_name ?? '-' }}</title>
     <meta name="author" content="{{ $websiteSettings->getWebsiteName() }}" />
     <style type="text/css">
         * {
@@ -145,7 +145,7 @@
 <body>
     <div class="header">
         <div class="left-info">
-            <div class="certificate-number" style="font-weight: 600;">{{ $certificate->tiitvt_reg_no }}</div>
+            <div class="certificate-number" style="font-weight: 600;">{{ $certificate->tiitvt_reg_no ?? '-' }}</div>
             <div class="date" style="margin-top: 10px;font-weight: 600;">
                 {{ $certificate->issued_on->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
         </div>
@@ -161,19 +161,19 @@
     </div>
 
     <p style="text-indent: 0pt;text-align: left;margin-top: 250px"><br /></p>
-    <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? 'Student Name' }}</p>
+    <p style="text-indent: 0pt;text-align: center;">{{ $student->full_name ?? '-' }}</p>
     <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">
-        {{ $student->course->name ?? 'Course Name' }}</p>
+        {{ $student->course->name ?? '-' }}</p>
     <p style="padding-top: 6pt;padding-left: 145pt;text-indent: 0pt;text-align: left;">
-        <span>{{ $student->percentage ?? '88.50' }}</span>
+        <span>{{ $student->percentage ?? '-' }}</span>
 
-        <span style="margin-left: 350px;">{{ $student->grade ?? 'A' }}</span>
+        <span style="margin-left: 350px;">{{ $student->grade ?? '-' }}</span>
     </p>
 
     <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br /></p>
     <p style="padding-left: 9pt;text-indent: 0pt;text-align: center;">
-        {{ $certificate->center_name ?? '' }}</p>
+        {{ $certificate->center_name ?? '-' }}</p>
     <p style="padding-top: 4pt;text-indent: 0pt;text-align: left;"><br /></p>
     <div style="padding: 0 50px;margin-top: 20px;">
         <table style="border-collapse:collapse;margin-left:4pt" cellspacing="0">
