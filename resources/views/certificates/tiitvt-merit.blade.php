@@ -165,7 +165,7 @@
     <p style="padding-top: 8pt;text-indent: 0pt;text-align: center;"><br /></p>
     <p style="text-indent: 0pt;text-align: center;">
         {{ $student->course->name ?? '-' }}</p>
-    <p style="padding-top: 6pt;padding-left: 150pt;text-indent: 0pt;text-align: left;">
+    <p style="padding-top: 6pt;padding-left: 155pt;text-indent: 0pt;text-align: left;">
         <span>{{ $student->percentage ?? '-' }}</span>
 
         <span style="margin-left: 320px;">{{ $student->grade ?? '-' }}</span>
