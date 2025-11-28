@@ -168,7 +168,7 @@
     <p style="padding-top: 6pt;padding-left: 145pt;text-indent: 0pt;text-align: left;">
         <span>{{ $student->percentage ?? '88.50' }}</span>
 
-        <span style="margin-left: 320px;">{{ $student->grade ?? 'A' }}</span>
+        <span style="margin-left: 350px;">{{ $student->grade ?? 'A' }}</span>
     </p>
 
     <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br /></p>
