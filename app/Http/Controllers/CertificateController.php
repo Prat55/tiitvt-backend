@@ -68,6 +68,25 @@ class CertificateController extends Controller
         $latestExamResults = $examResults[$latestExamId];
         $latestExamResult = $latestExamResults->first();
 
+        // Get the course ID from the latest exam
+        $courseId = $latestExamResult->exam->course_id;
+
+        // Get all exam results from the same course across all exams
+        // This includes categories from previous exams and current exam
+        $allCourseResults = ExamResult::with(['exam.course', 'student', 'category'])
+            ->where('student_id', $student->id)
+            ->whereHas('exam', function ($query) use ($courseId) {
+                $query->where('course_id', $courseId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Group by category and get the most recent result for each category
+        $categoryResults = $allCourseResults->groupBy('category_id')->map(function ($results) {
+            // Return the most recent result for this category (first in the sorted collection)
+            return $results->first();
+        });
+
         // Generate QR code for the student using StudentQRService
         $qrDataUri = null;
 
@@ -80,13 +99,13 @@ class CertificateController extends Controller
         // Generate QR code data URI
         $qrDataUri = $this->studentQRService->generateQRCodeDataUri($studentQR->qr_data);
 
-        // Calculate overall statistics from all categories
-        $totalMarks = $latestExamResults->sum('total_points') ?: $latestExamResults->count() * 100;
-        $totalMarksObtained = $latestExamResults->sum('points_earned') ?: $latestExamResults->sum('score');
+        // Calculate overall statistics from all categories (using the most recent result for each category)
+        $totalMarks = $categoryResults->sum('total_points') ?: $categoryResults->count() * 100;
+        $totalMarksObtained = $categoryResults->sum('points_earned') ?: $categoryResults->sum('score');
         $overallPercentage = $totalMarks > 0 ? ($totalMarksObtained / $totalMarks) * 100 : 0;
 
-        // Create subjects array from categories
-        $subjects = $latestExamResults->map(function ($result) {
+        // Create subjects array from categories (using the most recent result for each category)
+        $subjects = $categoryResults->map(function ($result) {
             $maxMarks = $result->total_points ?: 100;
             $obtainedMarks = $result->points_earned ?: $result->score;
             $percentage = $maxMarks > 0 ? ($obtainedMarks / $maxMarks) * 100 : 0;
