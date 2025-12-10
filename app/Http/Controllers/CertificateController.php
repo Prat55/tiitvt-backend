@@ -78,14 +78,15 @@ class CertificateController extends Controller
             ->whereHas('exam', function ($query) use ($courseId) {
                 $query->where('course_id', $courseId);
             })
+            ->orderBy('submitted_at', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Group by category and get the most recent result for each category
+        // Group by category_id and get the most recent result for each unique category
         $categoryResults = $allCourseResults->groupBy('category_id')->map(function ($results) {
             // Return the most recent result for this category (first in the sorted collection)
             return $results->first();
-        });
+        })->values();
 
         // Generate QR code for the student using StudentQRService
         $qrDataUri = null;
@@ -100,20 +101,31 @@ class CertificateController extends Controller
         $qrDataUri = $this->studentQRService->generateQRCodeDataUri($studentQR->qr_data);
 
         // Calculate overall statistics from all categories (using the most recent result for each category)
-        $totalMarks = $categoryResults->sum('total_points') ?: $categoryResults->count() * 100;
-        $totalMarksObtained = $categoryResults->sum('points_earned') ?: $categoryResults->sum('score');
+        $totalMarks = 0;
+        $totalMarksObtained = 0;
+
+        foreach ($categoryResults as $result) {
+            $totalMarks += $result->total_points ?: 100;
+            $totalMarksObtained += $result->points_earned ?: $result->score ?: 0;
+        }
+
         $overallPercentage = $totalMarks > 0 ? ($totalMarksObtained / $totalMarks) * 100 : 0;
 
         // Create subjects array from categories (using the most recent result for each category)
         $subjects = $categoryResults->map(function ($result) {
-            $maxMarks = $result->total_points ?: 100;
-            $obtainedMarks = $result->points_earned ?: $result->score;
+            // Get max marks from total_points, default to 100 if not set
+            $maxMarks = $result->total_points && $result->total_points > 0 ? $result->total_points : 100;
+
+            // Get obtained marks from points_earned, fallback to score
+            $obtainedMarks = $result->points_earned ?? $result->score ?? 0;
+
+            // Calculate percentage for this category
             $percentage = $maxMarks > 0 ? ($obtainedMarks / $maxMarks) * 100 : 0;
 
             return [
                 'name' => $result->category->name ?? 'Subject',
-                'maximum' => $maxMarks,
-                'obtained' => round($obtainedMarks),
+                'maximum' => (int) $maxMarks,
+                'obtained' => (int) round($obtainedMarks),
                 'result' => $percentage >= 50 ? 'PASS' : 'FAIL'
             ];
         })->values()->toArray();

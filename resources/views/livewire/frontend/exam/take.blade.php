@@ -511,7 +511,6 @@ new class extends Component {
     public function prepareAnswersData()
     {
         $totalPointsEarned = 0;
-        $totalPoints = 0;
         $answeredQuestions = 0;
 
         // Prepare answers data in flat structure
@@ -521,31 +520,25 @@ new class extends Component {
             'category_passing_points' => $this->examCategory->passing_points ?? 0,
         ];
 
-        foreach ($this->answers as $questionId => $selectedAnswer) {
-            // Find the question
-            $question = $this->questions->firstWhere('id', $questionId);
-            if (!$question) {
-                continue;
-            }
-
-            $totalPoints += $question->points;
+        // Process all questions (not just answered ones)
+        foreach ($this->questions as $question) {
+            $questionId = $question->id;
+            $selectedAnswer = $this->answers[$questionId] ?? null;
 
             // Determine if answer is correct
             $isCorrect = false;
             $pointsEarned = 0;
-            $correctAnswerId = null;
+            $correctAnswerId = $question->correct_option_id;
 
             if ($selectedAnswer !== null) {
                 $answeredQuestions++;
-                // Get the correct answer ID from the question
-                $correctAnswerId = $question->correct_option_id;
                 $isCorrect = $correctAnswerId == $selectedAnswer;
                 $pointsEarned = $isCorrect ? $question->points : 0;
             }
 
             $totalPointsEarned += $pointsEarned;
 
-            // Store each question's data directly in the main structure
+            // Store each question's data (including unanswered ones)
             $answersData["question_{$questionId}"] = [
                 'question_id' => $question->id,
                 'question' => $question->question_text,
@@ -553,7 +546,7 @@ new class extends Component {
                 'correct_answer' => $correctAnswerId,
                 'point' => $question->points,
                 'point_earned' => $pointsEarned,
-                'answered_at' => now()->toDateTimeString(),
+                'answered_at' => $selectedAnswer !== null ? now()->toDateTimeString() : null,
                 'options' => $question->options
                     ->map(function ($option) use ($question) {
                         return [
@@ -568,6 +561,9 @@ new class extends Component {
 
         // Calculate skipped questions: total questions - answered questions
         $skippedQuestions = $this->totalQuestions - $answeredQuestions;
+
+        // Always use exam category total_points instead of calculated from questions
+        $totalPoints = $this->examCategory->total_points ?? 100;
 
         // Calculate overall result using exam category passing points
         $passingPoints = (int) ($this->examCategory->passing_points ?? $totalPoints * 0.6); // Default 60%
