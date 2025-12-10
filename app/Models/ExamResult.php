@@ -248,6 +248,32 @@ class ExamResult extends Model
         return round(($correct / $total) * 100, 2);
     }
 
+    /**
+     * Recalculate and update result based on passing points criteria.
+     */
+    public function recalculateResult(): bool
+    {
+        // Get exam category to check passing points
+        $examCategory = $this->exam->examCategories()->where('category_id', $this->category_id)->first();
+
+        if (!$examCategory) {
+            return false;
+        }
+
+        $passingPoints = (int) ($examCategory->passing_points ?? 0);
+        $pointsEarned = (int) $this->points_earned;
+
+        // Recalculate result
+        $newResult = $pointsEarned >= $passingPoints ? 'passed' : 'failed';
+
+        // Update if different
+        if ($this->result !== $newResult) {
+            return $this->update(['result' => $newResult]);
+        }
+
+        return true;
+    }
+
     // =========================================================================
     // SCOPES
     // =========================================================================

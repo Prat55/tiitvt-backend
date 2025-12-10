@@ -176,6 +176,20 @@ new class extends Component {
         }
     }
 
+    public function recalculateResult(): void
+    {
+        try {
+            if ($this->examResult->recalculateResult()) {
+                $this->success('Result recalculated successfully!');
+                $this->examResult->refresh();
+            } else {
+                $this->error('Failed to recalculate result.');
+            }
+        } catch (\Exception $e) {
+            $this->error('Failed to recalculate result: ' . $e->getMessage());
+        }
+    }
+
     public function getGradeFromPercentage($percentage): string
     {
         if ($percentage >= 90) {
@@ -589,6 +603,49 @@ new class extends Component {
                         wire:click="openDeclareModal" />
                 @endif
             </div>
+
+            {{-- Passing Criteria Information --}}
+            @php
+                $examCategory = $examResult->exam->examCategories->firstWhere('category_id', $examResult->category_id);
+                $passingPoints = $examCategory?->passing_points ?? 0;
+                $totalPoints = $examCategory?->total_points ?? 100;
+            @endphp
+            @if ($passingPoints > 0)
+                <div class="mt-4 p-3 bg-base-200 rounded-lg">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="font-medium">Passing Criteria:</span>
+                        <span class="font-semibold">{{ $passingPoints }} / {{ $totalPoints }} points
+                            ({{ number_format(($passingPoints / $totalPoints) * 100, 1) }}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm mt-2">
+                        <span class="font-medium">Points Earned:</span>
+                        <span
+                            class="font-semibold {{ $examResult->points_earned >= $passingPoints ? 'text-success' : 'text-error' }}">
+                            {{ $examResult->points_earned }} / {{ $totalPoints }} points
+                        </span>
+                    </div>
+
+                    {{-- Show recalculate button if there's a mismatch --}}
+                    @php
+                        $shouldPass = (int) $examResult->points_earned >= (int) $passingPoints;
+                        $currentlyPassed = $examResult->result === 'passed';
+                        $hasMismatch = $shouldPass !== $currentlyPassed;
+                    @endphp
+                    @if ($hasMismatch)
+                        <div class="mt-3 p-2 bg-warning/10 border border-warning rounded">
+                            <div class="flex items-center justify-between">
+                                <div class="text-sm text-warning">
+                                    <x-icon name="o-exclamation-triangle" class="w-4 h-4 inline" />
+                                    Result mismatch detected! Should be:
+                                    <strong>{{ $shouldPass ? 'PASSED' : 'FAILED' }}</strong>
+                                </div>
+                                <x-button label="Fix Result" icon="o-arrow-path" class="btn-warning btn-sm"
+                                    wire:click="recalculateResult" spinner="recalculateResult" />
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 

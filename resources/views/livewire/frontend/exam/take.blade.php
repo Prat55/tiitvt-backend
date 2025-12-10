@@ -570,9 +570,12 @@ new class extends Component {
         $skippedQuestions = $this->totalQuestions - $answeredQuestions;
 
         // Calculate overall result using exam category passing points
-        $passingPoints = $this->examCategory->passing_points ?? $totalPoints * 0.6; // Default 60%
+        $passingPoints = (int) ($this->examCategory->passing_points ?? $totalPoints * 0.6); // Default 60%
         $percentage = $totalPoints > 0 ? ($totalPointsEarned / $totalPoints) * 100 : 0;
-        $result = $totalPointsEarned >= $passingPoints ? ExamResultStatusEnum::Passed->value : ExamResultStatusEnum::Failed->value;
+
+        // Ensure both values are integers for accurate comparison
+        $pointsEarnedInt = (int) $totalPointsEarned;
+        $result = $pointsEarnedInt >= $passingPoints ? ExamResultStatusEnum::Passed->value : ExamResultStatusEnum::Failed->value;
 
         // Add summary information
         $answersData['total_questions'] = $this->totalQuestions;
