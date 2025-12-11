@@ -251,7 +251,7 @@
                 <p style="text-indent: 0pt;text-align: center;">{{ $certificate->course_name }}</p>
 
                 <!-- Percentage and Grade -->
-                <p style="padding-top: 3.8pt;padding-left: 130pt;text-indent: 0pt;text-align: left;">
+                <p style="padding-top: 3.8pt;padding-left: 125pt;text-indent: 0pt;text-align: left;">
                     <span>{{ $certificate->percentage ? number_format($certificate->percentage, 2) : '88.50' }}</span>
                     <span style="margin-left: 330px;">{{ $certificate->grade ?? 'A' }}</span>
                 </p>
