@@ -216,6 +216,30 @@ new class extends Component {
         return 'F';
     }
 
+    public function getOverallResult(): string
+    {
+        // If ANY category is failed, the overall result is failed
+        $hasAnyFailed = $this->allExamResults->some(function ($resultData) {
+            return $resultData['exam_result']->result === 'failed';
+        });
+
+        if ($hasAnyFailed) {
+            return 'failed';
+        }
+
+        // Check if all exam results are passed
+        $allPassed = $this->allExamResults->every(function ($resultData) {
+            return $resultData['exam_result']->result === 'passed';
+        });
+
+        if ($allPassed) {
+            return 'passed';
+        }
+
+        // If there are pending results (not all passed, no failed)
+        return 'pending';
+    }
+
     public function initializeQuestions(): void
     {
         $this->questions = [];
@@ -407,9 +431,11 @@ new class extends Component {
             @endif
             <x-button label="View Answers" icon="o-document-text" class="btn-info btn-sm"
                 wire:click="openAnswersModal" />
-            <x-button label="Preview Certificate" icon="o-document" class="btn-success btn-sm"
-                link="{{ route('certificate.exam.preview', str_replace('/', '_', $examResult->student->tiitvt_reg_no)) }}"
-                external />
+            @if ($this->getOverallResult() !== 'failed')
+                <x-button label="Preview Certificate" icon="o-document" class="btn-success btn-sm"
+                    link="{{ route('certificate.exam.preview', str_replace('/', '_', $examResult->student->tiitvt_reg_no)) }}"
+                    external />
+            @endif
             <x-button label="Back to Results" icon="o-arrow-left" class="btn-ghost btn-sm"
                 link="{{ route('admin.exam.results') }}" />
         </div>

@@ -200,16 +200,20 @@ new class extends Component {
                 $answeredQuestions = $studentResults->sum('answered_questions');
                 $categoriesCount = $studentResults->count();
 
-                // Determine overall result (passed if all categories passed)
-                $overallResult = $studentResults->every(function ($result) {
-                    return $result->result === 'passed';
-                })
-                    ? 'passed'
-                    : ($studentResults->every(function ($result) {
-                        return $result->result === 'failed';
-                    })
-                        ? 'failed'
-                        : 'mixed');
+                // Determine overall result - failed if ANY category is failed
+                $hasAnyFailed = $studentResults->some(function ($result) {
+                    return $result->result === 'failed';
+                });
+
+                if ($hasAnyFailed) {
+                    $overallResult = 'failed';
+                } else {
+                    // Check if all are passed
+                    $allPassed = $studentResults->every(function ($result) {
+                        return $result->result === 'passed';
+                    });
+                    $overallResult = $allPassed ? 'passed' : 'pending';
+                }
 
                 return [
                     'student' => $student,
@@ -542,9 +546,9 @@ new class extends Component {
                                             Failed
                                         </span>
                                     @else
-                                        <span class="badge badge-warning badge-sm">
-                                            <x-icon name="o-exclamation-triangle" class="w-3 h-3 mr-1" />
-                                            Mixed
+                                        <span class="badge badge-info badge-sm">
+                                            <x-icon name="o-clock" class="w-3 h-3 mr-1" />
+                                            Pending
                                         </span>
                                     @endif
                                 </td>
@@ -604,13 +608,12 @@ new class extends Component {
                 </div>
 
                 <div class="stat bg-base-200 rounded-lg">
-                    <div class="stat-title">Mixed</div>
-                    <div class="stat-value text-warning">
-                        {{ $examStudents->where('overall_result', 'mixed')->count() }}
+                    <div class="stat-title">Pending</div>
+                    <div class="stat-value text-info">
+                        {{ $examStudents->where('overall_result', 'pending')->count() }}
                     </div>
                 </div>
             </div>
-</div>
-</x-modal>
-@endif
+        </x-modal>
+    @endif
 </div>
