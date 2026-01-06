@@ -270,6 +270,8 @@ class Student extends Model
 
     public function getInitials()
     {
-        return $this->first_name[0] . $this->surname[0];
+        $first = is_string($this->first_name) && strlen($this->first_name) ? mb_substr($this->first_name, 0, 1) : '';
+        $last  = is_string($this->surname) && strlen($this->surname) ? mb_substr($this->surname, 0, 1) : '';
+        return strtoupper($first . $last);
     }
 }
