@@ -99,6 +99,25 @@ new class extends Component {
                     ];
                 });
 
+                // Count unique students by status
+                $passedStudents = $uniqueStudents
+                    ->filter(function ($studentResults) {
+                        return $studentResults->every(fn($result) => $result->result === 'passed');
+                    })
+                    ->count();
+
+                $failedStudents = $uniqueStudents
+                    ->filter(function ($studentResults) {
+                        return $studentResults->contains(fn($result) => $result->result === 'failed');
+                    })
+                    ->count();
+
+                $pendingStudents = $uniqueStudents
+                    ->filter(function ($studentResults) {
+                        return $studentResults->every(fn($result) => $result->result === null);
+                    })
+                    ->count();
+
                 return [
                     'exam_id' => $examId,
                     'exam' => $exam,
@@ -107,9 +126,9 @@ new class extends Component {
                     'exam_time' => $exam->start_time,
                     'total_students' => $uniqueStudents->count(), // Unique students count
                     'total_results' => $results->count(), // Total results count
-                    'passed_count' => $results->where('result', 'passed')->count(),
-                    'failed_count' => $results->where('result', 'failed')->count(),
-                    'pending_count' => $results->whereNull('result')->count(),
+                    'passed_count' => $passedStudents,
+                    'failed_count' => $failedStudents,
+                    'pending_count' => $pendingStudents,
                     'student_scores' => $studentScores,
                     'avg_percentage' => $results->whereNotNull('percentage')->avg('percentage'),
                     'avg_score' => $results->whereNotNull('score')->avg('score'),
