@@ -21,3 +21,8 @@ Schedule::command('installments:handle-overdue')
 Schedule::command('exams:cancel-overdue')
     ->everyFifteenMinutes()
     ->appendOutputTo(storage_path('logs/exam-cancellation.log'));
+
+// Daily database backup at 5:30 AM
+Artisan::command('schedule:daily-backup', function () {
+    $this->call('backup:daily');
+})->purpose('Schedule daily database backup')->dailyAt('05:30');

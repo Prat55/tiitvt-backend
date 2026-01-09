@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\StudentController;
+use Illuminate\Support\Facades\DB;
 use Livewire\Volt\Volt;
 use Illuminate\Support\Facades\Route;
 
@@ -71,6 +72,15 @@ Route::middleware(['admin.auth'])->group(function () {
             // Backup routes (admin only)
             Route::prefix('app')->group(function () {
                 Volt::route('database-backup', 'backend.backup.index')->name('backup.index');
+                Route::get('/download/{id}', function ($id) {
+                    $backup = DB::table('database_backups')->find($id);
+
+                    if (!$backup || !file_exists($backup->path)) {
+                        abort(404, 'Backup not found');
+                    }
+
+                    return response()->download($backup->path, $backup->filename);
+                })->name('backup.download');
             });
         });
 
