@@ -64,7 +64,6 @@
                             @endif
                         </div>
                     </div>
-
                     <div class="display-when-collapsed hidden my-3 h-[25px] mx-3">
                         @if ($websiteSettings->getLogoUrl())
                             <img src="{{ $websiteSettings->getLogoUrl() }}" alt="Logo" class="light-logo"
@@ -76,6 +75,8 @@
                     </div>
                 </a>
 
+                {{-- CRM Section --}}
+                <div class="divider divider-start my-1"><small>CRM</small></div>
                 <x-menu-item title="Dashboard" icon="o-home" link="{{ route('admin.index') }}" />
                 @role($role::Admin->value)
                     <x-menu-item title="Center" icon="o-building-office" link="{{ route('admin.center.index') }}" />
@@ -88,22 +89,31 @@
                         link="{{ route('admin.certificate.index') }}" />
                 @endrole
 
+                {{-- Exam Section --}}
+                <div class="divider divider-start my-1"><small>Exam</small></div>
                 <x-menu-sub title="Exam" icon="o-square-2-stack">
                     <x-menu-item title="Schedule" icon="o-calendar" link="{{ route('admin.exam.schedule') }}" />
                     <x-menu-item title="Exam" icon="o-book-open" link="{{ route('admin.exam.index') }}" />
                     <x-menu-item title="Results" icon="o-chart-bar" link="{{ route('admin.exam.results') }}" />
-
                     @role($role::Admin->value)
                         <x-menu-item title="Question" icon="o-question-mark-circle"
                             link="{{ route('admin.question.index') }}" />
                     @endrole
                 </x-menu-sub>
 
+                {{-- Website Section --}}
                 @role($role::Admin->value)
+                    <div class="divider divider-start my-1"><small>Website</small></div>
                     <x-menu-item title="Blog" icon="o-document-text" link="{{ route('admin.blog.index') }}" />
                     <x-menu-item title="Website Settings" icon="o-cog"
                         link="{{ route('admin.website-setting.index') }}" />
                     <x-menu-item title="Testimonials" icon="o-star" link="{{ route('admin.testimonial.index') }}" />
+                @endrole
+
+                {{-- Backup Section (to be implemented) --}}
+                @role($role::Admin->value)
+                    <div class="divider divider-start my-1"><small>Backup</small></div>
+                    <x-menu-item title="Backup Files" icon="o-arrow-down-tray" link="{{ route('admin.backup.index') }}" />
                 @endrole
             </x-menu>
         </x-slot:sidebar>

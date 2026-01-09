@@ -20,6 +20,10 @@ new class extends Component {
     public $meta_description;
     public $meta_author;
 
+    // Backup Settings
+    public $backup_duration;
+    public $backup_type;
+
     // Image Settings
     public $logo;
     public $logo_dark;
@@ -83,6 +87,8 @@ new class extends Component {
             $this->twitter_url = $this->settings->twitter_url;
             $this->instagram_url = $this->settings->instagram_url;
             $this->linkedin_url = $this->settings->linkedin_url;
+            $this->backup_duration = $this->settings->backup_duration;
+            $this->backup_type = $this->settings->backup_type;
         }
     }
 
@@ -114,6 +120,8 @@ new class extends Component {
             'meta_keywords' => 'nullable|string|max:500',
             'meta_description' => 'nullable|string|max:500',
             'meta_author' => 'nullable|string|max:255',
+            'backup_duration' => 'required|in:daily,weekly,monthly',
+            'backup_type' => 'required|in:sql,zip',
         ]);
 
         $this->updateSettings([
@@ -122,6 +130,8 @@ new class extends Component {
             'meta_keywords' => $this->meta_keywords,
             'meta_description' => $this->meta_description,
             'meta_author' => $this->meta_author,
+            'backup_duration' => $this->backup_duration,
+            'backup_type' => $this->backup_type,
         ]);
 
         $this->showGeneralModal = false;
@@ -530,6 +540,17 @@ new class extends Component {
                 <x-textarea label="Meta Description" wire:model.defer="meta_description"
                     placeholder="Enter meta description" />
                 <x-input label="Meta Author" wire:model.defer="meta_author" placeholder="Enter meta author" />
+                <div class="grid grid-cols-2 gap-4">
+                    <x-select label="Backup Duration" wire:model.defer="backup_duration">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </x-select>
+                    <x-select label="Backup Type" wire:model.defer="backup_type">
+                        <option value="sql">SQL</option>
+                        <option value="zip">Compressed ZIP</option>
+                    </x-select>
+                </div>
             </div>
 
             <x-slot:actions>

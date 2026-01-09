@@ -67,6 +67,11 @@ Route::middleware(['admin.auth'])->group(function () {
             Route::prefix('testimonial')->name('testimonial.')->group(function () {
                 Volt::route('/', 'backend.testimonial.index')->name('index');
             });
+
+            // Backup routes (admin only)
+            Route::prefix('app')->group(function () {
+                Volt::route('database-backup', 'backend.backup.index')->name('backup.index');
+            });
         });
 
         Route::group(['middleware' => ['role:admin|center']], function () {
