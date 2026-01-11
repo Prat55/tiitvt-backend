@@ -1,7 +1,7 @@
 @extends('mail.layout.app')
 @section('content')
     <h2>
-        Your Daily Database Backup Notification
+        Your Requested Database Backup
     </h2>
     <table style="width:100%; border-collapse:collapse;">
         <tbody class="appointment-reminder-data">
@@ -12,7 +12,7 @@
             </p>
 
             <p>
-                Please find attached the latest database backup: <br>
+                Please find attached the requested database backup: <br>
                 <strong>{{ $filename }}</strong>.
             </p>
 

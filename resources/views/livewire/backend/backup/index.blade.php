@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Title;
 
+use App\Models\WebsiteSetting;
+
 new class extends Component {
     use Toast, WithPagination;
     #[Title('Database Backups')]
@@ -18,6 +20,9 @@ new class extends Component {
     public $perPage = 20;
     public bool $createBackupModal = false;
     public bool $compressed = true;
+    public bool $sendMailModal = false;
+    public $sendMailBackupId = null;
+    public $sendMailEmail = '';
 
     public function boot(): void
     {
@@ -107,6 +112,35 @@ new class extends Component {
         }
     }
 
+    public function openSendMailModal($backupId)
+    {
+        $this->sendMailBackupId = $backupId;
+        $this->sendMailEmail = WebsiteSetting::first()?->backup_mail ?? '';
+        $this->sendMailModal = true;
+    }
+
+    public function sendBackupToMail()
+    {
+        $this->validate([
+            'sendMailEmail' => 'required|email',
+        ]);
+
+        $backup = DB::table('database_backups')->find($this->sendMailBackupId);
+
+        if (!$backup) {
+            $this->error('Backup not found.');
+            return;
+        }
+
+        try {
+            \Mail::to($this->sendMailEmail)->send(new \App\Mail\RequestedDatabaseBackupMail($backup->path, $backup->filename));
+            $this->success('Backup sent to ' . $this->sendMailEmail . ' successfully!');
+            $this->sendMailModal = false;
+        } catch (\Exception $e) {
+            $this->error('Failed to send backup: ' . $e->getMessage());
+        }
+    }
+
     public function sortBy($column)
     {
         if ($this->sortBy['column'] === $column) {
@@ -174,6 +208,8 @@ new class extends Component {
             <div class="flex gap-2">
                 <x-button icon="o-arrow-down-tray" class="btn-sm btn-primary"
                     wire:click="downloadBackup({{ $backup->id }})" tooltip="Download Backup" />
+                <x-button icon="o-paper-airplane" class="btn-sm btn-accent"
+                    wire:click="openSendMailModal({{ $backup->id }})" tooltip="Send to Email" />
                 <x-button icon="o-trash" class="btn-sm btn-error" wire:click="deleteBackup({{ $backup->id }})"
                     wire:confirm="Are you sure you want to delete this backup?" tooltip-left="Delete Backup" />
             </div>
@@ -203,6 +239,21 @@ new class extends Component {
                 <x-slot:actions>
                     <x-button label="Cancel" @click="$wire.createBackupModal = false" />
                     <x-button label="Create Backup" type="submit" class="btn-primary" spinner="createBackup" />
+                </x-slot:actions>
+            </x-form>
+        </div>
+    </x-modal>
+    <!-- Send Backup to Mail Modal -->
+    <x-modal wire:model="sendMailModal" title="Send Backup to Email">
+        <div class="mt-3">
+            <x-form wire:submit.prevent="sendBackupToMail">
+                <x-input label="Recipient Email" wire:model.defer="sendMailEmail" placeholder="Enter email address"
+                    type="email" required />
+                <div class="mt-2 text-xs text-gray-500">Leave blank to enter a custom email. If set in Website Settings,
+                    it will be pre-filled.</div>
+                <x-slot:actions>
+                    <x-button label="Cancel" @click="$wire.sendMailModal = false" />
+                    <x-button label="Send Backup" type="submit" class="btn-primary" spinner="sendBackupToMail" />
                 </x-slot:actions>
             </x-form>
         </div>

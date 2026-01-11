@@ -23,6 +23,7 @@ new class extends Component {
     // Backup Settings
     public $backup_duration;
     public $backup_type;
+    public $backup_mail;
 
     // Image Settings
     public $logo;
@@ -89,6 +90,7 @@ new class extends Component {
             $this->linkedin_url = $this->settings->linkedin_url;
             $this->backup_duration = $this->settings->backup_duration;
             $this->backup_type = $this->settings->backup_type;
+            $this->backup_mail = $this->settings->backup_mail;
         }
     }
 
@@ -122,6 +124,7 @@ new class extends Component {
             'meta_author' => 'nullable|string|max:255',
             'backup_duration' => 'required|in:daily,weekly,monthly',
             'backup_type' => 'required|in:sql,zip',
+            'backup_mail' => 'nullable|email|max:255',
         ]);
 
         $this->updateSettings([
@@ -132,6 +135,7 @@ new class extends Component {
             'meta_author' => $this->meta_author,
             'backup_duration' => $this->backup_duration,
             'backup_type' => $this->backup_type,
+            'backup_mail' => $this->backup_mail,
         ]);
 
         $this->showGeneralModal = false;
@@ -540,17 +544,8 @@ new class extends Component {
                 <x-textarea label="Meta Description" wire:model.defer="meta_description"
                     placeholder="Enter meta description" />
                 <x-input label="Meta Author" wire:model.defer="meta_author" placeholder="Enter meta author" />
-                <div class="grid grid-cols-2 gap-4">
-                    <x-select label="Backup Duration" wire:model.defer="backup_duration">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                    </x-select>
-                    <x-select label="Backup Type" wire:model.defer="backup_type">
-                        <option value="sql">SQL</option>
-                        <option value="zip">Compressed ZIP</option>
-                    </x-select>
-                </div>
+                <x-input label="Backup Email" wire:model.defer="backup_mail" placeholder="Enter backup email address"
+                    type="email" help="Leave blank to disable backup emails" />
             </div>
 
             <x-slot:actions>

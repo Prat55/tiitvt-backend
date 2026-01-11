@@ -25,5 +25,6 @@ class WebsiteSetting extends Model
         'twitter_url',
         'instagram_url',
         'linkedin_url',
+        'backup_mail',
     ];
 }

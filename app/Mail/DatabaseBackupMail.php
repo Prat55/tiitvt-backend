@@ -27,7 +27,7 @@ class DatabaseBackupMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('Weekly Database Backup')
+        return $this->subject('Daily Database Backup')
             ->view('mail.database_backup')
             ->with([
                 'filename' => $this->fileName,

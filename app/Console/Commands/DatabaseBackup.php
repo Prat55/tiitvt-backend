@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\DatabaseBackupMail;
+use App\Models\WebsiteSetting;
 use Carbon\Carbon;
 
 class DatabaseBackup extends Command
@@ -123,12 +124,13 @@ class DatabaseBackup extends Command
                     $zip->addFile($fullPath, basename($fullPath));
                     $zip->close();
 
-                    $backupEmail = config('app.mail.backup.address');
-                    if ($backupEmail) {
+                    // Fetch backup_mail from website settings
+                    $backupEmail = WebsiteSetting::first()?->backup_mail;
+                    if ($backupEmail && trim($backupEmail) !== '') {
                         Mail::to($backupEmail)->send(new DatabaseBackupMail($zipPath, $zipFilename));
                         $this->info("Backup emailed to {$backupEmail}");
                     } else {
-                        $this->warn('No backup email configured (config.app.mail.backup.address)');
+                        $this->warn('No backup_mail configured in website settings. Only database entry created, no email sent.');
                     }
                 } else {
                     $this->error('Failed to create zip archive for backup.');
