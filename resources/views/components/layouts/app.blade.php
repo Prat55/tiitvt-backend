@@ -173,6 +173,18 @@
             </div>
 
             {{ $slot }}
+
+            <div class="my-3">
+                <hr class="border-base-content/10" />
+                <div class="flex flex-col lg:flex-row justify-between items-center mt-3">
+                    <p class="text-center text-sm text-base-content/50">
+                        &copy; {{ date('Y') }} {{ $websiteSettings->getWebsiteName() }}. All rights reserved.
+                    </p>
+                    <p class="text-center text-sm text-base-content/50 font-bold">
+                        v{{ config('app.version') }}
+                    </p>
+                </div>
+            </div>
         </x-slot:content>
     </x-main>
 
