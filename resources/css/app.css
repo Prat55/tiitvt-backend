@@ -33,10 +33,49 @@
 * Because Laravel defaults does not match well the design of daisyUI.
 */
 
-.mary-table-pagination span[aria-current="page"] > span {
+.mary-table-pagination span[aria-current="page"]>span {
     @apply bg-primary text-base-100
 }
 
 .mary-table-pagination button {
     @apply cursor-pointer
+}
+
+/* Universal thin scrollbar for all browsers */
+* {
+    scrollbar-width: thin;
+    /* scrollbar-color: #bdbdbd #f5f5f5; */
+}
+
+*::-webkit-scrollbar {
+    width: 2px !important;
+    height: 2px !important;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #bdbdbd;
+    border-radius: 12px;
+}
+
+*::-webkit-scrollbar-track {
+    background: #f5f5f5;
+}
+
+*::-webkit-scrollbar-corner {
+    background: #f5f5f5;
+}
+
+/* Sidebar specific (if sidebar has a class, e.g., .sidebar) */
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #bdbdbd #f5f5f5;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 1px !important;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #bdbdbd;
+    border-radius: 6px;
 }

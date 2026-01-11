@@ -302,6 +302,10 @@ new class extends Component {
                     <span class="text-sm font-medium text-gray-500">Meta Author</span>
                     <p class="text-sm truncate">{{ $meta_author ?: 'Not set' }}</p>
                 </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Database Backup Mail</span>
+                    <p class="text-sm truncate">{{ $backup_mail ?: 'Not set' }}</p>
+                </div>
             </div>
         </div>
 
@@ -419,12 +423,22 @@ new class extends Component {
 
             <div class="space-y-3">
                 <div>
-                    <span class="text-sm font-medium text-gray-500">Primary Email</span>
-                    <p class="text-sm truncate">{{ $primary_email ?: 'Not set' }}</p>
+                    <span class="text-sm font-medium text-gray-500">Primary & Secondary Email</span>
+                    <p class="text-sm truncate">
+                        {{ $primary_email ?: 'Not set' }}
+                        @if ($secondary_email && $primary_email != $secondary_email)
+                            / {{ $secondary_email }}
+                        @endif
+                    </p>
                 </div>
                 <div>
-                    <span class="text-sm font-medium text-gray-500">Primary Phone</span>
-                    <p class="text-sm truncate">{{ $primary_phone ?: 'Not set' }}</p>
+                    <span class="text-sm font-medium text-gray-500">Primary & Secondary Phone</span>
+                    <p class="text-sm truncate">
+                        {{ $primary_phone ?: 'Not set' }}
+                        @if ($secondary_phone && $primary_phone != $secondary_phone)
+                            / {{ $secondary_phone }}
+                        @endif
+                    </p>
                 </div>
                 <div>
                     <span class="text-sm font-medium text-gray-500">Address</span>

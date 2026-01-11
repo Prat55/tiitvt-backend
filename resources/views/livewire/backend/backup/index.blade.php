@@ -187,6 +187,9 @@ new class extends Component {
     </div>
 
     <hr class="my-5">
+    <x-alert class="alert-info alert-soft mb-5" icon="fas.info-circle"
+        title="We will keep 30 days latest backups only before that will be removed and deleted permanently."
+        dismissible />
 
     <x-table :headers="$headers" :rows="$backups" with-pagination :sort-by="$sortBy" per-page="perPage" :per-page-values="[10, 20, 50]">
 
@@ -249,8 +252,10 @@ new class extends Component {
             <x-form wire:submit.prevent="sendBackupToMail">
                 <x-input label="Recipient Email" wire:model.defer="sendMailEmail" placeholder="Enter email address"
                     type="email" required />
-                <div class="mt-2 text-xs text-gray-500">Leave blank to enter a custom email. If set in Website Settings,
-                    it will be pre-filled.</div>
+                <div class="mt-2 text-xs text-gray-500">
+                    If want to predefined go to website settings and set "Database Backup Mail".
+                    This also trigger when daily backup is created via system.
+                </div>
                 <x-slot:actions>
                     <x-button label="Cancel" @click="$wire.sendMailModal = false" />
                     <x-button label="Send Backup" type="submit" class="btn-primary" spinner="sendBackupToMail" />
