@@ -119,14 +119,18 @@ class CertificateController extends Controller
             // Get obtained marks from points_earned, fallback to score
             $obtainedMarks = $result->points_earned ?? $result->score ?? 0;
 
-            // Calculate percentage for this category
-            $percentage = $maxMarks > 0 ? ($obtainedMarks / $maxMarks) * 100 : 0;
+            // Get passing points from exam_categories table
+            $examCategory = $result->exam->examCategories()->where('category_id', $result->category_id)->first();
+            $passingPoints = $examCategory ? (int) $examCategory->passing_points : 0;
+
+            // Calculate result based on passing points
+            $resultStatus = $obtainedMarks >= $passingPoints ? 'PASS' : 'FAIL';
 
             return [
                 'name' => $result->category->name ?? 'Subject',
                 'maximum' => (int) $maxMarks,
                 'obtained' => (int) round($obtainedMarks),
-                'result' => $percentage >= 50 ? 'PASS' : 'FAIL'
+                'result' => $resultStatus
             ];
         })->values()->toArray();
 
