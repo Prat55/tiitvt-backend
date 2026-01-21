@@ -142,5 +142,5 @@ Route::get('/student/result/{regNo}', [StudentController::class, 'resultView'])-
 
 // Payment receipt route (authenticated users only - admin or center)
 Route::group(['middleware' => ['role:admin|center']], function () {
-    Route::get('app/receipt/{type}/{id}', [StudentController::class, 'receipt'])->name('receipt.payment');
+    Route::get('/app/receipt/{type}/{id}', [StudentController::class, 'receipt'])->name('receipt.payment');
 });
