@@ -193,15 +193,22 @@ class StudentController extends Controller
 
             // Calculate payment details
             $currentPaymentAmount = $installment->paid_amount ?? 0;
-            $totalFees = $student->installments->sum('amount');
+            // Use course_fees as total fees (show full course fees, not just installments sum)
+            $totalFees = $student->course_fees;
+
+            // Down payment
+            $downPayment = $student->down_payment ?? 0;
 
             // Calculate previous paid (from other installments only, excluding current installment)
             $totalPreviousPaid = $student->installments
                 ->where('id', '!=', $installment->id)
                 ->sum('paid_amount');
 
+            // Add down payment to previous paid
+            $totalPreviousPaidWithDown = $totalPreviousPaid + $downPayment;
+
             // Total paid after including this installment
-            $totalPaidAfter = $totalPreviousPaid + $currentPaymentAmount;
+            $totalPaidAfter = $totalPreviousPaidWithDown + $currentPaymentAmount;
             $balanceAmount = max(0, $totalFees - $totalPaidAfter);
 
             // Generate receipt number

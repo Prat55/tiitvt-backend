@@ -35,6 +35,15 @@ new class extends Component {
     public $partialChequeNumber = '';
     public $partialWithdrawnDate;
 
+    public $showEditAmountModal = false;
+    public $editAmountInstallment = null;
+    public $editAmountValue = '';
+    public $showAddInstallmentModal = false;
+    public $newInstallmentAmount = '';
+    public $newInstallmentDueDate = '';
+    public $showDeleteInstallmentModal = false;
+    public $deleteInstallmentId = null;
+
     public function mount($student)
     {
         if (hasAuthRole(RolesEnum::Admin->value)) {
@@ -316,15 +325,37 @@ new class extends Component {
 
         $installment = $this->selectedInstallment;
         $paymentMethod = $this->partialPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->partialPaymentMethod) : null;
-        $installment->addPartialPayment($this->partialPaymentAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
+        $partialAmount = $this->partialPaymentAmount;
+        $remaining = $installment->amount - $partialAmount;
 
-        $this->success('Partial payment added successfully!', position: 'toast-bottom');
+        if ($partialAmount >= $installment->amount) {
+            // If full payment, just mark as paid
+            $installment->markAsPaid($partialAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
+        } else {
+            // Split: update current to paid for partial, create new for remaining
+            $installment->update([
+                'amount' => $partialAmount,
+                'paid_amount' => $partialAmount,
+                'status' => \App\Enums\InstallmentStatusEnum::Paid,
+                'paid_date' => now(),
+                'payment_method' => $paymentMethod,
+                'cheque_number' => $this->partialChequeNumber,
+                'withdrawn_date' => $this->partialWithdrawnDate,
+                'notes' => $this->partialPaymentNotes,
+            ]);
+            // Create new installment for remaining
+            $maxNo = $installment->student->installments()->max('installment_no') ?? 0;
+            $installment->student->installments()->create([
+                'installment_no' => $maxNo + 1,
+                'amount' => $remaining,
+                'due_date' => $installment->due_date,
+                'status' => \App\Enums\InstallmentStatusEnum::Pending,
+            ]);
+        }
 
-        // Refresh the student data
+        $this->success('Partial payment processed and installment split.', position: 'toast-bottom');
         $this->student->refresh();
         $this->closePartialPaymentModal();
-
-        // Recalculate overdue status after update
         $this->checkAndMarkOverdueInstallments();
 
         // try {
@@ -406,10 +437,17 @@ new class extends Component {
     public function getInstallmentSummary()
     {
         $installments = $this->student->installments;
-        $total = $installments->sum('amount');
+        $courseFees = $this->student->course_fees;
+        $downPayment = $this->student->down_payment ?: 0;
+        $total = $courseFees; // Show course fees as total
 
-        // Calculate total paid amount (including partial payments)
-        $totalPaid = $installments->sum('paid_amount');
+        // Calculate total paid amount (down payment + only paid/partial installments)
+        $totalPaid = $downPayment;
+        foreach ($installments as $inst) {
+            if ($inst->status->isPaid() || $inst->status->isPartial()) {
+                $totalPaid += $inst->paid_amount;
+            }
+        }
 
         // Calculate overdue amount more comprehensively using new model methods
         $overdueAmount = 0;
@@ -435,10 +473,14 @@ new class extends Component {
 
         $pending = $installments->filter(fn($installment) => $installment->status->isPending())->sum('amount');
         $pendingCount = $installments->filter(fn($installment) => $installment->status->isPending())->count();
+        $installmentTotal = $installments->sum('amount');
 
         return [
             'total' => $total,
             'paid' => $totalPaid,
+            'downPayment' => $downPayment,
+            'courseFees' => $courseFees,
+            'installmentTotal' => $installmentTotal,
             'pending' => $pending,
             'partial' => $partialAmount,
             'overdue' => $overdueAmount,
@@ -691,6 +733,94 @@ new class extends Component {
             $this->warning('Failed to resend registration email. Please check logs.', position: 'toast-bottom');
         }
     }
+
+    public function openEditAmountModal($installmentId)
+    {
+        $this->editAmountInstallment = Installment::findOrFail($installmentId);
+        $this->editAmountValue = $this->editAmountInstallment->amount;
+        $this->showEditAmountModal = true;
+    }
+
+    public function closeEditAmountModal()
+    {
+        $this->showEditAmountModal = false;
+        $this->editAmountInstallment = null;
+        $this->editAmountValue = '';
+    }
+
+    public function updateInstallmentAmount()
+    {
+        if (!$this->editAmountInstallment) {
+            return;
+        }
+        $this->validate([
+            'editAmountValue' => 'required|numeric|min:0.01',
+        ]);
+        $installment = $this->editAmountInstallment;
+        $oldAmount = $installment->amount;
+        $installment->amount = $this->editAmountValue;
+        $installment->save();
+        $this->success('Installment amount updated from ₹' . number_format($oldAmount, 2) . ' to ₹' . number_format($installment->amount, 2), position: 'toast-bottom');
+        $this->student->refresh();
+        $this->closeEditAmountModal();
+    }
+
+    public function openAddInstallmentModal()
+    {
+        $this->showAddInstallmentModal = true;
+        $this->newInstallmentAmount = '';
+        $this->newInstallmentDueDate = '';
+    }
+
+    public function closeAddInstallmentModal()
+    {
+        $this->showAddInstallmentModal = false;
+        $this->newInstallmentAmount = '';
+        $this->newInstallmentDueDate = '';
+    }
+
+    public function addInstallment()
+    {
+        $this->validate([
+            'newInstallmentAmount' => 'required|numeric|min:0.01',
+            'newInstallmentDueDate' => 'required|date|after:yesterday',
+        ]);
+        $maxNo = $this->student->installments()->max('installment_no') ?? 0;
+        $installment = $this->student->installments()->create([
+            'installment_no' => $maxNo + 1,
+            'amount' => $this->newInstallmentAmount,
+            'due_date' => $this->newInstallmentDueDate,
+            'status' => InstallmentStatusEnum::Pending->value,
+        ]);
+        $this->student->refresh();
+        $this->success('Installment added successfully!', position: 'toast-bottom');
+        $this->closeAddInstallmentModal();
+    }
+
+    public function openDeleteInstallmentModal($installmentId)
+    {
+        $this->deleteInstallmentId = $installmentId;
+        $this->showDeleteInstallmentModal = true;
+    }
+
+    public function closeDeleteInstallmentModal()
+    {
+        $this->deleteInstallmentId = null;
+        $this->showDeleteInstallmentModal = false;
+    }
+
+    public function deleteInstallment()
+    {
+        $installment = $this->student->installments()->findOrFail($this->deleteInstallmentId);
+        if ($installment->status->isPaid() || $installment->status->isPartial()) {
+            $this->addError('delete', 'Cannot delete a paid or partially paid installment.');
+            return;
+        }
+        $installment->delete();
+        $this->student->refresh();
+        $this->success('Installment deleted successfully!', position: 'toast-bottom');
+        $this->closeDeleteInstallmentModal();
+    }
 }; ?>
 
 <div>
@@ -780,8 +910,10 @@ new class extends Component {
 
                             @if ($student->date_of_birth)
                                 <div>
-                                    <label class="text-sm font-medium text-gray-600">Date of Birth</label>
-                                    <p class="text-sm">{{ $student->date_of_birth->format('M d, Y') }}</p>
+                                    <label class="text-sm font-medium text-gray-600">Date of
+                                        Birth</label>
+                                    <p class="text-sm">{{ $student->date_of_birth->format('M d, Y') }}
+                                    </p>
                                 </div>
                             @endif
 
@@ -850,7 +982,8 @@ new class extends Component {
             @if ($student->student_signature_image && $student->student_image)
                 <div class="mt-6">
                     <x-card shadow>
-                        <h3 class="text-lg font-semibold text-primary mb-4">Student Image & Signature</h3>
+                        <h3 class="text-lg font-semibold text-primary mb-4">Student Image & Signature
+                        </h3>
                         <div class="flex gap-5 flex-wrap">
                             <img src="{{ asset('storage/' . $student->student_image) }}" alt="Student Image"
                                 class="max-w-md h-40 border rounded-lg">
@@ -895,7 +1028,9 @@ new class extends Component {
 
                     <div>
                         <label class="text-sm font-medium text-gray-600">Course Fees</label>
-                        <p class="text-lg font-bold text-primary">₹{{ number_format($student->course_fees, 2) }}</p>
+                        <p class="text-lg font-bold text-primary">
+                            ₹{{ number_format($student->course_fees, 2) }}
+                        </p>
                     </div>
 
                     @if ($student->down_payment)
@@ -960,7 +1095,8 @@ new class extends Component {
                             </svg>
                         </div>
                         <p class="text-gray-600 mb-2">No QR Code available</p>
-                        <p class="text-sm text-gray-500">QR codes are generated during student registration</p>
+                        <p class="text-sm text-gray-500">QR codes are generated during student
+                            registration</p>
                     </div>
                 @endif
             </x-card>
@@ -983,7 +1119,8 @@ new class extends Component {
 
                 @if ($student->additional_qualification)
                     <div>
-                        <label class="text-sm font-medium text-gray-600">Additional Qualification</label>
+                        <label class="text-sm font-medium text-gray-600">Additional
+                            Qualification</label>
                         <p class="text-sm">{{ $student->additional_qualification }}</p>
                     </div>
                 @endif
@@ -1044,62 +1181,106 @@ new class extends Component {
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-primary">Installment Details</h3>
                     <div class="flex gap-2">
+                        <x-button label="Add Installment" icon="o-plus" class="btn-sm btn-outline btn-success"
+                            wire:click="openAddInstallmentModal" tooltip="Add new installment" responsive />
                         <x-button label="Refresh Overdue" icon="o-arrow-path" class="btn-sm btn-outline btn-info"
                             wire:click="refreshOverdueStatus" tooltip="Refresh overdue status" responsive />
                         <x-button label="Mark Overdue" icon="o-exclamation-triangle"
                             class="btn-sm btn-outline btn-warning" wire:click="markOverdueInstallments"
                             tooltip="Mark overdue installments" responsive />
                     </div>
+                    <!-- Add Installment Modal -->
+                    <x-modal wire:model="showAddInstallmentModal" title="Add Installment" class="backdrop-blur">
+                        <div class="space-y-4">
+                            <x-input label="Amount" type="number" wire:model.live="newInstallmentAmount"
+                                step="0.01" min="0.01" placeholder="Enter amount" />
+                            <x-input label="Due Date" type="date" wire:model.live="newInstallmentDueDate"
+                                placeholder="Select due date" />
+                        </div>
+                        <x-slot:actions>
+                            <x-button label="Cancel" @click="$wire.closeAddInstallmentModal()" />
+                            <x-button label="Add" class="btn-primary" wire:click="addInstallment"
+                                :disabled="empty($newInstallmentAmount) ||
+                                    empty($newInstallmentDueDate) ||
+                                    $newInstallmentAmount <= 0" />
+                        </x-slot:actions>
+                    </x-modal>
+
+                    <!-- Delete Installment Modal -->
+                    <x-modal wire:model="showDeleteInstallmentModal" title="Delete Installment"
+                        class="backdrop-blur">
+                        <div class="space-y-4">
+                            <div class="text-error">Are you sure you want to delete this installment?
+                                This action
+                                cannot be undone.</div>
+                        </div>
+                        <x-slot:actions>
+                            <x-button label="Cancel" @click="$wire.closeDeleteInstallmentModal()" />
+                            <x-button label="Delete" class="btn-error" wire:click="deleteInstallment" />
+                        </x-slot:actions>
+                    </x-modal>
                 </div>
 
                 <!-- Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Total Amount</div>
-                        <div class="stat-value text-primary text-lg">₹{{ number_format($summary['total'], 2) }}</div>
+                        <div class="stat-value text-primary text-lg">
+                            ₹{{ number_format($summary['courseFees'], 2) }}
+                        </div>
                     </div>
+
+                    <div class="stat bg-base-200 rounded-lg">
+                        <div class="stat-title">Installment Total Amount</div>
+                        <div class="stat-value text-primary text-lg">
+                            ₹{{ number_format($summary['installmentTotal'], 2) }}
+                        </div>
+                    </div>
+
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Paid Amount</div>
-                        <div class="stat-value text-success text-lg">₹{{ number_format($summary['paid'], 2) }}</div>
+                        <div class="stat-value text-success text-lg">
+                            ₹{{ number_format($summary['paid'], 2) }}</div>
+                        @if ($summary['downPayment'] > 0)
+                            <div class="text-xs text-success mt-1">Down Payment:
+                                ₹{{ number_format($summary['downPayment'], 2) }}</div>
+                        @endif
                     </div>
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Partial Amount</div>
-                        <div class="stat-value text-info text-lg">₹{{ number_format($summary['partial'], 2) }}
-                            @if ($summary['partial'] > 0)
-                                <div class="text-xs text-info mt-1">({{ $summary['partialCount'] }} partial)</div>
-                            @endif
-                        </div>
-                    </div>
+
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Pending Amount</div>
-                        <div class="stat-value text-warning text-lg">₹{{ number_format($summary['pending'], 2) }}
+                        <div class="stat-value text-warning text-lg">
+                            ₹{{ number_format($summary['pending'], 2) }}
                         </div>
                     </div>
+
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Overdue Amount</div>
                         <div class="stat-value text-error text-lg">
                             ₹{{ number_format($summary['overdue'], 2) }}
                             @if ($summary['overdue'] > 0)
-                                <div class="text-xs text-error mt-1">({{ $summary['overdueCount'] }} overdue)</div>
+                                <div class="text-xs text-error mt-1">({{ $summary['overdueCount'] }}
+                                    overdue)
+                                </div>
                             @endif
                         </div>
                     </div>
                 </div>
 
                 <!-- Additional Summary Info -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Pending Count</div>
-                        <div class="stat-value text-warning text-lg">{{ $summary['pendingCount'] }}</div>
+                        <div class="stat-value text-warning text-lg">{{ $summary['pendingCount'] }}
+                        </div>
                     </div>
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Partial Count</div>
-                        <div class="stat-value text-info text-lg">{{ $summary['partialCount'] }}</div>
-                    </div>
+
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Overdue Count</div>
-                        <div class="stat-value text-error text-lg">{{ $summary['overdueCount'] }}</div>
+                        <div class="stat-value text-error text-lg">{{ $summary['overdueCount'] }}
+                        </div>
                     </div>
+
                     <div class="stat bg-base-200 rounded-lg">
                         <div class="stat-title">Next Due</div>
                         <div class="stat-value text-info text-lg">
@@ -1147,35 +1328,6 @@ new class extends Component {
                     </div>
                 @endif
 
-                <!-- Debug Information (Development Only) -->
-                @if (config('app.debug'))
-                    <div class="mb-6 p-4 bg-base-300 rounded-lg">
-                        <h4 class="text-sm font-semibold text-primary mb-2">Debug Information</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                            <div>
-                                <strong>Total Installments:</strong> {{ $student->installments->count() }}<br>
-                                <strong>Pending:</strong> {{ $summary['pendingCount'] }}<br>
-                                <strong>Overdue:</strong> {{ $summary['overdueCount'] }}<br>
-                                <strong>Paid:</strong>
-                                {{ $student->installments->filter(fn($installment) => $installment->status->isPaid())->count() }}
-                            </div>
-                            <div>
-                                <strong>Overdue Amount:</strong> ₹{{ number_format($summary['overdue'], 2) }}<br>
-                                <strong>Pending Amount:</strong> ₹{{ number_format($summary['pending'], 2) }}<br>
-                                <strong>Paid Amount:</strong> ₹{{ number_format($summary['paid'], 2) }}
-                            </div>
-                            <div>
-                                <strong>Next Due:</strong>
-                                @if ($this->getNextDueInstallment())
-                                    {{ $this->getNextDueInstallment()->formatted_due_date }}
-                                @else
-                                    N/A
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
                 <!-- Installment Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach ($student->installments as $installment)
@@ -1198,6 +1350,13 @@ new class extends Component {
 
                             <div class="text-lg font-bold text-primary mb-1">
                                 ₹{{ number_format($installment->amount, 2) }}
+                                @if ($installment->status->isPending() || $installment->status->isOverdue())
+                                    <button wire:click="openEditAmountModal({{ $installment->id }})"
+                                        class="btn btn-xs btn-outline btn-info ml-2">Edit
+                                        Amount</button>
+                                    <button wire:click="openDeleteInstallmentModal({{ $installment->id }})"
+                                        class="btn btn-xs btn-outline btn-error ml-2">Delete</button>
+                                @endif
                             </div>
 
                             <div class="text-xs text-gray-500">
@@ -1236,7 +1395,8 @@ new class extends Component {
                                     Partial: ₹{{ number_format($installment->paid_amount, 2) }} paid
                                 </div>
                                 <div class="text-xs text-warning mt-1">
-                                    Remaining: ₹{{ number_format($installment->getRemainingAmount(), 2) }}
+                                    Remaining:
+                                    ₹{{ number_format($installment->getRemainingAmount(), 2) }}
                                 </div>
                                 @if ($installment->payment_method)
                                     <div class="text-xs text-gray-600 mt-1">
@@ -1289,6 +1449,29 @@ new class extends Component {
                             </div>
                         </x-card>
                     @endforeach
+
+                    <!-- Edit Installment Amount Modal -->
+                    <x-modal wire:model="showEditAmountModal" title="Edit Installment Amount" class="backdrop-blur">
+                        <div class="space-y-4">
+                            @if ($editAmountInstallment)
+                                <div class="flex justify-between items-center">
+                                    <span class="text-lg font-bold text-primary">Installment
+                                        {{ $editAmountInstallment->installment_no }}</span>
+                                    <span class="text-lg font-bold text-primary">Current:
+                                        ₹{{ number_format($editAmountInstallment->amount, 2) }}</span>
+                                </div>
+                                <x-input label="New Amount" type="number" wire:model.live="editAmountValue"
+                                    step="0.01" min="0.01" placeholder="Enter new amount" />
+                            @else
+                                <div class="text-error">No installment selected for editing.</div>
+                            @endif
+                        </div>
+                        <x-slot:actions>
+                            <x-button label="Cancel" @click="$wire.closeEditAmountModal()" />
+                            <x-button label="Update Amount" class="btn-primary" wire:click="updateInstallmentAmount"
+                                :disabled="!$editAmountInstallment || empty($editAmountValue) || $editAmountValue <= 0" />
+                        </x-slot:actions>
+                    </x-modal>
                 </div>
 
                 <!-- Bulk Actions Info -->
@@ -1326,27 +1509,23 @@ new class extends Component {
 
             @if ($this->isStatusPartial($newStatus))
                 <x-input label="Paid Amount" type="number" wire:model="paidAmount" step="0.01" min="0.01"
-                    :max="$selectedInstallment?->amount" class="input input-bordered w-full" placeholder="Enter partial payment amount"
+                    :max="$selectedInstallment?->amount" placeholder="Enter partial payment amount"
                     hint="Maximum: ₹{{ number_format($selectedInstallment?->amount, 2) }}"></x-input>
 
                 <x-select label="Payment Method" wire:model.live="paymentMethod"
                     class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
 
                 @if ($paymentMethod === 'cheque')
-                    <x-input label="Cheque Number" wire:model="chequeNumber" class="input input-bordered w-full"
-                        placeholder="Enter cheque number" />
-                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate"
-                        class="input input-bordered w-full" />
+                    <x-input label="Cheque Number" wire:model="chequeNumber" placeholder="Enter cheque number" />
+                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate" />
                 @endif
             @elseif ($this->isStatusPaid($newStatus))
                 <x-select label="Payment Method" wire:model.live="paymentMethod"
                     class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
 
                 @if ($paymentMethod === 'cheque')
-                    <x-input label="Cheque Number" wire:model="chequeNumber" class="input input-bordered w-full"
-                        placeholder="Enter cheque number" />
-                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate"
-                        class="input input-bordered w-full" />
+                    <x-input label="Cheque Number" wire:model="chequeNumber" placeholder="Enter cheque number" />
+                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate" />
                 @endif
             @endif
 
@@ -1380,11 +1559,10 @@ new class extends Component {
                 @if ($bulkPaymentMethod === 'cheque')
                     <div>
                         <x-input label="Cheque Number" wire:model="bulkChequeNumber"
-                            class="input input-bordered w-full" placeholder="Enter cheque number" />
+                            placeholder="Enter cheque number" />
                     </div>
                     <div>
-                        <x-input label="Withdrawn Date" type="date" wire:model="bulkWithdrawnDate"
-                            class="input input-bordered w-full" />
+                        <x-input label="Withdrawn Date" type="date" wire:model="bulkWithdrawnDate" />
                     </div>
                 @endif
             @endif
@@ -1412,7 +1590,8 @@ new class extends Component {
                 <span class="text-lg font-bold text-primary">Installment
                     {{ $selectedInstallment?->installment_no }}</span>
                 <div class="text-right">
-                    <div class="text-lg font-bold text-primary">₹{{ number_format($selectedInstallment?->amount, 2) }}
+                    <div class="text-lg font-bold text-primary">
+                        ₹{{ number_format($selectedInstallment?->amount, 2) }}
                     </div>
                     @if ($selectedInstallment?->status->isPartial())
                         <div class="text-sm text-info">Already paid:

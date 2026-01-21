@@ -257,11 +257,15 @@ class Installment extends Model
             // Calculate total previous paid (from other installments + previous payments on this installment)
             $totalPreviousPaid = $this->calculateTotalPreviousPaid($student, $previousPaidOnThisInstallment);
 
-            // Calculate total paid after this payment
-            $totalPaidAfterThisPayment = $totalPreviousPaid + $currentPaymentAmount;
+            // Add down payment to previous paid if present
+            $downPayment = $student->down_payment ?? 0;
+            $totalPreviousPaidWithDown = $totalPreviousPaid + $downPayment;
 
-            // Calculate balance amount after current payment
-            $totalFees = $student->installments->sum('amount');
+            // Calculate total paid after this payment
+            $totalPaidAfterThisPayment = $totalPreviousPaidWithDown + $currentPaymentAmount;
+
+            // Use course_fees as total fees (show full course fees, not just installments sum)
+            $totalFees = $student->course_fees;
             $balanceAmount = max(0, $totalFees - $totalPaidAfterThisPayment);
 
             // Prepare data for the email template
@@ -274,7 +278,7 @@ class Installment extends Model
                 'cheque_number' => $this->cheque_number,
                 'withdrawn_date' => $this->withdrawn_date?->format('Y-m-d'),
                 'total_fees' => $totalFees,
-                'previous_paid' => $totalPreviousPaid, // Total paid before this transaction
+                'previous_paid' => $totalPreviousPaidWithDown, // Total paid before this transaction (including down payment)
                 'current_payment' => $currentPaymentAmount, // Amount paid in this transaction
                 'total_paid_after' => $totalPaidAfterThisPayment, // Total paid after this transaction
                 'balance_amount' => $balanceAmount, // Remaining balance

@@ -462,79 +462,79 @@ new class extends Component {
                 $data['student_signature_image'] = $this->student_signature_image->store('students/signatures', 'public');
             }
 
-            if ($this->student_image) {
-                // Delete old image if exists
-                if ($this->student->student_image) {
-                    Storage::disk('public')->delete($this->student->student_image);
+            try {
+                $data = [
+                    'first_name' => $this->first_name,
+                    'fathers_name' => $this->fathers_name,
+                    'surname' => $this->surname,
+                    'address' => $this->address,
+                    'telephone_no' => $this->telephone_no,
+                    'email' => $this->email,
+                    'mobile' => $this->mobile,
+                    'date_of_birth' => $this->date_of_birth ?: null,
+                    'age' => $this->age ?: null,
+                    'qualification' => $this->qualification,
+                    'additional_qualification' => $this->additional_qualification,
+                    'reference' => $this->reference,
+                    'course_taken' => $this->course_taken,
+                    'batch_time' => $this->batch_time,
+                    'scheme_given' => $this->scheme_given,
+                    'course_fees' => $this->course_fees,
+                    'down_payment' => $this->down_payment ?: null,
+                    'no_of_installments' => $this->no_of_installments ?: null,
+                    'installment_date' => $this->installment_date ?: null,
+                    'enrollment_date' => $this->enrollment_date ?: null,
+                    'incharge_name' => $this->incharge_name,
+                    'center_id' => $this->center_id,
+                ];
+
+                if ($this->student_signature_image) {
+                    // Delete old image if exists
+                    if ($this->student->student_signature_image) {
+                        Storage::disk('public')->delete($this->student->student_signature_image);
+                    }
+                    $data['student_signature_image'] = $this->student_signature_image->store('students/signatures', 'public');
                 }
-                $data['student_image'] = $this->student_image->store('students/images', 'public');
-            }
 
-            $this->student->update($data);
-
-            // Update course enrollments
-            if (!empty($this->course_ids)) {
-                $courseEnrollments = [];
-                foreach ($this->course_ids as $courseId) {
-                    $courseEnrollments[$courseId] = [
-                        'enrollment_date' => $this->enrollment_date ?: now(),
-                        'course_taken' => $this->course_taken,
-                        'batch_time' => $this->batch_time,
-                        'scheme_given' => $this->scheme_given,
-                        'incharge_name' => $this->incharge_name,
-                    ];
+                if ($this->student_image) {
+                    // Delete old image if exists
+                    if ($this->student->student_image) {
+                        Storage::disk('public')->delete($this->student->student_image);
+                    }
+                    $data['student_image'] = $this->student_image->store('students/images', 'public');
                 }
-                $this->student->courses()->sync($courseEnrollments);
-            }
 
-            // Handle installment updates if needed
-            if (($this->no_of_installments ?? 0) > 0 && $this->remaining_amount > 0) {
-                // Check if we have custom installment amounts applied
-                if (!empty($this->editable_installment_amounts)) {
-                    $this->updateInstallmentsInDatabase();
-                } else {
-                    $this->updateInstallments();
+                $this->student->update($data);
+
+                // Update course enrollments
+                if (!empty($this->course_ids)) {
+                    $courseEnrollments = [];
+                    foreach ($this->course_ids as $courseId) {
+                        $courseEnrollments[$courseId] = [
+                            'enrollment_date' => $this->enrollment_date ?: now(),
+                            'course_taken' => $this->course_taken,
+                            'batch_time' => $this->batch_time,
+                            'scheme_given' => $this->scheme_given,
+                            'incharge_name' => $this->incharge_name,
+                        ];
+                    }
+                    $this->student->courses()->sync($courseEnrollments);
                 }
+
+                // Handle installment updates if needed
+                if (($this->no_of_installments ?? 0) > 0 && $this->remaining_amount > 0) {
+                    // Check if we have custom installment amounts applied
+                    if (!empty($this->editable_installment_amounts)) {
+                        $this->updateInstallmentsInDatabase();
+                    } else {
+                        $this->updateInstallments();
+                    }
+                }
+
+                $this->success('Student updated successfully!', position: 'toast-bottom');
+            } catch (\Exception $e) {
+                $this->error('Failed to update student: ' . $e->getMessage(), position: 'toast-bottom');
             }
-
-            $this->success('Student updated successfully!', position: 'toast-bottom');
-            $this->redirect(route('admin.student.show', $this->student->id));
-        } catch (\Exception $e) {
-            $this->error('Failed to update student. Please try again.', position: 'toast-bottom');
-        }
-    }
-
-    // Update installments while preserving paid ones
-    private function updateInstallments(): void
-    {
-        try {
-            // Get current installments from database
-            $currentInstallments = $this->student->installments()->orderBy('installment_no')->get();
-
-            // Separate paid and pending installments
-            $paidInstallments = $currentInstallments->where('status', 'paid');
-            $pendingInstallments = $currentInstallments->whereIn('status', ['pending', 'overdue']);
-
-            // Calculate remaining amount after paid installments
-            $paidAmount = $paidInstallments->sum('amount');
-            $remainingAfterPaid = $this->remaining_amount - $paidAmount;
-
-            // If all installments are paid, no need to update
-            if ($remainingAfterPaid <= 0) {
-                return;
-            }
-
-            // Calculate how many pending installments we need
-            $pendingInstallmentsNeeded = $this->no_of_installments - $paidInstallments->count();
-
-            if ($pendingInstallmentsNeeded <= 0) {
-                // All installments are paid, no pending ones needed
-                return;
-            }
-
-            // Calculate amount per pending installment
-            $installmentAmount = round($remainingAfterPaid / $pendingInstallmentsNeeded, 2);
-            $remainingForLastInstallment = $remainingAfterPaid;
 
             // Delete existing pending installments
             $pendingInstallments->each(function ($installment) {
@@ -857,28 +857,35 @@ new class extends Component {
         $paidInstallments = $currentInstallments->where('status', 'paid');
         $pendingInstallments = $currentInstallments->whereIn('status', ['pending', 'overdue']);
 
-        // Delete existing pending installments
-        $pendingInstallments->each(function ($installment) {
-            $installment->delete();
-        });
-
-        // Create new pending installments with custom amounts
+        // Update or create installments with custom amounts
         foreach ($this->installment_breakdown as $installment) {
-            // Skip if this installment number already exists and is paid
-            $existingPaid = $paidInstallments->where('installment_no', $installment['installment_no'])->first();
-            if ($existingPaid) {
-                continue; // Skip, already exists and paid
+            $installmentNo = $installment['installment_no'];
+            $amount = $installment['amount'];
+            $dueDate = $this->installment_date ? \Carbon\Carbon::parse($this->installment_date)->addMonths($installmentNo - 1) : now()->addMonths($installmentNo - 1);
+
+            // Find any installment with this number for this student
+            $existing = $currentInstallments->where('installment_no', $installmentNo)->first();
+
+            if ($existing) {
+                // If paid, skip. If pending/overdue, update.
+                if ($existing->status === 'paid') {
+                    continue;
+                }
+                $existing->update([
+                    'amount' => $amount,
+                    'due_date' => $dueDate,
+                    'status' => 'pending',
+                ]);
+            } else {
+                // Create new installment if not exists
+                \App\Models\Installment::create([
+                    'student_id' => $this->student->id,
+                    'installment_no' => $installmentNo,
+                    'amount' => $amount,
+                    'due_date' => $dueDate,
+                    'status' => 'pending',
+                ]);
             }
-
-            $dueDate = $this->installment_date ? \Carbon\Carbon::parse($this->installment_date)->addMonths($installment['installment_no'] - 1) : now()->addMonths($installment['installment_no'] - 1);
-
-            \App\Models\Installment::create([
-                'student_id' => $this->student->id,
-                'installment_no' => $installment['installment_no'],
-                'amount' => $installment['amount'],
-                'due_date' => $dueDate,
-                'status' => 'pending',
-            ]);
         }
 
         // Reload installments data
@@ -1043,240 +1050,15 @@ new class extends Component {
                     icon="o-user-group" />
             </div>
 
-            <!-- Fees Information -->
+
+            <!-- Enrollment and Incharge Only -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div class="md:col-span-2">
-                    <h3 class="text-lg font-semibold text-primary">Fees Information</h3>
-                    <x-alert title="How it works:" icon="o-exclamation-triangle" class="alert-info mt-3 text-white"
-                        description="Enter the course fees, optional down payment, and number of installments. The system will automatically calculate the remaining amount and divide it equally among installments. The last installment may vary slightly to account for rounding."
-                        dismissible />
-
-                    @if ($this->getExistingInstallmentsWarning())
-                        <x-alert title="Existing Installments:" icon="o-exclamation-triangle"
-                            class="alert-warning mt-3" description="{{ $this->getExistingInstallmentsWarning() }}"
-                            dismissible />
-                    @endif
-                </div>
-
-                <x-input label="Course Fees" wire:model.live="course_fees" step="0.01"
-                    placeholder="Enter course fees" icon="o-currency-rupee"
-                    hint="{{ $this->selectedCourses->count() > 0 ? 'Automatically calculated from selected courses' : 'Enter total course fees' }}" />
-
-                <x-input label="Down Payment" wire:model.live="down_payment" step="0.01"
-                    placeholder="Enter down payment (optional)" icon="o-currency-rupee"
-                    hint="Cannot exceed course fees" />
-
-                <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"
-                    placeholder="Enter number of installments (optional)" icon="o-calculator" min="0"
-                    hint="Leave empty if no installments" min="{{ $paid_installments_count + 1 }}" />
-
-                <x-datepicker label="Installment Date (optional)" wire:model.live="installment_date"
-                    icon="o-calendar" :config="$dateConfig" />
-
                 <x-datepicker label="Enrollment Date" wire:model="enrollment_date" icon="o-calendar"
                     :config="$dateConfig" />
-
                 <x-input label="Incharge Name" wire:model="incharge_name"
                     placeholder="Enter incharge name (optional)" icon="o-user" />
             </div>
 
-            <!-- Fees Summary -->
-            @if (($course_fees ?? 0) > 0)
-                <div class="grid grid-cols-1 gap-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-primary mb-4">Fees Summary</h3>
-
-                        <div class="bg-base-200 rounded-lg p-4 space-y-3">
-                            @if ($this->selectedCourses->count() > 0)
-                                <div class="mb-4">
-                                    <h5 class="font-medium text-sm text-gray-600 mb-2">Course Breakdown:</h5>
-                                    @foreach ($this->selectedCourses as $course)
-                                        <div class="flex justify-between items-center text-sm py-1">
-                                            <span>{{ $course->name }}</span>
-                                            <span class="font-medium">₹{{ number_format($course->price, 2) }}</span>
-                                        </div>
-                                    @endforeach
-                                    <div class="border-t border-gray-300 pt-2 mt-2">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-medium">Subtotal:</span>
-                                            <span
-                                                class="font-bold">{{ $this->formatCurrency($this->totalCourseFees) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-
-                            <div class="flex justify-between items-center">
-                                <span class="font-medium">Total Course Fees:</span>
-                                <span
-                                    class="font-bold text-lg">{{ $this->formatCurrency($total_payable ?? 0) }}</span>
-                            </div>
-
-                            @if (($down_payment ?? 0) > 0)
-                                <div class="flex justify-between items-center">
-                                    <span class="font-medium">Down Payment:</span>
-                                    <span
-                                        class="font-bold text-success">-{{ $this->formatCurrency($down_payment ?? 0) }}</span>
-                                </div>
-                            @endif
-
-                            <div class="flex justify-between items-center border-t pt-3">
-                                <span class="font-medium">Remaining Amount:</span>
-                                <span
-                                    class="font-bold text-lg text-primary">{{ $this->formatCurrency($remaining_amount ?? 0) }}</span>
-                            </div>
-
-                            @if (($no_of_installments ?? 0) > 0 && count($installment_breakdown ?? []) > 0)
-                                <div class="mt-4">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <h4 class="font-semibold text-base">Installment Breakdown
-                                            ({{ $no_of_installments ?? 0 }} installments)</h4>
-                                        <div class="flex gap-2">
-                                            @if (!$edit_installment_amounts)
-                                                @php
-                                                    $hasPendingInstallments =
-                                                        collect($installment_breakdown)
-                                                            ->whereIn('status', ['pending', 'overdue'])
-                                                            ->count() > 0;
-                                                @endphp
-                                                @if ($hasPendingInstallments)
-                                                    <x-button label="Edit Amounts" icon="o-pencil"
-                                                        class="btn-sm btn-outline"
-                                                        wire:click="toggleInstallmentEditing" />
-                                                @endif
-                                            @else
-                                                <x-button label="Apply" icon="o-check" class="btn-sm btn-primary"
-                                                    wire:click="applyCustomInstallmentAmounts" />
-                                                <x-button label="Reset" icon="o-arrow-path"
-                                                    class="btn-sm btn-outline"
-                                                    wire:click="resetToEqualDistribution" />
-                                                <x-button label="Cancel" icon="o-x-mark" class="btn-sm btn-ghost"
-                                                    wire:click="toggleInstallmentEditing" />
-                                            @endif
-                                            @if (!empty($existing_installments))
-                                                <x-button label="Refresh Installments" icon="o-arrow-path"
-                                                    class="btn-sm btn-outline" wire:click="refreshInstallments" />
-                                            @endif
-                                        </div>
-                                    </div>
-
-                                    <!-- Show existing installments summary if any -->
-                                    @if (!empty($existing_installments))
-                                        <div class="bg-base-100 rounded-lg p-3 border mb-3">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                                <div class="flex justify-between items-center">
-                                                    <span class="font-medium">Paid Installments:</span>
-                                                    <span
-                                                        class="font-bold text-success">{{ $paid_installments_count }}
-                                                        ({{ $this->formatCurrency($total_paid_amount) }})</span>
-                                                </div>
-                                                <div class="flex justify-between items-center">
-                                                    <span class="font-medium">Pending Installments:</span>
-                                                    <span
-                                                        class="font-bold text-warning">{{ $pending_installments_count }}
-                                                        ({{ $this->formatCurrency($total_pending_amount) }})</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <!-- Display calculated installment amount for pending installments -->
-                                    @php
-                                        $pendingInstallments = collect($installment_breakdown)->where(
-                                            'status',
-                                            'pending',
-                                        );
-                                        $pendingCount = $pendingInstallments->count();
-                                    @endphp
-
-                                    @if ($pendingCount > 0)
-                                        <div class="bg-base-100 rounded-lg p-3 border mb-3">
-                                            <div class="flex justify-between items-center">
-                                                <span class="font-medium">Monthly Installment Amount (Pending):</span>
-                                                <span
-                                                    class="font-bold text-lg text-primary">{{ $this->formatCurrency($pendingInstallments->first()['amount'] ?? 0) }}</span>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        @foreach ($installment_breakdown as $installment)
-                                            <div
-                                                class="bg-base-100 rounded-lg p-3 border {{ $installment['status'] === 'paid' ? 'border-success' : ($installment['status'] === 'overdue' ? 'border-error' : 'border-warning') }}">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <div class="flex gap-2 items-center">
-                                                        <div class="text-sm text-gray-600">
-                                                            Installment {{ $installment['installment_no'] }}
-                                                        </div>
-                                                        @if (isset($installment['is_existing']) && $installment['is_existing'])
-                                                            <div class="text-xs text-info">Existing</div>
-                                                        @endif
-                                                    </div>
-                                                    @if (isset($installment['status']))
-                                                        <span
-                                                            class="badge badge-sm {{ $installment['status'] === 'paid' ? 'badge-success' : ($installment['status'] === 'overdue' ? 'badge-error' : 'badge-warning') }}">
-                                                            {{ ucfirst($installment['status']) }}
-                                                        </span>
-                                                    @endif
-                                                </div>
-
-                                                @if (
-                                                    $edit_installment_amounts &&
-                                                        (!isset($installment['status']) ||
-                                                            $installment['status'] === 'pending' ||
-                                                            $installment['status'] === 'overdue'))
-                                                    <x-input
-                                                        wire:model="editable_installment_amounts.{{ $installment['installment_no'] }}"
-                                                        type="number" step="0.01" min="0"
-                                                        placeholder="Enter amount" />
-                                                @else
-                                                    <div class="font-bold text-lg">
-                                                        {{ $this->formatCurrency($installment['amount']) }}
-                                                    </div>
-                                                @endif
-
-                                                <div class="flex gap-2 items-center mt-1">
-                                                    <div class="text-xs text-gray-500">
-                                                        Due: {{ $installment['due_date'] }}
-                                                    </div>
-                                                    @if (isset($installment['paid_date']) && $installment['paid_date'])
-                                                        <div class="text-xs text-success">Paid:
-                                                            {{ $installment['paid_date'] }}</div>
-                                                    @endif
-                                                </div>
-
-                                                @if ($edit_installment_amounts && isset($installment['status']) && $installment['status'] === 'paid')
-                                                    <div class="text-xs text-success mt-1">
-                                                        <x-icon name="o-lock-closed" class="w-3 h-3 inline" />
-                                                        Cannot edit paid installment
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                    @if ($edit_installment_amounts)
-                                        <div class="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                                            <div class="flex items-center gap-2 text-warning">
-                                                <x-icon name="o-exclamation-triangle" class="w-4 h-4" />
-                                                <span class="font-medium">Custom Amounts Mode</span>
-                                            </div>
-                                            <p class="text-sm text-warning mt-1">
-                                                Only pending/overdue installments can be edited. Total must equal
-                                                remaining amount: {{ $this->formatCurrency($remaining_amount) }}
-                                            </p>
-                                        </div>
-                                    @else
-                                        <div class="mt-3 text-xs bg-base-100 p-2 rounded-md">
-                                            <x-alert title="Note:" icon="o-exclamation-triangle"
-                                                description="Paid installments are preserved when recalculating. Only pending installments are updated based on the new course fees and installment count. The last pending installment may vary slightly to account for rounding." />
-                                        </div>
-                                    @endif
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endif
 
             <!-- Student Signature & Image -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -452,7 +452,7 @@
                     </tr>
                     <tr>
                         <td>PREVIOUS PAID</td>
-                        <td>₹{{ number_format($totalPreviousPaid, 2) }}</td>
+                        <td>₹{{ number_format($totalPreviousPaidWithDown ?? $totalPreviousPaid, 2) }}</td>
                     </tr>
                     <tr>
                         <td>FEES PAID</td>
