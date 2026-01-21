@@ -15,9 +15,8 @@ Route::get('/favicon.ico', [App\Http\Controllers\FaviconController::class, 'favi
 
 Route::middleware(['admin.auth'])->group(function () {
     Route::redirect('/admin', '/admin/dashboard');
-    Route::redirect('/admin', '/dashboard');
 
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('app')->name('admin.')->group(function () {
         Route::group(['middleware' => ['role:admin|center']], function () {
             Volt::route('/dashboard', 'backend.dashboard.index')->name('index');
             Volt::route('/profile', 'backend.profile.index')->name('profile');
@@ -107,7 +106,7 @@ Route::middleware(['admin.auth'])->group(function () {
 
     // Certificate preview route (authenticated users only - admin or center)
     Route::group(['middleware' => ['role:admin|center']], function () {
-        Route::prefix('certificate')->name('certificate.')->group(function () {
+        Route::prefix('/app/certificate')->name('certificate.')->group(function () {
             Route::get('/exam/preview/{regNo}', [CertificateController::class, 'preview'])->name('exam.preview');
         });
     });
@@ -143,5 +142,5 @@ Route::get('/student/result/{regNo}', [StudentController::class, 'resultView'])-
 
 // Payment receipt route (authenticated users only - admin or center)
 Route::group(['middleware' => ['role:admin|center']], function () {
-    Route::get('/receipt/{type}/{id}', [StudentController::class, 'receipt'])->name('receipt.payment');
+    Route::get('app/receipt/{type}/{id}', [StudentController::class, 'receipt'])->name('receipt.payment');
 });
