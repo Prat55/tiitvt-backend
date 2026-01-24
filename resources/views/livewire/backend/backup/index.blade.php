@@ -182,7 +182,7 @@ new class extends Component {
         </div>
         <div class="flex gap-3">
             <x-input placeholder="Search backups..." clearable wire:model.live="search" />
-            <x-button icon="o-plus" class="btn-primary" wire:click="$toggle('createBackupModal')" label="Create Backup" />
+            {{-- <x-button icon="o-plus" class="btn-primary" wire:click="$toggle('createBackupModal')" label="Create Backup" /> --}}
         </div>
     </div>
 

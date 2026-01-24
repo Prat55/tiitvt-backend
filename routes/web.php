@@ -69,8 +69,9 @@ Route::middleware(['admin.auth'])->group(function () {
             });
 
             // Backup routes (admin only)
-            Route::prefix('app')->group(function () {
-                Volt::route('database-backup', 'backend.backup.index')->name('backup.index');
+            Route::prefix('backups')->name('backup.')->group(function () {
+                Volt::route('/', 'backend.backup.index')->name('index');
+
                 Route::get('/download/{id}', function ($id) {
                     $backup = DB::table('database_backups')->find($id);
 
@@ -79,7 +80,7 @@ Route::middleware(['admin.auth'])->group(function () {
                     }
 
                     return response()->download($backup->path, $backup->filename);
-                })->name('backup.download');
+                })->name('download');
             });
         });
 
