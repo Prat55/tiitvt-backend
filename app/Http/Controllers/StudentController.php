@@ -146,6 +146,16 @@ class StudentController extends Controller
             // Payment date (use enrollment date if available, otherwise use current date)
             $paymentDate = $student->enrollment_date ?? now();
 
+            // Debug logging for down payment
+            Log::debug('Receipt (down-payment):', [
+                'student_id' => $student->id,
+                'down_payment' => $student->down_payment,
+                'totalPreviousPaid' => $totalPreviousPaid,
+                'currentPaymentAmount' => $currentPaymentAmount,
+                'totalPaidFromInstallments' => $totalPaidFromInstallments,
+                'totalPaidAfter' => $totalPaidAfter,
+            ]);
+
             return view('receipt.payment', compact(
                 'student',
                 'center',
@@ -240,6 +250,17 @@ class StudentController extends Controller
             $chequeNumber = $installment->cheque_number;
             $withdrawnDate = $installment->withdrawn_date;
 
+            // Debug logging for installment
+            Log::debug('Receipt (installment):', [
+                'installment_id' => $installment->id,
+                'student_id' => $student->id,
+                'down_payment' => $downPayment,
+                'totalPreviousPaid' => $totalPreviousPaid,
+                'totalPreviousPaidWithDown' => $totalPreviousPaidWithDown,
+                'currentPaymentAmount' => $currentPaymentAmount,
+                'totalPaidAfter' => $totalPaidAfter,
+            ]);
+
             return view('receipt.payment', compact(
                 'installment',
                 'student',
@@ -248,6 +269,7 @@ class StudentController extends Controller
                 'currentPaymentAmount',
                 'totalFees',
                 'totalPreviousPaid',
+                'totalPreviousPaidWithDown',
                 'totalPaidAfter',
                 'balanceAmount',
                 'receiptNumber',
