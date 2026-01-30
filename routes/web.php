@@ -13,7 +13,7 @@ Route::get('/', function () {
 // Dynamic favicon route
 Route::get('/favicon.ico', [App\Http\Controllers\FaviconController::class, 'favicon'])->name('favicon');
 
-Route::middleware(['admin.auth'])->group(function () {
+Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
     Route::redirect('/admin', '/admin/dashboard');
 
     Route::prefix('app')->name('admin.')->group(function () {

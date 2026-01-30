@@ -1,8 +1,5 @@
 <?php
 
-use App\Http\Controllers\Auth\GoogleAuthController;
-use App\Http\Controllers\PasswordResetController;
-use App\Services\SsoService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
@@ -14,6 +11,9 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
+    Volt::route('v1/2fa-verify', 'auth.verify-2fa-email')->name('auth.verify-2fa-email');
+    Volt::route('v2/2fa-verify', 'auth.verify-2fa-authenticator')->name('auth.verify-2fa-authenticator');
+
     Route::post('/logout', function () {
         Auth::guard('web')->logout();
         request()->session()->invalidate();

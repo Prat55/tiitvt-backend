@@ -27,6 +27,9 @@ class User extends Authenticatable
         'image',
         'is_active',
         'password',
+        'two_factor_enabled',
+        'two_factor_method',
+        'two_factor_verified_at',
     ];
 
     /**
