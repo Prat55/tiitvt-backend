@@ -188,7 +188,7 @@ new class extends Component {
 
     <hr class="my-5">
     <x-alert class="alert-info alert-soft mb-5" icon="fas.info-circle"
-        title="We will keep 30 days latest backups only before that will be removed and deleted permanently."
+        title="We will keep {{ config('app.backup.days') }} days latest backups only before that will be removed and deleted permanently."
         dismissible />
 
     <x-table :headers="$headers" :rows="$backups" with-pagination :sort-by="$sortBy" per-page="perPage" :per-page-values="[10, 20, 50]">
