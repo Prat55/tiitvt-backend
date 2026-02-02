@@ -17,6 +17,8 @@ new class extends Component {
     #[Rule('required')]
     public string $password = '';
 
+    public bool $remember = false;
+
     public function mount()
     {
         // It is logged in
@@ -29,7 +31,7 @@ new class extends Component {
     {
         $credentials = $this->validate();
 
-        if (auth()->attempt($credentials)) {
+        if (auth()->attempt($credentials, $this->remember)) {
             request()->session()->regenerate();
 
             $user = auth()->user();
@@ -51,7 +53,8 @@ new class extends Component {
                 <x-input label="E-mail" wire:model="email" icon="o-envelope" />
                 <x-password label="Password" icon="fas.lock" wire:model="password" right />
 
-                <div class="flex items-center justify-end">
+                <div class="flex items-center justify-between">
+                    <x-checkbox label="Remember Me" wire:model="remember" class="text-primary" />
                     <a href="{{ route('password.request') }}">Forgot Password</a>
                 </div>
                 <x-button label="Login" type="submit" icon="o-paper-airplane" spinner="login"
