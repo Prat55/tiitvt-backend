@@ -147,7 +147,7 @@ class DatabaseBackup extends Command
     }
 
     /**
-     * Clean old backup files (older than 30 days)
+     * Clean old backup files (older than configured days)
      */
     private function cleanOldBackups($backupPath)
     {
@@ -155,9 +155,10 @@ class DatabaseBackup extends Command
 
         $files = glob($backupPath . '/backup_*.sql*');
         $deletedCount = 0;
+        $backupDays = config('app.backup.days', 7);
 
         foreach ($files as $file) {
-            if (filemtime($file) < strtotime('-30 days')) {
+            if (filemtime($file) < strtotime("-{$backupDays} days")) {
                 unlink($file);
                 $deletedCount++;
             }
@@ -165,7 +166,7 @@ class DatabaseBackup extends Command
 
         // Also clean database records
         DB::table('database_backups')
-            ->where('created_at', '<', now()->subDays(30))
+            ->where('created_at', '<', now()->subDays($backupDays))
             ->delete();
 
         if ($deletedCount > 0) {

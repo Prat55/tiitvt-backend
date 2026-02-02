@@ -137,4 +137,8 @@ return [
         ],
     ],
 
+    'backup' => [
+        'days' => env('DB_BACKUP_DAYS', 7),
+    ],
+
 ];

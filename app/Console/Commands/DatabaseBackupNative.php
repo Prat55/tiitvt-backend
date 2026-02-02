@@ -128,7 +128,7 @@ class DatabaseBackupNative extends Command
             $this->info("Size: " . $this->formatBytes(filesize($fullPath)));
             $this->info("Path: {$fullPath}");
 
-            // Clean old backups (keep last 30 days)
+            // Clean old backups (keep last configured days)
             $this->cleanOldBackups($backupPath);
         } catch (\Exception $e) {
             $this->error("Backup failed: " . $e->getMessage());
@@ -139,7 +139,7 @@ class DatabaseBackupNative extends Command
     }
 
     /**
-     * Clean old backup files (older than 30 days)
+     * Clean old backup files (older than configured days)
      */
     private function cleanOldBackups($backupPath)
     {
@@ -147,9 +147,10 @@ class DatabaseBackupNative extends Command
 
         $files = glob($backupPath . '/backup_*.sql*');
         $deletedCount = 0;
+        $backupDays = config('app.backup.days', 7);
 
         foreach ($files as $file) {
-            if (filemtime($file) < strtotime('-30 days')) {
+            if (filemtime($file) < strtotime("-{$backupDays} days")) {
                 unlink($file);
                 $deletedCount++;
             }
@@ -157,7 +158,7 @@ class DatabaseBackupNative extends Command
 
         // Also clean database records
         DB::table('database_backups')
-            ->where('created_at', '<', now()->subDays(30))
+            ->where('created_at', '<', now()->subDays($backupDays))
             ->delete();
 
         if ($deletedCount > 0) {
