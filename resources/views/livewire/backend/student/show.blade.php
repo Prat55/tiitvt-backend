@@ -38,11 +38,13 @@ new class extends Component {
     public $showEditAmountModal = false;
     public $editAmountInstallment = null;
     public $editAmountValue = '';
-    public $showAddInstallmentModal = false;
-    public $newInstallmentAmount = '';
-    public $newInstallmentDueDate = '';
+
     public $showDeleteInstallmentModal = false;
     public $deleteInstallmentId = null;
+
+    public $showAlterationSection = false;
+    public $alterInstallmentCount = '';
+    public $alterAmountPerInstallment = '';
 
     public function mount($student)
     {
@@ -765,38 +767,6 @@ new class extends Component {
         $this->closeEditAmountModal();
     }
 
-    public function openAddInstallmentModal()
-    {
-        $this->showAddInstallmentModal = true;
-        $this->newInstallmentAmount = '';
-        $this->newInstallmentDueDate = '';
-    }
-
-    public function closeAddInstallmentModal()
-    {
-        $this->showAddInstallmentModal = false;
-        $this->newInstallmentAmount = '';
-        $this->newInstallmentDueDate = '';
-    }
-
-    public function addInstallment()
-    {
-        $this->validate([
-            'newInstallmentAmount' => 'required|numeric|min:0.01',
-            'newInstallmentDueDate' => 'required|date|after:yesterday',
-        ]);
-        $maxNo = $this->student->installments()->max('installment_no') ?? 0;
-        $installment = $this->student->installments()->create([
-            'installment_no' => $maxNo + 1,
-            'amount' => $this->newInstallmentAmount,
-            'due_date' => $this->newInstallmentDueDate,
-            'status' => InstallmentStatusEnum::Pending->value,
-        ]);
-        $this->student->refresh();
-        $this->success('Installment added successfully!', position: 'toast-bottom');
-        $this->closeAddInstallmentModal();
-    }
-
     public function openDeleteInstallmentModal($installmentId)
     {
         $this->deleteInstallmentId = $installmentId;
@@ -820,6 +790,211 @@ new class extends Component {
         $this->student->refresh();
         $this->success('Installment deleted successfully!', position: 'toast-bottom');
         $this->closeDeleteInstallmentModal();
+    }
+
+    public function toggleAlterationSection()
+    {
+        $this->showAlterationSection = !$this->showAlterationSection;
+        if ($this->showAlterationSection) {
+            $this->alterInstallmentCount = $this->student->installments->count();
+            $this->alterAmountPerInstallment = '';
+        }
+    }
+
+    public function getAlterationStats()
+    {
+        $installments = $this->student->installments;
+        $paidCount = $installments->filter(fn($i) => $i->status->isPaid())->count();
+        $partialCount = $installments->filter(fn($i) => $i->status->isPartial())->count();
+        $overdueCount = $installments->filter(fn($i) => $i->status->isOverdue())->count();
+        $pendingCount = $installments->filter(fn($i) => $i->status->isPending())->count();
+        $protectedCount = $paidCount + $partialCount + $overdueCount;
+
+        $downPayment = $this->student->down_payment ?: 0;
+        $totalPaid = $downPayment;
+        foreach ($installments as $inst) {
+            if ($inst->status->isPaid() || $inst->status->isPartial()) {
+                $totalPaid += $inst->paid_amount;
+            }
+        }
+        $remainingBalance = max(0, $this->student->course_fees - $totalPaid);
+        $pendingInstallments = $installments->filter(fn($i) => $i->status->isPending());
+
+        return [
+            'totalCount' => $installments->count(),
+            'paidCount' => $paidCount,
+            'partialCount' => $partialCount,
+            'overdueCount' => $overdueCount,
+            'pendingCount' => $pendingCount,
+            'protectedCount' => $protectedCount,
+            'remainingBalance' => $remainingBalance,
+            'pendingTotal' => $pendingInstallments->sum('amount'),
+        ];
+    }
+
+    public function increaseInstallments()
+    {
+        $currentCount = $this->student->installments->count();
+        $targetCount = (int) $this->alterInstallmentCount;
+
+        if ($targetCount <= $currentCount) {
+            $this->error('Target count must be greater than current count (' . $currentCount . ').', position: 'toast-bottom');
+            return;
+        }
+
+        $newCount = $targetCount - $currentCount;
+        $stats = $this->getAlterationStats();
+        $amountPerNew = $newCount > 0 ? round($stats['remainingBalance'] / ($stats['pendingCount'] + $newCount), 2) : 0;
+
+        // Get last installment's due date for calculating new due dates
+        $lastInstallment = $this->student->installments()->orderBy('due_date', 'desc')->first();
+        $lastDueDate = $lastInstallment ? $lastInstallment->due_date->copy() : now();
+        $maxNo = $this->student->installments()->max('installment_no') ?? 0;
+
+        try {
+            for ($i = 1; $i <= $newCount; $i++) {
+                $dueDate = $lastDueDate->copy()->addMonths($i);
+                $this->student->installments()->create([
+                    'installment_no' => $maxNo + $i,
+                    'amount' => $amountPerNew,
+                    'due_date' => $dueDate,
+                    'status' => InstallmentStatusEnum::Pending->value,
+                ]);
+            }
+
+            // Redistribute remaining balance across ALL pending installments
+            $this->student->refresh();
+            $pendingInstallments = $this->student->installments->filter(fn($i) => $i->status->isPending());
+            if ($pendingInstallments->count() > 0 && $stats['remainingBalance'] > 0) {
+                $perInstallment = round($stats['remainingBalance'] / $pendingInstallments->count(), 2);
+                $lastPending = $pendingInstallments->last();
+                $distributed = 0;
+                foreach ($pendingInstallments as $inst) {
+                    if ($inst->id === $lastPending->id) {
+                        $inst->update(['amount' => round($stats['remainingBalance'] - $distributed, 2)]);
+                    } else {
+                        $inst->update(['amount' => $perInstallment]);
+                        $distributed += $perInstallment;
+                    }
+                }
+            }
+
+            // Update student's no_of_installments
+            $this->student->update(['no_of_installments' => $targetCount]);
+            $this->student->refresh();
+            $this->alterInstallmentCount = $this->student->installments->count();
+
+            $this->success("Successfully added {$newCount} installment(s). Total: {$targetCount}", position: 'toast-bottom');
+        } catch (\Exception $e) {
+            \Log::error('Increase installments failed: ' . $e->getMessage());
+            $this->error('Failed to increase installments: ' . $e->getMessage(), position: 'toast-bottom');
+        }
+    }
+
+    public function reduceInstallments()
+    {
+        $currentCount = $this->student->installments->count();
+        $targetCount = (int) $this->alterInstallmentCount;
+        $stats = $this->getAlterationStats();
+
+        if ($targetCount >= $currentCount) {
+            $this->error('Target count must be less than current count (' . $currentCount . ').', position: 'toast-bottom');
+            return;
+        }
+
+        if ($targetCount < $stats['protectedCount']) {
+            $this->error('Cannot reduce below ' . $stats['protectedCount'] . ' (paid/partial/overdue installments).', position: 'toast-bottom');
+            return;
+        }
+
+        $toRemove = $currentCount - $targetCount;
+
+        try {
+            // Get pending installments sorted by installment_no descending (remove from end)
+            $removable = $this->student->installments->filter(fn($i) => $i->status->isPending())->sortByDesc('installment_no')->take($toRemove);
+
+            if ($removable->count() < $toRemove) {
+                $this->error('Not enough pending installments to remove. Only ' . $removable->count() . ' can be removed.', position: 'toast-bottom');
+                return;
+            }
+
+            $removedCount = 0;
+            foreach ($removable as $installment) {
+                $installment->delete();
+                $removedCount++;
+            }
+
+            // Update student's no_of_installments
+            $this->student->update(['no_of_installments' => $targetCount]);
+            $this->student->refresh();
+            $this->alterInstallmentCount = $this->student->installments->count();
+
+            $this->success("Successfully removed {$removedCount} installment(s). Total: {$targetCount}", position: 'toast-bottom');
+        } catch (\Exception $e) {
+            \Log::error('Reduce installments failed: ' . $e->getMessage());
+            $this->error('Failed to reduce installments: ' . $e->getMessage(), position: 'toast-bottom');
+        }
+    }
+
+    public function updateAllPendingAmounts()
+    {
+        $this->validate([
+            'alterAmountPerInstallment' => 'required|numeric|min:0.01',
+        ]);
+
+        try {
+            $pendingInstallments = $this->student->installments->filter(fn($i) => $i->status->isPending());
+
+            if ($pendingInstallments->count() === 0) {
+                $this->error('No pending installments to update.', position: 'toast-bottom');
+                return;
+            }
+
+            $updatedCount = 0;
+            foreach ($pendingInstallments as $installment) {
+                $installment->update(['amount' => $this->alterAmountPerInstallment]);
+                $updatedCount++;
+            }
+
+            $this->student->refresh();
+            $this->success('Updated amount to ₹' . number_format($this->alterAmountPerInstallment, 2) . " for {$updatedCount} pending installment(s).", position: 'toast-bottom');
+        } catch (\Exception $e) {
+            $this->error('Failed to update amounts: ' . $e->getMessage(), position: 'toast-bottom');
+        }
+    }
+
+    public function redistributeRemainingBalance()
+    {
+        try {
+            $stats = $this->getAlterationStats();
+            $pendingInstallments = $this->student->installments->filter(fn($i) => $i->status->isPending())->sortBy('installment_no');
+
+            if ($pendingInstallments->count() === 0) {
+                $this->error('No pending installments to redistribute.', position: 'toast-bottom');
+                return;
+            }
+
+            $remaining = $stats['remainingBalance'];
+            $count = $pendingInstallments->count();
+            $perInstallment = round($remaining / $count, 2);
+            $distributed = 0;
+            $lastPending = $pendingInstallments->last();
+
+            foreach ($pendingInstallments as $installment) {
+                if ($installment->id === $lastPending->id) {
+                    // Give the last one the remainder to avoid rounding issues
+                    $installment->update(['amount' => round($remaining - $distributed, 2)]);
+                } else {
+                    $installment->update(['amount' => $perInstallment]);
+                    $distributed += $perInstallment;
+                }
+            }
+
+            $this->student->refresh();
+            $this->success('Redistributed ₹' . number_format($remaining, 2) . " across {$count} pending installment(s) (₹" . number_format($perInstallment, 2) . ' each).', position: 'toast-bottom');
+        } catch (\Exception $e) {
+            $this->error('Failed to redistribute balance: ' . $e->getMessage(), position: 'toast-bottom');
+        }
     }
 }; ?>
 
@@ -1181,30 +1356,12 @@ new class extends Component {
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-primary">Installment Details</h3>
                     <div class="flex gap-2">
-                        <x-button label="Add Installment" icon="o-plus" class="btn-sm btn-outline btn-success"
-                            wire:click="openAddInstallmentModal" tooltip="Add new installment" responsive />
                         <x-button label="Refresh Overdue" icon="o-arrow-path" class="btn-sm btn-outline btn-info"
                             wire:click="refreshOverdueStatus" tooltip="Refresh overdue status" responsive />
                         <x-button label="Mark Overdue" icon="o-exclamation-triangle"
                             class="btn-sm btn-outline btn-warning" wire:click="markOverdueInstallments"
                             tooltip="Mark overdue installments" responsive />
                     </div>
-                    <!-- Add Installment Modal -->
-                    <x-modal wire:model="showAddInstallmentModal" title="Add Installment" class="backdrop-blur">
-                        <div class="space-y-4">
-                            <x-input label="Amount" type="number" wire:model.live="newInstallmentAmount"
-                                step="0.01" min="0.01" placeholder="Enter amount" />
-                            <x-input label="Due Date" type="date" wire:model.live="newInstallmentDueDate"
-                                placeholder="Select due date" />
-                        </div>
-                        <x-slot:actions>
-                            <x-button label="Cancel" @click="$wire.closeAddInstallmentModal()" />
-                            <x-button label="Add" class="btn-primary" wire:click="addInstallment"
-                                :disabled="empty($newInstallmentAmount) ||
-                                    empty($newInstallmentDueDate) ||
-                                    $newInstallmentAmount <= 0" />
-                        </x-slot:actions>
-                    </x-modal>
 
                     <!-- Delete Installment Modal -->
                     <x-modal wire:model="showDeleteInstallmentModal" title="Delete Installment"
@@ -1327,6 +1484,148 @@ new class extends Component {
                         </div>
                     </div>
                 @endif
+
+                <!-- Installment Alteration Section -->
+                <div class="mb-6">
+                    <x-button
+                        label="{{ $showAlterationSection ? 'Hide Alteration Panel' : 'Installment Alteration' }}"
+                        icon="{{ $showAlterationSection ? 'o-chevron-up' : 'o-adjustments-horizontal' }}"
+                        class="btn-sm btn-outline btn-accent w-full" wire:click="toggleAlterationSection" />
+
+                    @if ($showAlterationSection)
+                        @php $altStats = $this->getAlterationStats(); @endphp
+                        <div class="mt-4 p-5 bg-base-200 rounded-xl border border-accent/30 space-y-5">
+                            <h4 class="text-md font-semibold text-accent flex items-center gap-2">
+                                <x-icon name="o-adjustments-horizontal" class="w-5 h-5" />
+                                Installment Alteration
+                            </h4>
+
+                            {{-- Current Stats --}}
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="bg-base-100 rounded-lg p-3 text-center">
+                                    <div class="text-xs text-gray-500">Total</div>
+                                    <div class="text-lg font-bold">{{ $altStats['totalCount'] }}</div>
+                                </div>
+                                <div class="bg-base-100 rounded-lg p-3 text-center">
+                                    <div class="text-xs text-success">Paid</div>
+                                    <div class="text-lg font-bold text-success">{{ $altStats['paidCount'] }}</div>
+                                </div>
+                                <div class="bg-base-100 rounded-lg p-3 text-center">
+                                    <div class="text-xs text-warning">Pending</div>
+                                    <div class="text-lg font-bold text-warning">{{ $altStats['pendingCount'] }}</div>
+                                </div>
+                                <div class="bg-base-100 rounded-lg p-3 text-center">
+                                    <div class="text-xs text-error">Overdue</div>
+                                    <div class="text-lg font-bold text-error">{{ $altStats['overdueCount'] }}</div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="bg-base-100 rounded-lg p-3">
+                                    <div class="text-xs text-gray-500">Protected (cannot remove)</div>
+                                    <div class="text-md font-bold text-error">{{ $altStats['protectedCount'] }}
+                                        <span class="text-xs font-normal text-gray-400">(paid + partial +
+                                            overdue)</span>
+                                    </div>
+                                </div>
+                                <div class="bg-base-100 rounded-lg p-3">
+                                    <div class="text-xs text-gray-500">Remaining Balance</div>
+                                    <div class="text-md font-bold text-primary">
+                                        ₹{{ number_format($altStats['remainingBalance'], 2) }}</div>
+                                </div>
+                            </div>
+
+                            <hr class="border-accent/20">
+
+                            {{-- Increase / Reduce Installment Count --}}
+                            <div>
+                                <label class="text-sm font-semibold mb-2 block">Adjust Installment Count</label>
+                                <div class="flex flex-col sm:flex-row gap-3 items-center">
+                                    <div class="flex-1">
+                                        <x-input type="number" wire:model.live="alterInstallmentCount"
+                                            label="Target Count" min="{{ $altStats['protectedCount'] }}"
+                                            step="1"
+                                            hint="Min: {{ $altStats['protectedCount'] }} (protected) | Current: {{ $altStats['totalCount'] }}">
+                                            <x-slot:prepend>
+                                                <x-button label="Increase" icon="o-plus"
+                                                    class="btn-success btn-outline join-item"
+                                                    wire:click="increaseInstallments" spinner="increaseInstallments"
+                                                    :disabled="empty($alterInstallmentCount) ||
+                                                        (int) $alterInstallmentCount <= $altStats['totalCount']"
+                                                    tooltip="Add installments to reach target count" />
+
+                                            </x-slot:prepend>
+                                            <x-slot:append>
+                                                <x-button label="Reduce" icon="o-minus"
+                                                    class="btn-error btn-outline join-item"
+                                                    wire:click="reduceInstallments" spinner="reduceInstallments"
+                                                    :disabled="empty($alterInstallmentCount) ||
+                                                        (int) $alterInstallmentCount >= $altStats['totalCount'] ||
+                                                        (int) $alterInstallmentCount < $altStats['protectedCount']"
+                                                    tooltip="Remove pending installments from the end" />
+                                            </x-slot:append>
+                                        </x-input>
+                                    </div>
+                                </div>
+                                @if ((int) $alterInstallmentCount < $altStats['protectedCount'] && !empty($alterInstallmentCount))
+                                    <div class="text-xs text-error mt-1">
+                                        ⚠ Cannot reduce below {{ $altStats['protectedCount'] }} protected installments
+                                    </div>
+                                @endif
+                            </div>
+
+                            <hr class="border-accent/20">
+
+                            {{-- Bulk Amount Edit for Pending Installments --}}
+                            <div>
+                                <label class="text-sm font-semibold mb-2 block">Edit All Pending Installment
+                                    Amounts</label>
+                                <div class="flex flex-col sm:flex-row gap-3 items-end">
+                                    <div class="flex-1">
+                                        <x-input type="number" wire:model.live="alterAmountPerInstallment"
+                                            label="Amount Per Installment" step="0.01" min="0.01"
+                                            placeholder="Enter amount for each pending installment"
+                                            hint="Applies to {{ $altStats['pendingCount'] }} pending installment(s)">
+                                            <x-slot:prepend>
+                                                <x-button label="Auto Redistribute" icon="o-arrow-path-rounded-square"
+                                                    class="join-item btn-accent btn-outline"
+                                                    wire:click="redistributeRemainingBalance"
+                                                    spinner="redistributeRemainingBalance" :disabled="!empty($alterAmountPerInstallment) ||
+                                                        $altStats['pendingCount'] === 0 ||
+                                                        $altStats['remainingBalance'] <= 0"
+                                                    tooltip="Evenly distribute ₹{{ number_format($altStats['remainingBalance'], 2) }} across {{ $altStats['pendingCount'] }} pending installments" />
+                                            </x-slot:prepend>
+
+                                            <x-slot:append>
+                                                <x-button label="Apply to All" icon="o-pencil-square"
+                                                    class="join-item btn-info btn-outline"
+                                                    wire:click="updateAllPendingAmounts"
+                                                    spinner="updateAllPendingAmounts" :disabled="empty($alterAmountPerInstallment) ||
+                                                        $alterAmountPerInstallment <= 0 ||
+                                                        $altStats['pendingCount'] === 0"
+                                                    tooltip="Set this amount for all pending installments" />
+                                            </x-slot:append>
+                                        </x-input>
+                                    </div>
+                                </div>
+                                @if ($altStats['pendingCount'] > 0 && $altStats['remainingBalance'] > 0)
+                                    <div class="text-xs text-gray-500 mt-2">
+                                        Auto-redistribute will set each pending installment to
+                                        ≈
+                                        ₹{{ number_format($altStats['remainingBalance'] / $altStats['pendingCount'], 2) }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            @if ($altStats['pendingCount'] === 0)
+                                <div class="alert alert-warning text-sm">
+                                    <x-icon name="o-information-circle" />
+                                    No pending installments available. Only pending installments can be modified.
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+                </div>
 
                 <!-- Installment Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1553,7 +1852,8 @@ new class extends Component {
             @if ($this->isStatusPaid($bulkStatus))
                 <div>
                     <x-select label="Payment Method" wire:model.live="bulkPaymentMethod"
-                        class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
+                        class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()"
+                        placeholder="Select payment method" />
                 </div>
 
                 @if ($bulkPaymentMethod === 'cheque')
