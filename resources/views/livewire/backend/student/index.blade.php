@@ -17,7 +17,7 @@ new class extends Component {
     public string $search = '';
     public $filterDrawer = false;
 
-    public $sortBy = ['column' => 'tiitvt_reg_no', 'direction' => 'desc'];
+    public $sortBy = ['column' => 'id', 'direction' => 'desc'];
     public $perPage = 20;
 
     // Filter properties

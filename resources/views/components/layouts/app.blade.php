@@ -82,6 +82,7 @@
                     <x-menu-item title="Center" icon="o-building-office" link="{{ route('admin.center.index') }}" />
                 @endrole
                 <x-menu-item title="Student" icon="o-user" link="{{ route('admin.student.index') }}" />
+                <x-menu-item title="Fees" icon="o-banknotes" link="{{ route('admin.fees.index') }}" />
                 @role($role::Admin->value)
                     <x-menu-item title="Category" icon="o-tag" link="{{ route('admin.category.index') }}" />
                     <x-menu-item title="Course" icon="o-book-open" link="{{ route('admin.course.index') }}" />
@@ -113,7 +114,8 @@
                 {{-- Backup Section (to be implemented) --}}
                 @role($role::Admin->value)
                     <div class="divider divider-start my-1"><small>Backup</small></div>
-                    <x-menu-item title="Backup Files" icon="o-arrow-down-tray" link="{{ route('admin.backup.index') }}" />
+                    <x-menu-item title="Backup Files" icon="o-arrow-down-tray"
+                        link="{{ route('admin.backup.index') }}" />
                 @endrole
             </x-menu>
         </x-slot:sidebar>

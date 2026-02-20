@@ -93,6 +93,10 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
                 Volt::route('/{student}/delete', 'backend.student.delete')->name('delete');
             });
 
+            Route::prefix('fees')->name('fees.')->group(function () {
+                Volt::route('/', 'backend.fees.index')->name('index');
+            });
+
             Route::prefix('exam')->name('exam.')->group(function () {
                 Volt::route('/', 'backend.exam.index')->name('index');
                 Volt::route('/create', 'backend.exam.create')->name('create');

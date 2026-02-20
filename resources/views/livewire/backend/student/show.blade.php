@@ -58,6 +58,56 @@ new class extends Component {
         ];
     }
 
+    // --- Payment Rows for x-table ---
+    public function getPaymentRows()
+    {
+        $rows = collect();
+        $rowNum = 1;
+
+        // Down payment as first row
+        $downPayment = $this->student->down_payment ?? 0;
+        if ($downPayment > 0) {
+            $rows->push(
+                (object) [
+                    'id' => 'dp-' . $this->student->id,
+                    'row_num' => $rowNum++,
+                    'amount' => $downPayment,
+                    'status_label' => 'Down Payment',
+                    'status_class' => 'badge-success',
+                    'paid_date' => $this->student->enrollment_date ? $this->student->enrollment_date->format('M d, Y') : '-',
+                    'notes' => 'Down payment at enrollment',
+                    'is_down_payment' => true,
+                    'is_pending' => false,
+                    'is_paid' => true,
+                    'payment_id' => null,
+                    'student_id' => $this->student->id,
+                ],
+            );
+        }
+
+        // Regular payments
+        foreach ($this->student->installments->sortByDesc('created_at') as $payment) {
+            $rows->push(
+                (object) [
+                    'id' => $payment->id,
+                    'row_num' => $rowNum++,
+                    'amount' => $payment->amount,
+                    'status_label' => $payment->status->label(),
+                    'status_class' => $payment->status_badge_class,
+                    'paid_date' => $payment->formatted_paid_date,
+                    'notes' => $payment->notes ?? '-',
+                    'is_down_payment' => false,
+                    'is_pending' => $payment->status->isPending(),
+                    'is_paid' => $payment->status->isPaid(),
+                    'payment_id' => $payment->id,
+                    'student_id' => $this->student->id,
+                ],
+            );
+        }
+
+        return $rows;
+    }
+
     // --- Add Payment ---
     public function openAddPaymentModal()
     {
@@ -320,8 +370,11 @@ new class extends Component {
                 wire:click="resedRegisterMail" spinner="resedRegisterMail" responsive />
             <x-button tooltip="Edit Student" icon="o-pencil" class="btn-primary btn-outline"
                 link="{{ route('admin.student.edit', $student->id) }}" responsive />
-            <x-button label="Back" icon="o-arrow-left" class="btn-primary btn-outline"
-                link="{{ route('admin.student.index') }}" responsive />
+            @php
+                $route = request()->query('tab') ? 'admin.fees.index' : 'admin.student.index';
+            @endphp
+            <x-button label="Back" icon="o-arrow-left" class="btn-primary btn-outline" link="{{ route($route) }}"
+                responsive />
         </div>
     </div>
 
@@ -685,63 +738,59 @@ new class extends Component {
             </div>
 
             <!-- Payment Records Table -->
-            @if ($student->installments && $student->installments->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Paid Date</th>
-                                <th>Notes</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($student->installments->sortByDesc('created_at') as $index => $payment)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td class="font-bold">₹{{ number_format($payment->amount, 2) }}</td>
-                                    <td>
-                                        <span class="badge {{ $payment->status_badge_class }} text-xs">
-                                            {{ $payment->status->label() }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $payment->formatted_paid_date }}</td>
-                                    <td class="max-w-xs truncate">{{ $payment->notes ?? '-' }}</td>
-                                    <td>
-                                        <div class="flex gap-1">
-                                            @if ($payment->status->isPending())
-                                                <button wire:click="openMarkPaidModal({{ $payment->id }})"
-                                                    class="btn btn-xs btn-outline btn-success">
-                                                    Mark Paid
-                                                </button>
-                                                <button wire:click="openDeletePaymentModal({{ $payment->id }})"
-                                                    class="btn btn-xs btn-outline btn-error">
-                                                    Delete
-                                                </button>
-                                            @endif
-                                            @if ($payment->status->isPaid() && ($payment->paid_amount ?? 0) > 0)
-                                                <a href="{{ route('receipt.payment', ['type' => 'installment', 'id' => $payment->id]) }}"
-                                                    target="_blank" class="btn btn-xs btn-outline btn-success">
-                                                    Receipt
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="text-center py-8 text-gray-500">
-                    <x-icon name="o-banknotes" class="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                    <p>No payments recorded yet.</p>
-                    <p class="text-sm">Click "Add Payment" to record the first payment.</p>
-                </div>
-            @endif
+            @php $paymentRows = $this->getPaymentRows(); @endphp
+            @php
+                $paymentHeaders = [
+                    ['key' => 'row_num', 'label' => '#', 'class' => 'w-12'],
+                    ['key' => 'amount', 'label' => 'Amount', 'class' => 'w-32'],
+                    ['key' => 'status_label', 'label' => 'Status', 'class' => 'w-24'],
+                    ['key' => 'paid_date', 'label' => 'Paid Date', 'class' => 'w-32'],
+                    ['key' => 'notes', 'label' => 'Notes', 'class' => 'w-48'],
+                ];
+            @endphp
+
+            <x-table :headers="$paymentHeaders" :rows="$paymentRows">
+                @scope('cell_amount', $row)
+                    <span class="font-bold">₹{{ number_format($row->amount, 2) }}</span>
+                @endscope
+                @scope('cell_status_label', $row)
+                    <span class="badge {{ $row->status_class }} text-xs">{{ $row->status_label }}</span>
+                @endscope
+                @scope('cell_notes', $row)
+                    <span class="max-w-xs truncate block">{{ $row->notes }}</span>
+                @endscope
+                @scope('actions', $row)
+                    <div class="flex gap-1">
+                        @if ($row->is_down_payment)
+                            <a href="{{ route('receipt.payment', ['type' => 'down-payment', 'id' => $row->student_id]) }}"
+                                target="_blank" class="btn btn-xs btn-outline btn-success">
+                                Receipt
+                            </a>
+                        @else
+                            @if ($row->is_pending)
+                                <button wire:click="openMarkPaidModal({{ $row->payment_id }})"
+                                    class="btn btn-xs btn-outline btn-success">
+                                    Mark Paid
+                                </button>
+                                <button wire:click="openDeletePaymentModal({{ $row->payment_id }})"
+                                    class="btn btn-xs btn-outline btn-error">
+                                    Delete
+                                </button>
+                            @endif
+                            @if ($row->is_paid)
+                                <a href="{{ route('receipt.payment', ['type' => 'installment', 'id' => $row->payment_id]) }}"
+                                    target="_blank" class="btn btn-xs btn-outline btn-success">
+                                    Receipt
+                                </a>
+                            @endif
+                        @endif
+                    </div>
+                @endscope
+
+                <x-slot:empty>
+                    <x-empty icon="o-banknotes" message="No payments recorded yet" />
+                </x-slot:empty>
+            </x-table>
         </x-card>
     </div>
 
