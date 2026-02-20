@@ -511,6 +511,73 @@ new class extends Component {
                     </x-card>
                 </div>
             @endif
+
+            <!-- Additional Information -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <!-- Academic Information -->
+                <x-card shadow>
+                    <h3 class="text-lg font-semibold text-primary mb-4">Academic Information</h3>
+
+                    <div class="space-y-4">
+                        @if ($student->qualification)
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Qualification</label>
+                                <p class="text-sm">{{ $student->qualification }}</p>
+                            </div>
+                        @endif
+
+                        @if ($student->additional_qualification)
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Additional
+                                    Qualification</label>
+                                <p class="text-sm">{{ $student->additional_qualification }}</p>
+                            </div>
+                        @endif
+
+                        @if ($student->reference)
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Reference</label>
+                                <p class="text-sm">{{ $student->reference }}</p>
+                            </div>
+                        @endif
+                    </div>
+                </x-card>
+
+                <!-- Course Details -->
+                <x-card shadow>
+                    <h3 class="text-lg font-semibold text-primary mb-4">Course Details</h3>
+
+                    <div class="space-y-4">
+                        @if ($student->course_taken)
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Course Taken</label>
+                                <p class="text-sm">{{ $student->course_taken }}</p>
+                            </div>
+                        @endif
+
+                        @if ($student->batch_time)
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Batch Time</label>
+                                <p class="text-sm">{{ $student->batch_time }}</p>
+                            </div>
+                        @endif
+
+                        @if ($student->scheme_given)
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Scheme Given</label>
+                                <p class="text-sm">{{ $student->scheme_given }}</p>
+                            </div>
+                        @endif
+
+                        @if ($student->incharge_name)
+                            <div>
+                                <label class="text-sm font-medium text-gray-600">Incharge Name</label>
+                                <p class="text-sm">{{ $student->incharge_name }}</p>
+                            </div>
+                        @endif
+                    </div>
+                </x-card>
+            </div>
         </div>
 
         <div class="grid gap-6">
@@ -535,7 +602,8 @@ new class extends Component {
                                     <div class="flex items-center justify-between">
                                         <p class="text-sm font-medium">{{ $course->name }}</p>
                                         @if ($course->pivot->batch_time)
-                                            <span class="text-xs text-gray-500">{{ $course->pivot->batch_time }}</span>
+                                            <span
+                                                class="text-xs text-gray-500">{{ $course->pivot->batch_time }}</span>
                                         @endif
                                     </div>
                                 @endforeach
@@ -613,73 +681,6 @@ new class extends Component {
         </div>
     </div>
 
-    <!-- Additional Information -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <!-- Academic Information -->
-        <x-card shadow>
-            <h3 class="text-lg font-semibold text-primary mb-4">Academic Information</h3>
-
-            <div class="space-y-4">
-                @if ($student->qualification)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Qualification</label>
-                        <p class="text-sm">{{ $student->qualification }}</p>
-                    </div>
-                @endif
-
-                @if ($student->additional_qualification)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Additional
-                            Qualification</label>
-                        <p class="text-sm">{{ $student->additional_qualification }}</p>
-                    </div>
-                @endif
-
-                @if ($student->reference)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Reference</label>
-                        <p class="text-sm">{{ $student->reference }}</p>
-                    </div>
-                @endif
-            </div>
-        </x-card>
-
-        <!-- Course Details -->
-        <x-card shadow>
-            <h3 class="text-lg font-semibold text-primary mb-4">Course Details</h3>
-
-            <div class="space-y-4">
-                @if ($student->course_taken)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Course Taken</label>
-                        <p class="text-sm">{{ $student->course_taken }}</p>
-                    </div>
-                @endif
-
-                @if ($student->batch_time)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Batch Time</label>
-                        <p class="text-sm">{{ $student->batch_time }}</p>
-                    </div>
-                @endif
-
-                @if ($student->scheme_given)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Scheme Given</label>
-                        <p class="text-sm">{{ $student->scheme_given }}</p>
-                    </div>
-                @endif
-
-                @if ($student->incharge_name)
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Incharge Name</label>
-                        <p class="text-sm">{{ $student->incharge_name }}</p>
-                    </div>
-                @endif
-            </div>
-        </x-card>
-    </div>
-
     <!-- Payment Log -->
     <div class="mt-6">
         <x-card shadow>
@@ -738,8 +739,9 @@ new class extends Component {
             </div>
 
             <!-- Payment Records Table -->
-            @php $paymentRows = $this->getPaymentRows(); @endphp
             @php
+                $paymentRows = $this->getPaymentRows();
+
                 $paymentHeaders = [
                     ['key' => 'row_num', 'label' => '#', 'class' => 'w-12'],
                     ['key' => 'amount', 'label' => 'Amount', 'class' => 'w-32'],
