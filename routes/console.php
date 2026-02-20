@@ -5,17 +5,17 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Models\WebsiteSetting;
 
-// Installment reminders - daily at 9:00 AM
+// Payment reminders - daily at 9:00 AM (enrollment-date-based)
 Schedule::command('installments:send-reminders')
     ->daily()
     ->at('09:00')
-    ->appendOutputTo(storage_path('logs/installment-reminders.log'));
+    ->appendOutputTo(storage_path('logs/payment-reminders.log'));
 
-// Overdue handling - daily at 10:00 AM
+// Outstanding balance reminders - daily at 10:00 AM
 Schedule::command('installments:handle-overdue')
     ->daily()
     ->at('10:00')
-    ->appendOutputTo(storage_path('logs/overdue-handling.log'));
+    ->appendOutputTo(storage_path('logs/outstanding-balance-handling.log'));
 
 // Exam cancellation - every 15 minutes to check for overdue exams
 Schedule::command('exams:cancel-overdue')

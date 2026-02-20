@@ -21,7 +21,7 @@ new class extends Component {
         }
 
         // Automatically load student data without verification
-        $this->student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'enrollment_date', 'course_fees', 'down_payment', 'no_of_installments', 'email', 'mobile', 'qualification', 'additional_qualification')
+        $this->student = Student::select('id', 'tiitvt_reg_no', 'date_of_birth', 'first_name', 'fathers_name', 'surname', 'center_id', 'enrollment_date', 'course_fees', 'down_payment', 'email', 'mobile', 'qualification', 'additional_qualification')
             ->where('id', $this->studentQR->student_id)
             ->with(['center', 'courses', 'examResults.exam.course', 'examResults.category'])
             ->first();

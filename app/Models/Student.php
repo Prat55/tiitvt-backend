@@ -30,8 +30,6 @@ class Student extends Model
         'reference',
         'course_fees',
         'down_payment',
-        'no_of_installments',
-        'installment_date',
         'enrollment_date',
         'student_image',
         'student_signature_image',
@@ -41,11 +39,9 @@ class Student extends Model
         'address' => 'array',
         'date_of_birth' => 'date',
         'enrollment_date' => 'date',
-        'installment_date' => 'date',
         'course_fees' => 'decimal:2',
         'down_payment' => 'decimal:2',
         'age' => 'integer',
-        'no_of_installments' => 'integer',
         'center_id' => 'integer',
     ];
 

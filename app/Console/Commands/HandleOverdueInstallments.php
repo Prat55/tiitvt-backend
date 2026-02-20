@@ -19,7 +19,7 @@ class HandleOverdueInstallments extends Command
      *
      * @var string
      */
-    protected $description = 'Handle overdue installments: update status and send reminder emails';
+    protected $description = 'Send urgent reminders to students with long-outstanding balances';
 
     /**
      * Execute the console command.

@@ -9,22 +9,14 @@ use App\Services\StudentQRService;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\{Layout, Title};
 use App\Models\{Course, Center, Student};
-use App\Enums\{RolesEnum, InstallmentStatusEnum};
+use App\Enums\RolesEnum;
 
 new class extends Component {
     use WithFileUploads, Toast;
+
     #[Title('Student Admission')]
     public function mount(): void
     {
-        // Initialize with default values and calculate installments if needed
-        if (isset($this->course_fees) && $this->course_fees > 0) {
-            // Set default number of installments to 1 when fees are loaded
-            if ($this->no_of_installments == 0) {
-                $this->no_of_installments = 1;
-            }
-            $this->calculateInstallments();
-        }
-
         if (hasAuthRole(RolesEnum::Center->value)) {
             $this->center_id = auth()->user()->center->id;
         }
@@ -67,40 +59,13 @@ new class extends Component {
     // Fees Information
     public float $course_fees = 0;
     public float $down_payment = 0;
-    public int $no_of_installments = 0;
-    public string $installment_date = '';
 
     // Calculated fields for display
     public float $remaining_amount = 0;
     public float $total_payable = 0;
-    public array $installment_breakdown = [];
-
-    // Installment editing
-    public bool $edit_installment_amounts = false;
-    public array $editable_installment_amounts = [];
 
     // Notification
     public bool $send_notification = false;
-
-    // Computed properties for validation
-    public function getFeesValidationErrors(): array
-    {
-        $errors = [];
-
-        if ($this->down_payment > $this->course_fees) {
-            $errors[] = 'Down payment cannot exceed course fees';
-        }
-
-        if ($this->no_of_installments > 24) {
-            $errors[] = 'Maximum 24 installments allowed';
-        }
-
-        if ($this->no_of_installments > 0 && $this->remaining_amount <= 0) {
-            $errors[] = 'Cannot create installments when remaining amount is zero or negative';
-        }
-
-        return $errors;
-    }
 
     // Helper method to format currency
     public function formatCurrency($amount): string
@@ -147,8 +112,6 @@ new class extends Component {
             'scheme_given' => 'nullable|string|max:500',
             'course_fees' => 'required|numeric|min:0',
             'down_payment' => 'nullable|numeric|min:0|lte:course_fees',
-            'no_of_installments' => 'nullable|integer|min:0',
-            'installment_date' => 'nullable|date',
             'enrollment_date' => 'nullable|date',
             'incharge_name' => 'nullable|string|max:100',
             'center_id' => 'required|exists:centers,id',
@@ -175,12 +138,7 @@ new class extends Component {
             'address.city.required' => 'City field is required',
             'address.state.required' => 'State field is required',
             'address.pincode.required' => 'Pincode field is required',
-            'address.country.required' => 'Contry field is required',
-            'address.street.required' => 'Street field is required',
-            'address.city.required' => 'City field is required',
-            'address.state.required' => 'State field is required',
-            'address.pincode.required' => 'Pincode field is required',
-            'address.country.required' => 'Contry field is required',
+            'address.country.required' => 'Country field is required',
             'address.street.max' => 'Street may not be greater than 190 characters.',
             'address.city.max' => 'City may not be greater than 100 characters.',
             'address.state.max' => 'State may not be greater than 100 characters.',
@@ -196,11 +154,6 @@ new class extends Component {
         if ($this->course_fees > 0) {
             if ($this->down_payment > $this->course_fees) {
                 $this->error('Down payment cannot exceed course fees.', position: 'toast-bottom');
-                return;
-            }
-
-            if ($this->no_of_installments > 0 && $this->remaining_amount <= 0) {
-                $this->error('Cannot create installments when remaining amount is zero or negative.', position: 'toast-bottom');
                 return;
             }
         }
@@ -222,8 +175,6 @@ new class extends Component {
             'reference' => $this->reference,
             'course_fees' => $this->course_fees,
             'down_payment' => $this->down_payment ?: null,
-            'no_of_installments' => $this->no_of_installments ?: null,
-            'installment_date' => $this->installment_date ?: null,
             'enrollment_date' => $this->enrollment_date ?: null,
             'incharge_name' => $this->incharge_name,
             'center_id' => $this->center_id,
@@ -257,29 +208,18 @@ new class extends Component {
         $studentQRService = app(StudentQRService::class);
         $studentQRService->generateStudentQR($student);
 
-        // Create installments if specified
-        if ($this->no_of_installments > 0 && $this->remaining_amount > 0 && $this->installment_date) {
-            $this->createInstallments($student);
-        }
-
         if ($this->send_notification) {
             $this->sendNotification($student);
         }
 
         $this->success('Student admitted successfully!', position: 'toast-bottom');
         $this->redirect(route('admin.student.index'));
-
-        // try {
-
-        // } catch (\Exception $e) {
-        //     $this->error('Failed to admit student. Please try again.', position: 'toast-bottom');
-        // }
     }
 
     // Reset form
     public function resetForm(): void
     {
-        $this->reset(['first_name', 'fathers_name', 'surname', 'address', 'telephone_no', 'email', 'mobile', 'date_of_birth', 'age', 'qualification', 'additional_qualification', 'reference', 'batch_time', 'scheme_given', 'course_fees', 'down_payment', 'no_of_installments', 'installment_date', 'enrollment_date', 'incharge_name', 'center_id', 'course_ids', 'student_signature_image', 'student_image']);
+        $this->reset(['first_name', 'fathers_name', 'surname', 'address', 'telephone_no', 'email', 'mobile', 'date_of_birth', 'age', 'qualification', 'additional_qualification', 'reference', 'batch_time', 'scheme_given', 'course_fees', 'down_payment', 'enrollment_date', 'incharge_name', 'center_id', 'course_ids', 'student_signature_image', 'student_image']);
         $this->resetValidation();
         $this->address = [
             'street' => '',
@@ -290,7 +230,6 @@ new class extends Component {
         ];
         $this->remaining_amount = 0;
         $this->total_payable = 0;
-        $this->installment_breakdown = [];
         $this->success('Form reset successfully!', position: 'toast-bottom');
     }
 
@@ -310,111 +249,23 @@ new class extends Component {
         }
     }
 
-    public function calculateInstallments(): void
+    // Recalculate fees summary
+    public function calculateFeesSummary(): void
     {
-        $this->remaining_amount = 0;
         $this->total_payable = $this->course_fees;
-        $this->installment_breakdown = [];
 
-        if ($this->course_fees > 0) {
-            if ($this->down_payment > $this->course_fees) {
-                $this->down_payment = $this->course_fees;
-            }
-
-            // Calculate remaining amount after down payment
-            $this->remaining_amount = $this->course_fees - ($this->down_payment ?? 0);
-
-            // Generate installment breakdown if number of installments is specified
-            if ($this->no_of_installments > 0 && $this->remaining_amount > 0) {
-                $installmentAmount = round($this->remaining_amount / $this->no_of_installments, 2);
-
-                // Generate installment breakdown
-                $this->installment_breakdown = [];
-                $remainingForLastInstallment = $this->remaining_amount;
-
-                for ($i = 1; $i <= $this->no_of_installments; $i++) {
-                    if ($i == $this->no_of_installments) {
-                        // Last installment gets the remaining amount to avoid rounding errors
-                        $amount = round($remainingForLastInstallment, 2);
-                    } else {
-                        $amount = $installmentAmount;
-                        $remainingForLastInstallment -= $amount;
-                    }
-
-                    $this->installment_breakdown[] = [
-                        'installment_no' => $i,
-                        'amount' => $amount,
-                        'due_date' => $this->installment_date
-                            ? \Carbon\Carbon::parse($this->installment_date)
-                                ->addMonths($i - 1)
-                                ->format('d/m/Y')
-                            : 'TBD',
-                    ];
-                }
-            }
-        }
-    }
-
-    // Create installments in database
-    public function createInstallments($student): void
-    {
-        if (empty($this->installment_breakdown)) {
-            return;
+        if ($this->down_payment > $this->course_fees) {
+            $this->down_payment = $this->course_fees;
         }
 
-        foreach ($this->installment_breakdown as $installment) {
-            $dueDate = \Carbon\Carbon::parse($this->installment_date)->addMonths($installment['installment_no'] - 1);
-
-            \App\Models\Installment::create([
-                'student_id' => $student->id,
-                'installment_no' => $installment['installment_no'],
-                'amount' => $installment['amount'],
-                'due_date' => $dueDate,
-                'status' => 'pending',
-            ]);
-        }
-    }
-
-    // Update installments in database with custom amounts
-    public function updateInstallmentsWithCustomAmounts($student): void
-    {
-        if (empty($this->installment_breakdown)) {
-            return;
-        }
-
-        // Delete existing pending installments
-        $student
-            ->installments()
-            ->whereIn('status', ['pending', 'overdue'])
-            ->delete();
-
-        // Create new installments with custom amounts
-        foreach ($this->installment_breakdown as $installment) {
-            $dueDate = \Carbon\Carbon::parse($this->installment_date)->addMonths($installment['installment_no'] - 1);
-
-            \App\Models\Installment::create([
-                'student_id' => $student->id,
-                'installment_no' => $installment['installment_no'],
-                'amount' => $installment['amount'],
-                'due_date' => $dueDate,
-                'status' => 'pending',
-            ]);
-        }
+        $this->remaining_amount = max(0, $this->course_fees - ($this->down_payment ?? 0));
     }
 
     // Send registration success notification
     private function sendNotification($student): void
     {
         try {
-            // Get course and center details
-            $course = \App\Models\Course::find($this->course_id);
             $center = \App\Models\Center::find($this->center_id);
-
-            // Calculate monthly installment amount if applicable
-            $monthlyInstallment = 0;
-            if ($this->no_of_installments > 0 && $this->remaining_amount > 0) {
-                $monthlyInstallment = round($this->remaining_amount / $this->no_of_installments, 2);
-            }
 
             // Get student QR code or generate if it doesn't exist
             $studentQR = $student->qrCode;
@@ -434,13 +285,12 @@ new class extends Component {
             $data = [
                 'studentName' => $student->first_name . ' ' . $student->surname,
                 'tiitvtRegNo' => $student->tiitvt_reg_no,
-                'courseName' => $course ? $course->name : 'N/A',
+                'courseName' => $student->courses->pluck('name')->implode(', ') ?: 'N/A',
                 'centerName' => $center ? $center->name : 'N/A',
                 'enrollmentDate' => $this->enrollment_date ?: now()->format('d/m/Y'),
                 'courseFees' => $this->course_fees,
                 'downPayment' => $this->down_payment ?: 0,
-                'noOfInstallments' => $this->no_of_installments ?: 0,
-                'monthlyInstallment' => $monthlyInstallment,
+                'remainingBalance' => $this->remaining_amount,
                 'qrCodeUrl' => $qrCodeDataUri,
             ];
 
@@ -466,81 +316,34 @@ new class extends Component {
 
     public function updatedCourseFees(): void
     {
-        // Ensure course_fees is a valid number, default to 0 if empty or invalid
         if (empty($this->course_fees) || !is_numeric($this->course_fees)) {
             $this->course_fees = 0;
         } else {
             $this->course_fees = (float) $this->course_fees;
         }
 
-        // Clear related fields if course fees is 0 or empty
         if ($this->course_fees <= 0) {
             $this->down_payment = 0;
-            $this->no_of_installments = 0;
-            $this->installment_breakdown = [];
             $this->remaining_amount = 0;
             $this->total_payable = 0;
         } else {
-            // Set default number of installments to 1 when fees are loaded
-            if ($this->no_of_installments == 0) {
-                $this->no_of_installments = 1;
-            }
-            // Recalculate installments if course fees is valid
-            $this->calculateInstallments();
+            $this->calculateFeesSummary();
         }
     }
 
     public function updatedDownPayment(): void
     {
-        // Ensure down_payment is a valid number, default to 0 if empty or invalid
         if (empty($this->down_payment) || !is_numeric($this->down_payment)) {
             $this->down_payment = 0;
         } else {
             $this->down_payment = (float) $this->down_payment;
         }
 
-        // Ensure down payment doesn't exceed course fees
         if ($this->down_payment > $this->course_fees) {
             $this->down_payment = $this->course_fees;
         }
 
-        // Clear installments if down payment equals course fees
-        if ($this->down_payment == $this->course_fees) {
-            $this->no_of_installments = 0;
-            $this->installment_breakdown = [];
-            $this->remaining_amount = 0;
-        }
-
-        $this->calculateInstallments();
-    }
-
-    public function updatedNoOfInstallments(): void
-    {
-        // Ensure no_of_installments is a valid number, default to 0 if empty or invalid
-        if (empty($this->no_of_installments) || !is_numeric($this->no_of_installments)) {
-            $this->no_of_installments = 0;
-        } else {
-            $this->no_of_installments = (int) $this->no_of_installments;
-        }
-
-        // Ensure number of installments is reasonable
-        if ($this->no_of_installments > 24) {
-            $this->no_of_installments = 24;
-        }
-
-        // Clear breakdown if no installments
-        if ($this->no_of_installments <= 0) {
-            $this->installment_breakdown = [];
-            $this->remaining_amount = $this->course_fees - ($this->down_payment ?? 0);
-        } else {
-            // Calculate installments if number is valid
-            $this->calculateInstallments();
-        }
-    }
-
-    public function updatedInstallmentDate(): void
-    {
-        $this->calculateInstallments();
+        $this->calculateFeesSummary();
     }
 
     public function updatedCenterId(): void
@@ -553,32 +356,21 @@ new class extends Component {
     public function updatedCourseIds(): void
     {
         if (!empty($this->course_ids)) {
-            // Calculate total fees from selected courses
             $totalFees = 0;
-            $courseDetails = [];
-
             foreach ($this->course_ids as $courseId) {
                 $course = Course::find($courseId);
                 if ($course && $course->price) {
                     $totalFees += $course->price;
-                    $courseDetails[] = [
-                        'name' => $course->name,
-                        'price' => $course->price,
-                    ];
                 }
             }
 
             if ($totalFees > 0) {
                 $this->course_fees = $totalFees;
-                // Set default number of installments to 1 when courses are selected
-                if ($this->no_of_installments == 0) {
-                    $this->no_of_installments = 1;
-                }
-                $this->calculateInstallments();
+                $this->calculateFeesSummary();
             }
         } else {
             $this->course_fees = 0;
-            $this->calculateInstallments();
+            $this->calculateFeesSummary();
         }
     }
 
@@ -595,82 +387,6 @@ new class extends Component {
     public function getTotalCourseFeesProperty()
     {
         return $this->getSelectedCoursesProperty()->sum('price');
-    }
-
-    // Toggle installment amount editing mode
-    public function toggleInstallmentEditing(): void
-    {
-        $this->edit_installment_amounts = !$this->edit_installment_amounts;
-
-        if ($this->edit_installment_amounts) {
-            // Initialize editable amounts with current breakdown
-            $this->editable_installment_amounts = [];
-            foreach ($this->installment_breakdown as $installment) {
-                $this->editable_installment_amounts[$installment['installment_no']] = $installment['amount'];
-            }
-        }
-    }
-
-    // Update individual installment amount
-    public function updatedEditableInstallmentAmounts($value, $key): void
-    {
-        // Validate the amount
-        $amount = (float) $value;
-        if ($amount < 0) {
-            $this->editable_installment_amounts[$key] = 0;
-            $this->error('Installment amount cannot be negative.', position: 'toast-bottom');
-            return;
-        }
-
-        $this->editable_installment_amounts[$key] = $amount;
-        $this->validateInstallmentAmounts();
-    }
-
-    // Validate that total installment amounts equal remaining amount
-    public function validateInstallmentAmounts(): bool
-    {
-        if (empty($this->editable_installment_amounts)) {
-            return true;
-        }
-
-        $totalAmount = array_sum($this->editable_installment_amounts);
-        $difference = abs($totalAmount - $this->remaining_amount);
-
-        // Allow small rounding differences (up to 0.01)
-        if ($difference > 0.01) {
-            $this->error('Total installment amounts must equal the remaining amount (' . $this->formatCurrency($this->remaining_amount) . '). Current total: ' . $this->formatCurrency($totalAmount), position: 'toast-bottom');
-            return false;
-        }
-
-        return true;
-    }
-
-    // Apply custom installment amounts
-    public function applyCustomInstallmentAmounts(): void
-    {
-        if (!$this->validateInstallmentAmounts()) {
-            return;
-        }
-
-        // Update the installment breakdown with custom amounts
-        foreach ($this->installment_breakdown as $index => $installment) {
-            $installmentNo = $installment['installment_no'];
-            if (isset($this->editable_installment_amounts[$installmentNo])) {
-                $this->installment_breakdown[$index]['amount'] = $this->editable_installment_amounts[$installmentNo];
-            }
-        }
-
-        $this->edit_installment_amounts = false;
-        $this->success('Custom installment amounts applied successfully!', position: 'toast-bottom');
-    }
-
-    // Reset to equal distribution
-    public function resetToEqualDistribution(): void
-    {
-        $this->calculateInstallments();
-        $this->edit_installment_amounts = false;
-        $this->editable_installment_amounts = [];
-        $this->success('Installment amounts reset to equal distribution!', position: 'toast-bottom');
     }
 
     public function rendering(View $view)
@@ -836,9 +552,8 @@ new class extends Component {
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-semibold text-primary">Fees Information</h3>
                     <x-alert title="How it works:" icon="o-exclamation-triangle" class="alert-info mt-3 text-white"
-                        description="Enter the course fees, optional down payment, and number of installments. The system will automatically calculate the remaining amount and divide it equally among installments. The last installment may vary slightly to account for rounding."
+                        description="Enter the course fees and optional down payment. Payments can be recorded manually from the student details page after admission."
                         dismissible />
-
                 </div>
 
                 <x-input label="Course Fees" wire:model.live="course_fees" placeholder="Enter course fees"
@@ -848,13 +563,6 @@ new class extends Component {
                 <x-input label="Down Payment" wire:model.live="down_payment"
                     placeholder="Enter down payment (optional)" icon="o-currency-rupee"
                     hint="Cannot exceed course fees" />
-
-                <x-input label="Number of Installments" wire:model.live="no_of_installments" type="number"
-                    placeholder="Enter number of installments (optional)" icon="o-calculator" min="0"
-                    hint="Leave empty if no installments" />
-
-                <x-datepicker label="Installment Date (optional)" wire:model.live="installment_date"
-                    icon="o-calendar" :config="$dateConfig" />
 
                 <x-datepicker label="Enrollment Date" wire:model="enrollment_date" icon="o-calendar"
                     :config="$dateConfig" />
@@ -907,79 +615,6 @@ new class extends Component {
                                 <span
                                     class="font-bold text-lg text-primary">{{ $this->formatCurrency($remaining_amount) }}</span>
                             </div>
-
-                            @if ($no_of_installments > 0 && count($installment_breakdown) > 0)
-                                <div class="mt-4">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <h4 class="font-semibold text-base">Installment Breakdown
-                                            ({{ $no_of_installments }} installments)</h4>
-                                        <div class="flex gap-2">
-                                            @if (!$edit_installment_amounts)
-                                                <x-button label="Edit Amounts" icon="o-pencil"
-                                                    class="btn-sm btn-outline"
-                                                    wire:click="toggleInstallmentEditing" />
-                                            @else
-                                                <x-button label="Apply" icon="o-check" class="btn-sm btn-primary"
-                                                    wire:click="applyCustomInstallmentAmounts" />
-                                                <x-button label="Reset" icon="o-arrow-path"
-                                                    class="btn-sm btn-outline"
-                                                    wire:click="resetToEqualDistribution" />
-                                                <x-button label="Cancel" icon="o-x-mark" class="btn-sm btn-ghost"
-                                                    wire:click="toggleInstallmentEditing" />
-                                            @endif
-                                        </div>
-                                    </div>
-
-                                    <!-- Display calculated installment amount -->
-                                    <div class="bg-base-100 rounded-lg p-3 border mb-3">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-medium">Monthly Installment Amount:</span>
-                                            <span
-                                                class="font-bold text-lg text-primary">{{ $this->formatCurrency($installment_breakdown[0]['amount'] ?? 0) }}</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        @foreach ($installment_breakdown as $installment)
-                                            <div class="bg-base-100 rounded-lg p-3 border">
-                                                <div class="text-sm text-gray-600">Installment
-                                                    {{ $installment['installment_no'] }}</div>
-
-                                                @if ($edit_installment_amounts)
-                                                    <x-input
-                                                        wire:model="editable_installment_amounts.{{ $installment['installment_no'] }}"
-                                                        type="number" step="0.01" min="0"
-                                                        placeholder="Enter amount" />
-                                                @else
-                                                    <div class="font-bold text-lg">
-                                                        {{ $this->formatCurrency($installment['amount']) }}</div>
-                                                @endif
-
-                                                <div class="text-xs text-gray-500 mt-1">Due:
-                                                    {{ $installment['due_date'] }}</div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-
-                                    @if ($edit_installment_amounts)
-                                        <div class="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                                            <div class="flex items-center gap-2 text-warning">
-                                                <x-icon name="o-exclamation-triangle" class="w-4 h-4" />
-                                                <span class="font-medium">Custom Amounts Mode</span>
-                                            </div>
-                                            <p class="text-sm text-warning mt-1">
-                                                Total must equal remaining amount:
-                                                {{ $this->formatCurrency($remaining_amount) }}
-                                            </p>
-                                        </div>
-                                    @else
-                                        <div class="mt-3 text-xs bg-base-100 p-2 rounded-md">
-                                            <x-alert title="Note:" icon="o-exclamation-triangle"
-                                                description="Installment amounts are calculated equally. Click 'Edit Amounts' to customize individual installment amounts. The last installment may vary slightly to account for rounding." />
-                                        </div>
-                                    @endif
-                                </div>
-                            @endif
                         </div>
                     </div>
                 </div>
@@ -1025,4 +660,5 @@ new class extends Component {
             </div>
         </form>
     </x-card>
+
 </div>

@@ -232,8 +232,8 @@ class StudentController extends Controller
             ])));
 
             // Payment method and details
-            $paymentMethod = $installment->payment_method?->value ?? 'cash';
-            $paymentType = $installment->status->isPaid() ? 'full' : ($installment->status->isPartial() ? 'part' : 'full');
+            $paymentMethod = 'cash';
+            $paymentType = 'full';
 
             // Amount in words
             $amountInWords = numberToWords($currentPaymentAmount);
@@ -247,8 +247,8 @@ class StudentController extends Controller
 
             // Payment date
             $paymentDate = $installment->paid_date ?? now();
-            $chequeNumber = $installment->cheque_number;
-            $withdrawnDate = $installment->withdrawn_date;
+            $chequeNumber = null;
+            $withdrawnDate = null;
 
             // Debug logging for installment
             Log::debug('Receipt (installment):', [

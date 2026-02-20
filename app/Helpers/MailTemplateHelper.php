@@ -132,15 +132,13 @@ class MailTemplateHelper
         switch ($type) {
             case 'installment_reminder':
                 return array_merge($baseVariables, [
-                    'urgencyText' => $data['days'] === 1 ? 'URGENT' : 'Important',
-                    'daysText' => $data['days'] === 1 ? 'tomorrow' : "in {$data['days']} days",
-                    'actionRequired' => $data['days'] <= 3 ? 'IMMEDIATE ACTION REQUIRED' : 'Please take action soon'
+                    'urgencyText' => ($data['daysSinceEnrollment'] ?? 0) >= 90 ? 'URGENT' : 'Important',
+                    'actionRequired' => ($data['daysSinceEnrollment'] ?? 0) >= 90 ? 'IMMEDIATE ACTION REQUIRED' : 'Please take action soon'
                 ], $data);
 
             case 'overdue_notification':
                 return array_merge($baseVariables, [
-                    'urgencyText' => $data['daysAfterOverdue'] === 0 ? 'CRITICAL' : 'URGENT',
-                    'overdueText' => $data['daysOverdue'] === 1 ? '1 day overdue' : "{$data['daysOverdue']} days overdue",
+                    'urgencyText' => 'URGENT',
                     'actionRequired' => 'IMMEDIATE ACTION REQUIRED'
                 ], $data);
 
@@ -255,10 +253,10 @@ class MailTemplateHelper
     {
         switch ($type) {
             case 'installment_reminder':
-                return ['student', 'installment', 'days', 'dueDate', 'amount'];
+                return ['student', 'daysSinceEnrollment', 'enrollmentDate', 'totalFees', 'remainingBalance'];
 
             case 'overdue_notification':
-                return ['student', 'installment', 'daysAfterOverdue', 'daysOverdue', 'dueDate', 'amount'];
+                return ['student', 'daysSinceEnrollment', 'enrollmentDate', 'totalFees', 'remainingBalance'];
 
             case 'payment_confirmation':
                 return ['studentName', 'paymentDetails'];
@@ -307,16 +305,15 @@ class MailTemplateHelper
                     'student' => [
                         'first_name' => 'John',
                         'surname' => 'Doe',
-                        'email' => 'john.doe@example.com'
+                        'email' => 'john.doe@example.com',
+                        'tiitvt_reg_no' => 'TIITVT2024001',
                     ],
-                    'installment' => [
-                        'id' => 1,
-                        'amount' => 500.00,
-                        'due_date' => now()->addDays(7)
-                    ],
-                    'days' => 7,
-                    'dueDate' => now()->addDays(7)->format('d/m/Y'),
-                    'amount' => '500.00'
+                    'daysSinceEnrollment' => 30,
+                    'enrollmentDate' => now()->subDays(30)->format('d/m/Y'),
+                    'totalFees' => '50,000.00',
+                    'totalPaid' => '10,000.00',
+                    'remainingBalance' => '40,000.00',
+                    'urgencyText' => 'Important',
                 ];
 
             case 'overdue_notification':
@@ -324,17 +321,15 @@ class MailTemplateHelper
                     'student' => [
                         'first_name' => 'Jane',
                         'surname' => 'Smith',
-                        'email' => 'jane.smith@example.com'
+                        'email' => 'jane.smith@example.com',
+                        'tiitvt_reg_no' => 'TIITVT2024002',
                     ],
-                    'installment' => [
-                        'id' => 2,
-                        'amount' => 500.00,
-                        'due_date' => now()->subDays(5)
-                    ],
-                    'daysAfterOverdue' => 5,
-                    'daysOverdue' => 5,
-                    'dueDate' => now()->subDays(5)->format('d/m/Y'),
-                    'amount' => '500.00'
+                    'daysSinceEnrollment' => 120,
+                    'enrollmentDate' => now()->subDays(120)->format('d/m/Y'),
+                    'totalFees' => '50,000.00',
+                    'totalPaid' => '15,000.00',
+                    'remainingBalance' => '35,000.00',
+                    'urgencyText' => 'URGENT',
                 ];
 
             case 'payment_confirmation':
@@ -384,8 +379,8 @@ class MailTemplateHelper
                     'enrollmentDate' => now()->format('d/m/Y'),
                     'courseFees' => 50000.00,
                     'downPayment' => 10000.00,
-                    'noOfInstallments' => 8,
-                    'monthlyInstallment' => 5000.00
+                    'noOfInstallments' => null,
+                    'monthlyInstallment' => null
                 ];
 
             default:

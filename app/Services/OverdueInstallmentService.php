@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Installment;
 use App\Models\Student;
-use App\Helpers\MailHelper;
 use App\Helpers\EmailNotificationHelper;
 use App\Enums\InstallmentStatusEnum;
 use Carbon\Carbon;
@@ -13,149 +11,84 @@ use Illuminate\Support\Facades\Log;
 class OverdueInstallmentService
 {
     /**
-     * Handle overdue installments: update status and send reminders
+     * Handle outstanding balance reminders for students enrolled more than 90 days ago.
+     * Since we no longer track overdue status, this sends urgent reminders for
+     * students with outstanding balances well past enrollment.
      *
      * @return array
      */
     public function handleOverdueInstallments(): array
     {
-        $statusUpdates = 0;
         $remindersSent = 0;
 
-        // First, update status of overdue installments
-        $statusUpdates = $this->updateOverdueStatuses();
+        // Find students with outstanding balances enrolled > 90 days ago
+        $students = $this->getStudentsWithLongOutstandingBalance();
 
-        // Then, send overdue reminders
-        $remindersSent = $this->sendOverdueReminders();
+        foreach ($students as $student) {
+            $this->sendOutstandingBalanceReminder($student);
+            $remindersSent++;
+        }
 
         return [
-            'status_updates' => $statusUpdates,
-            'reminders_sent' => $remindersSent
+            'status_updates' => 0, // No more overdue status updates
+            'reminders_sent' => $remindersSent,
         ];
     }
 
     /**
-     * Update status of overdue installments
+     * Get students with outstanding balances who enrolled more than 90 days ago.
      *
-     * @return int
-     */
-    private function updateOverdueStatuses(): int
-    {
-        $overdueInstallments = Installment::where('status', InstallmentStatusEnum::Pending->value)
-            ->where('due_date', '<', Carbon::now()->startOfDay())
-            ->get();
-
-        $updatedCount = 0;
-
-        foreach ($overdueInstallments as $installment) {
-            try {
-                $installment->markAsOverdue();
-                $updatedCount++;
-
-                Log::info("Installment {$installment->id} marked as overdue", [
-                    'installment_id' => $installment->id,
-                    'student_id' => $installment->student_id,
-                    'due_date' => $installment->due_date->format('Y-m-d')
-                ]);
-            } catch (\Exception $e) {
-                Log::error("Failed to mark installment {$installment->id} as overdue", [
-                    'installment_id' => $installment->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
-
-        return $updatedCount;
-    }
-
-    /**
-     * Send overdue reminders for installments
-     *
-     * @return int
-     */
-    private function sendOverdueReminders(): int
-    {
-        $remindersSent = 0;
-        $overdueReminderDays = [0, 3, 5, 7, 15]; // 0 = same day overdue, 3, 5, 7, 15 days after
-
-        foreach ($overdueReminderDays as $daysAfterOverdue) {
-            $installments = $this->getOverdueInstallmentsForReminder($daysAfterOverdue);
-
-            foreach ($installments as $installment) {
-                if ($this->shouldSendOverdueReminder($installment, $daysAfterOverdue)) {
-                    $this->sendOverdueReminder($installment, $daysAfterOverdue);
-                    $remindersSent++;
-                }
-            }
-        }
-
-        return $remindersSent;
-    }
-
-    /**
-     * Get overdue installments that need reminders
-     *
-     * @param int $daysAfterOverdue
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    private function getOverdueInstallmentsForReminder(int $daysAfterOverdue)
+    private function getStudentsWithLongOutstandingBalance()
     {
-        $targetDate = Carbon::now()->subDays($daysAfterOverdue)->startOfDay();
+        $cutoffDate = Carbon::now()->subDays(90)->startOfDay();
 
-        return Installment::with(['student'])
-            ->where('status', InstallmentStatusEnum::Overdue->value)
-            ->whereDate('due_date', $targetDate)
-            ->get();
+        return Student::with(['installments'])
+            ->whereNotNull('enrollment_date')
+            ->whereNotNull('course_fees')
+            ->where('course_fees', '>', 0)
+            ->where('enrollment_date', '<=', $cutoffDate)
+            ->get()
+            ->filter(function ($student) {
+                $totalPaid = ($student->down_payment ?? 0) +
+                    $student->installments->where('status', InstallmentStatusEnum::Paid)->sum('paid_amount');
+                return $totalPaid < $student->course_fees;
+            });
     }
 
     /**
-     * Check if overdue reminder should be sent
+     * Send outstanding balance reminder email.
      *
-     * @param Installment $installment
-     * @param int $daysAfterOverdue
-     * @return bool
-     */
-    private function shouldSendOverdueReminder(Installment $installment, int $daysAfterOverdue): bool
-    {
-        // Check if reminder was already sent for this installment and day
-        $reminderKey = "overdue_reminder_{$installment->id}_{$daysAfterOverdue}";
-
-        // For now, we'll always send reminders. In production, you might want to track this
-        // to avoid sending duplicate reminders
-        return true;
-    }
-
-    /**
-     * Send overdue reminder email
-     *
-     * @param Installment $installment
-     * @param int $daysAfterOverdue
+     * @param Student $student
      * @return void
      */
-    private function sendOverdueReminder(Installment $installment, int $daysAfterOverdue): void
+    private function sendOutstandingBalanceReminder(Student $student): void
     {
         try {
-            $student = $installment->student;
-
-            if (!$student || !$student->email) {
-                Log::warning("Cannot send overdue reminder: Student or email not found for installment {$installment->id}");
+            if (!$student->email) {
+                Log::warning("Cannot send outstanding balance reminder: Email not found for student {$student->id}");
                 return;
             }
 
-            // Use the new EmailNotificationHelper for better template management and consistency
+            $totalPaid = ($student->down_payment ?? 0) +
+                $student->installments->where('status', InstallmentStatusEnum::Paid)->sum('paid_amount');
+            $remainingBalance = max(0, $student->course_fees - $totalPaid);
+            $daysSinceEnrollment = Carbon::parse($student->enrollment_date)->diffInDays(Carbon::now());
+
             $data = [
                 'student' => $student,
-                'installment' => $installment,
-                'daysAfterOverdue' => $daysAfterOverdue,
-                'daysOverdue' => Carbon::now()->diffInDays($installment->due_date),
-                'dueDate' => $installment->due_date->format('d/m/Y'),
-                'amount' => number_format($installment->amount, 2),
-                'urgencyText' => $daysAfterOverdue === 0 ? 'CRITICAL' : 'URGENT'
+                'daysSinceEnrollment' => $daysSinceEnrollment,
+                'enrollmentDate' => $student->enrollment_date->format('d/m/Y'),
+                'totalFees' => number_format($student->course_fees, 2),
+                'totalPaid' => number_format($totalPaid, 2),
+                'remainingBalance' => number_format($remainingBalance, 2),
+                'urgencyText' => 'URGENT',
             ];
 
             $options = [
-                'queue' => false, // Send overdue notifications immediately (high priority)
-                'subject_prefix' => 'URGENT: '
+                'queue' => false, // Send immediately (high priority)
+                'subject_prefix' => 'URGENT: ',
             ];
 
             $result = EmailNotificationHelper::sendNotificationByType(
@@ -166,60 +99,15 @@ class OverdueInstallmentService
             );
 
             if ($result) {
-                Log::info("Overdue reminder sent successfully to {$student->email} for installment {$installment->id} ({$daysAfterOverdue} days after due date)");
+                Log::info("Outstanding balance reminder sent to {$student->email} ({$daysSinceEnrollment} days since enrollment, balance: ₹{$remainingBalance})");
             } else {
-                Log::warning("Failed to send overdue reminder to {$student->email} for installment {$installment->id}");
+                Log::warning("Failed to send outstanding balance reminder to {$student->email}");
             }
         } catch (\Exception $e) {
-            Log::error("Failed to send overdue reminder: " . $e->getMessage(), [
-                'installment_id' => $installment->id,
-                'student_id' => $installment->student_id,
-                'days_after_overdue' => $daysAfterOverdue,
+            Log::error("Failed to send outstanding balance reminder: " . $e->getMessage(), [
+                'student_id' => $student->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
         }
-    }
-
-    /**
-     * Get the subject line for the overdue reminder email
-     *
-     * @param int $daysAfterOverdue
-     * @return string
-     */
-    private function getOverdueReminderSubject(int $daysAfterOverdue): string
-    {
-        if ($daysAfterOverdue === 0) {
-            return 'URGENT: Installment Payment Overdue - Immediate Action Required';
-        }
-
-        return "URGENT: Installment Payment Overdue - {$daysAfterOverdue} Day(s) Past Due";
-    }
-
-    /**
-     * Get the body content for the overdue reminder email
-     *
-     * @param Installment $installment
-     * @param int $daysAfterOverdue
-     * @return string
-     */
-    private function getOverdueReminderBody(Installment $installment, int $daysAfterOverdue): string
-    {
-        $student = $installment->student;
-        $dueDate = $installment->due_date->format('d/m/Y');
-        $amount = number_format($installment->amount, 2);
-        $daysOverdue = Carbon::now()->diffInDays($installment->due_date);
-
-        $urgencyText = $daysAfterOverdue === 0 ? 'CRITICAL' : 'URGENT';
-
-        return view('mail.notification.installment.overdue', [
-            'student' => $student,
-            'installment' => $installment,
-            'daysAfterOverdue' => $daysAfterOverdue,
-            'daysOverdue' => $daysOverdue,
-            'dueDate' => $dueDate,
-            'amount' => $amount,
-            'urgencyText' => $urgencyText
-        ])->render();
     }
 }

@@ -3,8 +3,8 @@
 @section('content')
     <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #d32f2f; margin: 0; font-size: 24px; font-weight: 600;">
-                {{ $urgencyText }}: Installment Payment Reminder
+            <h1 style="color: #1976d2; margin: 0; font-size: 24px; font-weight: 600;">
+                {{ $urgencyText }}: Payment Reminder
             </h1>
         </div>
 
@@ -16,21 +16,12 @@
 
         <div style="margin-bottom: 25px;">
             <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 15px;">
-                This is a friendly reminder that your installment payment is due in <strong>{{ $days }}
-                    day{{ $days > 1 ? 's' : '' }}</strong>.
+                This is a friendly reminder that you have an outstanding balance on your course fees.
+                It has been <strong>{{ $daysSinceEnrollment }} days</strong> since your enrollment.
             </p>
 
-            @if ($days === 1)
-                <div
-                    style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                    <p style="margin: 0; color: #856404; font-weight: 600;">
-                        ⚠️ URGENT: Your payment is due tomorrow!
-                    </p>
-                </div>
-            @endif
-
             <div style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 20px; border-radius: 6px;">
-                <h3 style="margin: 0 0 15px 0; color: #1976d2; font-size: 18px;">Payment Details:</h3>
+                <h3 style="margin: 0 0 15px 0; color: #1976d2; font-size: 18px;">Payment Summary:</h3>
                 <table style="width: 100%; border-collapse: collapse;">
                     <tr>
                         <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #333;">Student
@@ -40,19 +31,26 @@
                     </tr>
                     <tr>
                         <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #333;">
-                            Installment No:</td>
+                            Enrollment Date:</td>
                         <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; color: #666;">
-                            {{ $installment->installment_no }}</td>
+                            {{ $enrollmentDate }}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #333;">Amount
-                            Due:</td>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; color: #d32f2f; font-weight: 600;">
-                            ₹{{ $amount }}</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #333;">Total
+                            Fees:</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; color: #666;">
+                            ₹{{ $totalFees }}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 8px 0; font-weight: 600; color: #333;">Due Date:</td>
-                        <td style="padding: 8px 0; color: #666;">{{ $dueDate }}</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #333;">Total
+                            Paid:</td>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; color: #2e7d32; font-weight: 600;">
+                            ₹{{ $totalPaid }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: 600; color: #333;">Remaining Balance:</td>
+                        <td style="padding: 8px 0; color: #d32f2f; font-weight: 600;">
+                            ₹{{ $remainingBalance }}</td>
                     </tr>
                 </table>
             </div>
@@ -72,7 +70,7 @@
             <h3 style="color: #333; font-size: 18px; margin-bottom: 15px;">Payment Instructions:</h3>
             <div style="background-color: #f1f8e9; border: 1px solid #c8e6c9; padding: 15px; border-radius: 6px;">
                 <p style="margin: 0 0 10px 0; color: #2e7d32;">
-                    Please ensure your payment is made before the due date to avoid any late fees or penalties.
+                    Please make your payment at the earliest to keep your account in good standing.
                 </p>
                 <p style="margin: 0; color: #2e7d32;">
                     For payment assistance or questions, please contact your center administrator.

@@ -1,606 +1,177 @@
 <?php
 
 use Mary\Traits\Toast;
-use App\Enums\RolesEnum;
 use Livewire\Volt\Component;
-use App\Enums\InstallmentStatusEnum;
 use App\Models\{Student, Installment};
-use App\Services\StudentQRService;
+use App\Enums\InstallmentStatusEnum;
 use Livewire\Attributes\{Layout, Title};
+use App\Services\StudentQRService;
 
 new class extends Component {
     use Toast;
 
     #[Title('Student Details')]
-    public $student;
-    public $selectedInstallment = null;
-    public $showStatusModal = false;
-    public $showBulkUpdateModal = false;
-    public $newStatus = '';
-    public $paidAmount = '';
-    public $notes = '';
-    public $selectedInstallments = [];
-    public $bulkStatus = '';
-    public $bulkNotes = '';
-    public $bulkPaymentMethod = '';
-    public $bulkChequeNumber = '';
-    public $bulkWithdrawnDate;
-    public $showPartialPaymentModal = false;
-    public $partialPaymentAmount = '';
-    public $partialPaymentNotes = '';
-    public $paymentMethod = '';
-    public $chequeNumber = '';
-    public $withdrawnDate;
-    public $partialPaymentMethod = '';
-    public $partialChequeNumber = '';
-    public $partialWithdrawnDate;
+    public Student $student;
 
-    public $showEditAmountModal = false;
-    public $editAmountInstallment = null;
-    public $editAmountValue = '';
+    // Payment modal
+    public bool $showAddPaymentModal = false;
+    public ?float $paymentAmount = null;
+    public ?string $paymentNotes = '';
+    public ?string $paymentDate = '';
 
-    public $showDeleteInstallmentModal = false;
-    public $deleteInstallmentId = null;
+    // Mark as Paid modal
+    public bool $showMarkPaidModal = false;
+    public ?Installment $selectedPayment = null;
+    public ?string $paidNotes = '';
 
-    public $showAlterationSection = false;
-    public $alterInstallmentCount = '';
-    public $alterAmountPerInstallment = '';
+    // Delete payment modal
+    public bool $showDeletePaymentModal = false;
+    public ?int $deletePaymentId = null;
 
-    public function mount($student)
+    public $dateConfig = ['altFormat' => 'd/m/Y'];
+
+    public function mount(Student $student)
     {
-        if (hasAuthRole(RolesEnum::Admin->value)) {
-            $this->student = Student::with(['qrCode', 'center', 'courses'])->findOrFail($student);
-        } else {
-            $this->student = Student::with(['qrCode', 'center', 'courses'])
-                ->where('center_id', auth()->user()->center->id)
-                ->findOrFail($student);
-        }
-
-        // Automatically check for overdue installments when component loads
-        $this->checkAndMarkOverdueInstallments();
+        $this->student = $student;
     }
 
-    public function openStatusModal($installmentId)
+    // --- Payment Summary ---
+    public function getPaymentSummary()
     {
-        $this->selectedInstallment = Installment::findOrFail($installmentId);
-        $this->newStatus = $this->selectedInstallment->status;
-        $this->paidAmount = $this->selectedInstallment->amount;
-        $this->notes = $this->selectedInstallment->notes ?? '';
-        $this->paymentMethod = $this->selectedInstallment->payment_method?->value ?? '';
-        $this->chequeNumber = $this->selectedInstallment->cheque_number ?? '';
-        $this->withdrawnDate = $this->selectedInstallment->withdrawn_date?->format('Y-m-d') ?? '';
-        $this->showStatusModal = true;
-    }
-
-    public function closeStatusModal()
-    {
-        $this->showStatusModal = false;
-        $this->selectedInstallment = null;
-        $this->newStatus = '';
-        $this->paidAmount = '';
-        $this->notes = '';
-        $this->paymentMethod = '';
-        $this->chequeNumber = '';
-        $this->withdrawnDate;
-    }
-
-    public function openBulkUpdateModal()
-    {
-        $this->showBulkUpdateModal = true;
-    }
-
-    public function closeBulkUpdateModal()
-    {
-        $this->showBulkUpdateModal = false;
-        $this->selectedInstallments = [];
-        $this->bulkStatus = '';
-        $this->bulkNotes = '';
-        $this->bulkPaymentMethod = '';
-        $this->bulkChequeNumber = '';
-        $this->bulkWithdrawnDate;
-    }
-
-    public function openPartialPaymentModal($installmentId)
-    {
-        $this->selectedInstallment = Installment::findOrFail($installmentId);
-        $this->partialPaymentAmount = '';
-        $this->partialPaymentNotes = '';
-        $this->partialPaymentMethod = '';
-        $this->partialChequeNumber = '';
-        $this->partialWithdrawnDate;
-        $this->showPartialPaymentModal = true;
-    }
-
-    public function closePartialPaymentModal()
-    {
-        $this->showPartialPaymentModal = false;
-        $this->selectedInstallment = null;
-        $this->partialPaymentAmount = '';
-        $this->partialPaymentNotes = '';
-        $this->partialPaymentMethod = '';
-        $this->partialChequeNumber = '';
-        $this->partialWithdrawnDate;
-    }
-
-    public function toggleInstallmentSelection($installmentId)
-    {
-        if (in_array($installmentId, $this->selectedInstallments)) {
-            $this->selectedInstallments = array_diff($this->selectedInstallments, [$installmentId]);
-        } else {
-            $this->selectedInstallments[] = $installmentId;
-        }
-    }
-
-    public function clearInstallmentSelection()
-    {
-        $this->selectedInstallments = [];
-    }
-
-    public function updateInstallmentStatus()
-    {
-        if (!$this->selectedInstallment) {
-            return;
-        }
-
-        // Custom validation for paid amount when status is partial
-        if ($this->isStatusPartial($this->newStatus)) {
-            if (empty($this->paidAmount) || !is_numeric($this->paidAmount) || $this->paidAmount <= 0) {
-                $this->addError('paidAmount', 'Paid amount is required and must be a valid positive number when status is partial.');
-                return;
-            }
-            if ($this->paidAmount >= $this->selectedInstallment->amount) {
-                $this->addError('paidAmount', 'For partial payment, the amount must be less than the full installment amount.');
-                return;
-            }
-        }
-
-        $this->validate([
-            'newStatus' => 'required',
-            'notes' => 'nullable|string|max:500',
-            'paymentMethod' => 'nullable|in:cash,cheque',
-            'chequeNumber' => 'required_if:paymentMethod,cheque|nullable|string|max:50',
-            'withdrawnDate' => 'required_if:paymentMethod,cheque|nullable|date',
-        ]);
-
-        try {
-            $installment = $this->selectedInstallment;
-
-            if ($this->isStatusPartial($this->newStatus)) {
-                $paymentMethod = null;
-                if ($this->paymentMethod) {
-                    try {
-                        $paymentMethod = \App\Enums\PaymentMethodEnum::from($this->paymentMethod);
-                    } catch (\ValueError $e) {
-                        $this->addError('paymentMethod', 'Invalid payment method selected.');
-                        return;
-                    }
-                }
-
-                // Convert withdrawnDate to Carbon instance if provided
-                $withdrawnDate = null;
-                if ($this->withdrawnDate) {
-                    try {
-                        $withdrawnDate = \Carbon\Carbon::parse($this->withdrawnDate);
-                    } catch (\Exception $e) {
-                        $this->addError('withdrawnDate', 'Invalid withdrawn date format.');
-                        return;
-                    }
-                }
-
-                $installment->addPartialPayment($this->paidAmount, $this->notes, $paymentMethod, $this->chequeNumber, $withdrawnDate);
-                $this->success('Partial payment added successfully!', position: 'toast-bottom');
-            } elseif ($this->isStatusPaid($this->newStatus)) {
-                $paymentMethod = null;
-                if ($this->paymentMethod) {
-                    try {
-                        $paymentMethod = \App\Enums\PaymentMethodEnum::from($this->paymentMethod);
-                    } catch (\ValueError $e) {
-                        $this->addError('paymentMethod', 'Invalid payment method selected.');
-                        return;
-                    }
-                }
-
-                // Convert withdrawnDate to Carbon instance if provided
-                $withdrawnDate = null;
-                if ($this->withdrawnDate) {
-                    try {
-                        $withdrawnDate = \Carbon\Carbon::parse($this->withdrawnDate);
-                    } catch (\Exception $e) {
-                        $this->addError('withdrawnDate', 'Invalid withdrawn date format.');
-                        return;
-                    }
-                }
-
-                $installment->markAsPaid($installment->amount, $this->notes, $paymentMethod, $this->chequeNumber, $withdrawnDate);
-                $this->success('Installment marked as fully paid!', position: 'toast-bottom');
-            } elseif ($this->isStatusOverdue($this->newStatus)) {
-                $installment->markAsOverdue();
-                $installment->update(['notes' => $this->notes]);
-                $this->success('Installment marked as overdue!', position: 'toast-bottom');
-            } else {
-                // Reset to pending
-                $installment->update([
-                    'status' => InstallmentStatusEnum::Pending->value,
-                    'paid_date' => null,
-                    'paid_amount' => null,
-                    'notes' => $this->notes,
-                ]);
-                $this->success('Installment reset to pending!', position: 'toast-bottom');
-            }
-
-            // Refresh the student data
-            $this->student->refresh();
-            $this->closeStatusModal();
-
-            // Recalculate overdue status after update
-            $this->checkAndMarkOverdueInstallments();
-        } catch (\Exception $e) {
-            // Log the actual error for debugging
-            \Log::error('Installment status update failed: ' . $e->getMessage(), [
-                'installment_id' => $this->selectedInstallment?->id,
-                'newStatus' => $this->newStatus,
-                'paidAmount' => $this->paidAmount,
-                'paymentMethod' => $this->paymentMethod,
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            $this->error('Failed to update installment status: ' . $e->getMessage(), position: 'toast-bottom');
-        }
-    }
-
-    public function bulkUpdateInstallmentStatus()
-    {
-        if (empty($this->selectedInstallments)) {
-            $this->error('Please select at least one installment to update.', position: 'toast-bottom');
-            return;
-        }
-
-        $this->validate([
-            'bulkStatus' => 'required|in:' . implode(',', InstallmentStatusEnum::values()),
-            'bulkNotes' => 'nullable|string|max:500',
-            'bulkPaymentMethod' => 'nullable|in:cash,cheque',
-            'bulkChequeNumber' => 'required_if:bulkPaymentMethod,cheque|nullable|string|max:50',
-            'bulkWithdrawnDate' => 'required_if:bulkPaymentMethod,cheque|nullable|date',
-        ]);
-
-        try {
-            $updatedCount = 0;
-            $installments = Installment::whereIn('id', $this->selectedInstallments)->get();
-
-            foreach ($installments as $installment) {
-                if ($this->isStatusPaid($this->bulkStatus)) {
-                    $paymentMethod = $this->bulkPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->bulkPaymentMethod) : null;
-
-                    // Convert withdrawnDate to Carbon instance if provided
-                    $withdrawnDate = null;
-                    if ($this->bulkWithdrawnDate) {
-                        try {
-                            $withdrawnDate = \Carbon\Carbon::parse($this->bulkWithdrawnDate);
-                        } catch (\Exception $e) {
-                            // Skip this installment if date is invalid
-                            continue;
-                        }
-                    }
-
-                    $installment->markAsPaid($installment->amount, $this->bulkNotes, $paymentMethod, $this->bulkChequeNumber, $withdrawnDate);
-                } elseif ($this->isStatusOverdue($this->bulkStatus)) {
-                    $installment->markAsOverdue();
-                    $installment->update(['notes' => $this->bulkNotes]);
-                } else {
-                    // Reset to pending
-                    $installment->update([
-                        'status' => InstallmentStatusEnum::Pending->value,
-                        'paid_date' => null,
-                        'paid_amount' => null,
-                        'notes' => $this->bulkNotes,
-                    ]);
-                }
-                $updatedCount++;
-            }
-
-            $this->success("Successfully updated {$updatedCount} installments!", position: 'toast-bottom');
-
-            // Refresh the student data
-            $this->student->refresh();
-            $this->closeBulkUpdateModal();
-
-            // Recalculate overdue status after bulk update
-            $this->checkAndMarkOverdueInstallments();
-        } catch (\Exception $e) {
-            $this->error('Failed to update installments. Please try again.', position: 'toast-bottom');
-        }
-    }
-
-    public function addPartialPayment()
-    {
-        if (!$this->selectedInstallment) {
-            return;
-        }
-
-        $this->validate([
-            'partialPaymentAmount' => 'required|numeric|min:0.01|max:' . $this->selectedInstallment->getRemainingAmount(),
-            'partialPaymentNotes' => 'nullable|string|max:500',
-            'partialPaymentMethod' => 'nullable|in:cash,cheque',
-            'partialChequeNumber' => 'required_if:partialPaymentMethod,cheque|nullable|string|max:50',
-            'partialWithdrawnDate' => 'required_if:partialPaymentMethod,cheque|nullable|date',
-        ]);
-
-        $installment = $this->selectedInstallment;
-        $paymentMethod = $this->partialPaymentMethod ? \App\Enums\PaymentMethodEnum::from($this->partialPaymentMethod) : null;
-        $partialAmount = $this->partialPaymentAmount;
-        $remaining = $installment->amount - $partialAmount;
-
-        if ($partialAmount >= $installment->amount) {
-            // If full payment, just mark as paid
-            $installment->markAsPaid($partialAmount, $this->partialPaymentNotes, $paymentMethod, $this->partialChequeNumber, $this->partialWithdrawnDate);
-        } else {
-            // Split: update current to paid for partial, create new for remaining
-            $installment->update([
-                'amount' => $partialAmount,
-                'paid_amount' => $partialAmount,
-                'status' => \App\Enums\InstallmentStatusEnum::Paid,
-                'paid_date' => now(),
-                'payment_method' => $paymentMethod,
-                'cheque_number' => $this->partialChequeNumber,
-                'withdrawn_date' => $this->partialWithdrawnDate,
-                'notes' => $this->partialPaymentNotes,
-            ]);
-            // Create new installment for remaining
-            $maxNo = $installment->student->installments()->max('installment_no') ?? 0;
-            $installment->student->installments()->create([
-                'installment_no' => $maxNo + 1,
-                'amount' => $remaining,
-                'due_date' => $installment->due_date,
-                'status' => \App\Enums\InstallmentStatusEnum::Pending,
-            ]);
-        }
-
-        $this->success('Partial payment processed and installment split.', position: 'toast-bottom');
-        $this->student->refresh();
-        $this->closePartialPaymentModal();
-        $this->checkAndMarkOverdueInstallments();
-
-        // try {
-        // } catch (\Exception $e) {
-        //     $this->error('Failed to add partial payment. Please try again.', position: 'toast-bottom');
-        // }
-    }
-
-    public function getStatusOptions()
-    {
-        return collect(InstallmentStatusEnum::all())
-            ->map(function ($status) {
-                return ['id' => $status->value, 'name' => $status->label()];
-            })
-            ->toArray();
-    }
-
-    public function getBulkStatusOptions()
-    {
-        return collect(InstallmentStatusEnum::all())
-            ->filter(function ($status) {
-                // Exclude partial status from bulk update options
-                return $status !== InstallmentStatusEnum::Partial;
-            })
-            ->map(function ($status) {
-                return ['id' => $status->value, 'name' => $status->label()];
-            })
-            ->toArray();
-    }
-
-    public function getPaymentMethodOptions()
-    {
-        return collect(\App\Enums\PaymentMethodEnum::cases())
-            ->map(function ($method) {
-                return ['id' => $method->value, 'name' => $method->label()];
-            })
-            ->toArray();
-    }
-
-    public function isStatusPaid($status)
-    {
-        if (is_string($status)) {
-            return $status === 'paid';
-        }
-
-        if (is_object($status) && isset($status->value)) {
-            return $status->value === 'paid';
-        }
-
-        return false;
-    }
-
-    public function isStatusOverdue($status)
-    {
-        if (is_string($status)) {
-            return $status === 'overdue';
-        }
-
-        if (is_object($status) && isset($status->value)) {
-            return $status->value === 'overdue';
-        }
-
-        return false;
-    }
-
-    public function isStatusPartial($status)
-    {
-        if (is_string($status)) {
-            return $status === 'partial';
-        }
-
-        if (is_object($status) && isset($status->value)) {
-            return $status->value === 'partial';
-        }
-
-        return false;
-    }
-
-    public function getInstallmentSummary()
-    {
-        $installments = $this->student->installments;
-        $courseFees = $this->student->course_fees;
-        $downPayment = $this->student->down_payment ?: 0;
-        $total = $courseFees; // Show course fees as total
-
-        // Calculate total paid amount (down payment + only paid/partial installments)
-        $totalPaid = $downPayment;
-        foreach ($installments as $inst) {
-            if ($inst->status->isPaid() || $inst->status->isPartial()) {
-                $totalPaid += $inst->paid_amount;
-            }
-        }
-
-        // Calculate overdue amount more comprehensively using new model methods
-        $overdueAmount = 0;
-        $overdueCount = 0;
-        $partialCount = 0;
-        $partialAmount = 0;
-
-        foreach ($installments as $installment) {
-            if ($installment->status->isOverdue()) {
-                $overdueAmount += $installment->getRemainingAmount();
-                $overdueCount++;
-            } elseif ($installment->shouldBeOverdue()) {
-                // Include installments that should be overdue (past due date but not fully paid)
-                $overdueAmount += $installment->getOverdueAmount();
-                if ($installment->getOverdueAmount() > 0) {
-                    $overdueCount++;
-                }
-            } elseif ($installment->status->isPartial()) {
-                $partialCount++;
-                $partialAmount += $installment->getRemainingAmount();
-            }
-        }
-
-        $pending = $installments->filter(fn($installment) => $installment->status->isPending())->sum('amount');
-        $pendingCount = $installments->filter(fn($installment) => $installment->status->isPending())->count();
-        $installmentTotal = $installments->sum('amount');
+        $courseFees = $this->student->course_fees ?? 0;
+        $downPayment = $this->student->down_payment ?? 0;
+        $totalPaidFromPayments = $this->student->installments->where('status', InstallmentStatusEnum::Paid)->sum('paid_amount');
+        $totalPaid = $downPayment + $totalPaidFromPayments;
+        $remainingBalance = max(0, $courseFees - $totalPaid);
+        $paymentProgress = $courseFees > 0 ? ($totalPaid / $courseFees) * 100 : 0;
+        $paidCount = $this->student->installments->where('status', InstallmentStatusEnum::Paid)->count();
+        $pendingCount = $this->student->installments->where('status', InstallmentStatusEnum::Pending)->count();
 
         return [
-            'total' => $total,
-            'paid' => $totalPaid,
-            'downPayment' => $downPayment,
             'courseFees' => $courseFees,
-            'installmentTotal' => $installmentTotal,
-            'pending' => $pending,
-            'partial' => $partialAmount,
-            'overdue' => $overdueAmount,
+            'downPayment' => $downPayment,
+            'totalPaid' => $totalPaid,
+            'remainingBalance' => $remainingBalance,
+            'paymentProgress' => $paymentProgress,
+            'paidCount' => $paidCount,
             'pendingCount' => $pendingCount,
-            'partialCount' => $partialCount,
-            'overdueCount' => $overdueCount,
-            'paymentProgress' => $total > 0 ? ($totalPaid / $total) * 100 : 0,
         ];
     }
 
-    public function markOverdueInstallments()
+    // --- Add Payment ---
+    public function openAddPaymentModal()
     {
-        try {
-            $overdueCount = 0;
-            $pendingInstallments = $this->student->installments->filter(fn($installment) => $installment->status->isPending());
-
-            foreach ($pendingInstallments as $installment) {
-                if ($installment->isOverdue()) {
-                    $installment->markAsOverdue();
-                    $overdueCount++;
-                }
-            }
-
-            if ($overdueCount > 0) {
-                $this->success("Marked {$overdueCount} installment(s) as overdue!", position: 'toast-bottom');
-                $this->student->refresh();
-
-                // Recalculate overdue status after marking
-                $this->checkAndMarkOverdueInstallments();
-            } else {
-                $this->info('No overdue installments found.', position: 'toast-bottom');
-            }
-        } catch (\Exception $e) {
-            $this->error('Failed to mark overdue installments. Please try again.', position: 'toast-bottom');
-        }
+        $this->paymentAmount = null;
+        $this->paymentNotes = '';
+        $this->paymentDate = '';
+        $this->showAddPaymentModal = true;
     }
 
-    public function markSpecificInstallmentAsOverdue($installmentId)
+    public function closeAddPaymentModal()
     {
-        try {
-            $installment = $this->student->installments()->findOrFail($installmentId);
-
-            if ($installment->status->isPending()) {
-                $installment->markAsOverdue();
-                $this->success("Installment {$installment->installment_no} marked as overdue!", position: 'toast-bottom');
-
-                // Refresh and recalculate
-                $this->student->refresh();
-                $this->checkAndMarkOverdueInstallments();
-            } else {
-                $this->error('Only pending installments can be marked as overdue.', position: 'toast-bottom');
-            }
-        } catch (\Exception $e) {
-            $this->error('Failed to mark installment as overdue. Please try again.', position: 'toast-bottom');
-        }
+        $this->showAddPaymentModal = false;
+        $this->paymentAmount = null;
+        $this->paymentNotes = '';
+        $this->paymentDate = '';
     }
 
-    public function refreshOverdueStatus()
+    public function addPayment()
     {
-        try {
-            // Check and mark overdue installments
-            $this->checkAndMarkOverdueInstallments();
+        // Calculate remaining balance
+        $totalPaid = ($this->student->down_payment ?? 0) + $this->student->installments->where('status', InstallmentStatusEnum::Paid)->sum('paid_amount');
+        $remainingBalance = max(0, $this->student->course_fees - $totalPaid);
 
-            // Refresh the student data
+        $this->validate(
+            [
+                'paymentAmount' => 'required|numeric|min:0.01|max:' . $remainingBalance,
+                'paymentNotes' => 'nullable|string|max:500',
+                'paymentDate' => 'nullable|date',
+            ],
+            [
+                'paymentAmount.max' => 'Payment amount cannot exceed the remaining balance of ₹' . number_format($remainingBalance, 2),
+            ],
+        );
+
+        try {
+            $payment = $this->student->installments()->create([
+                'amount' => $this->paymentAmount,
+                'status' => InstallmentStatusEnum::Pending,
+                'paid_date' => $this->paymentDate ?: now(),
+                'notes' => $this->paymentNotes,
+            ]);
+
+            // markAsPaid handles status update and sends notification
+            $payment->markAsPaid($this->paymentAmount, $this->paymentNotes);
+
             $this->student->refresh();
-
-            $this->success('Student data and installments refreshed. Overdue status recalculated.', position: 'toast-bottom');
+            $this->closeAddPaymentModal();
+            $this->success('Payment recorded successfully!', position: 'toast-bottom');
         } catch (\Exception $e) {
-            $this->error('Failed to refresh student data. Please try again.', position: 'toast-bottom');
+            $this->error('Failed to record payment: ' . $e->getMessage(), position: 'toast-bottom');
         }
     }
 
-    public function getNextDueInstallment()
+    // --- Mark Pending as Paid ---
+    public function openMarkPaidModal($paymentId)
     {
-        return $this->student->installments->filter(fn($installment) => $installment->status->isPending() && $installment->due_date >= now())->sortBy('due_date')->first();
+        $this->selectedPayment = Installment::findOrFail($paymentId);
+        $this->paidNotes = $this->selectedPayment->notes ?? '';
+        $this->showMarkPaidModal = true;
     }
 
-    public function getOverdueInstallments()
+    public function closeMarkPaidModal()
     {
-        return $this->student->installments->filter(fn($installment) => $installment->status->isOverdue())->sortBy('due_date');
+        $this->showMarkPaidModal = false;
+        $this->selectedPayment = null;
+        $this->paidNotes = '';
     }
 
-    public function getAllOverdueInstallments()
+    public function markPaymentAsPaid()
     {
-        $installments = $this->student->installments;
-        $overdueInstallments = collect();
-
-        foreach ($installments as $installment) {
-            if ($installment->status->isOverdue() || $installment->shouldBeOverdue()) {
-                $overdueInstallments->push($installment);
-            }
+        if (!$this->selectedPayment) {
+            return;
         }
 
-        return $overdueInstallments->sortBy('due_date');
-    }
-
-    public function checkAndMarkOverdueInstallments()
-    {
         try {
-            $overdueCount = 0;
-            $pendingInstallments = $this->student->installments->filter(fn($installment) => $installment->status->isPending());
+            $this->selectedPayment->markAsPaid($this->selectedPayment->amount, $this->paidNotes);
 
-            foreach ($pendingInstallments as $installment) {
-                if ($installment->isOverdue()) {
-                    $installment->markAsOverdue();
-                    $overdueCount++;
-                }
-            }
-
-            if ($overdueCount > 0) {
-                // Refresh the student data to reflect changes
-                $this->student->refresh();
-            }
+            $this->student->refresh();
+            $this->closeMarkPaidModal();
+            $this->success('Payment marked as paid!', position: 'toast-bottom');
         } catch (\Exception $e) {
-            // Silently handle errors during automatic check
+            $this->error('Failed to mark payment as paid: ' . $e->getMessage(), position: 'toast-bottom');
         }
     }
 
+    // --- Delete Payment ---
+    public function openDeletePaymentModal($paymentId)
+    {
+        $this->deletePaymentId = $paymentId;
+        $this->showDeletePaymentModal = true;
+    }
+
+    public function closeDeletePaymentModal()
+    {
+        $this->deletePaymentId = null;
+        $this->showDeletePaymentModal = false;
+    }
+
+    public function deletePayment()
+    {
+        $payment = $this->student->installments()->findOrFail($this->deletePaymentId);
+
+        if ($payment->status->isPaid()) {
+            $this->error('Cannot delete a paid payment record.', position: 'toast-bottom');
+            return;
+        }
+
+        $payment->delete();
+        $this->student->refresh();
+        $this->success('Payment record deleted!', position: 'toast-bottom');
+        $this->closeDeletePaymentModal();
+    }
+
+    // --- QR Code ---
     public function regenerateQRCode()
     {
         try {
@@ -611,27 +182,20 @@ new class extends Component {
 
             $qrService = app(StudentQRService::class);
 
-            // Delete the old QR code file if it exists
             if ($this->student->qrCode->qr_code_path && \Storage::disk('public')->exists($this->student->qrCode->qr_code_path)) {
                 \Storage::disk('public')->delete($this->student->qrCode->qr_code_path);
             }
 
-            // Generate new QR data with just the verification URL
             $newQrData = $qrService->generateQrDataWithToken($this->student, $this->student->qrCode->qr_token);
-
-            // Regenerate the QR code with logo using the new data
             $qrCodePath = $qrService->generateQrCodeWithLogo($newQrData, $this->student->qrCode->id);
 
-            // Update the QR code record with the new path and data
             $this->student->qrCode->update([
                 'qr_code_path' => $qrCodePath,
                 'qr_data' => $newQrData,
             ]);
 
-            // Refresh the student data
             $this->student->refresh();
-
-            $this->success('QR Code regenerated successfully with logo and verification URL only!', position: 'toast-bottom');
+            $this->success('QR Code regenerated successfully!', position: 'toast-bottom');
         } catch (\Exception $e) {
             $this->error('Failed to regenerate QR code: ' . $e->getMessage(), position: 'toast-bottom');
         }
@@ -647,11 +211,9 @@ new class extends Component {
         $qrCodePath = $this->student->qrCode->qr_code_path;
 
         if ($qrCodePath && \Storage::disk('public')->exists($qrCodePath)) {
-            // Sanitize the filename by removing/replacing invalid characters
             $safeRegNo = preg_replace('/[^a-zA-Z0-9_-]/', '_', $this->student->tiitvt_reg_no);
             $filename = 'student_' . $safeRegNo . '_qr_code.png';
 
-            // Ensure filename is not too long (max 255 characters)
             if (strlen($filename) > 255) {
                 $filename = 'student_' . substr($safeRegNo, 0, 200) . '_qr_code.png';
             }
@@ -671,38 +233,26 @@ new class extends Component {
         return null;
     }
 
+    // --- Resend Registration Email ---
     public function resedRegisterMail()
     {
         try {
-            // Get student data
             $student = $this->student;
-
-            // Get course and center information
             $course = $student->course;
             $center = $student->center;
 
-            // Calculate monthly installment
-            $monthlyInstallment = 0;
-            if ($student->no_of_installments > 0 && $student->course_fees > 0) {
-                $remainingAmount = $student->course_fees - ($student->down_payment ?: 0);
-                $monthlyInstallment = $remainingAmount / $student->no_of_installments;
-            }
-
-            // Get student QR code or generate if it doesn't exist
             $studentQR = $student->qrCode;
             if (!$studentQR) {
                 $qrService = app(StudentQRService::class);
                 $studentQR = $qrService->generateStudentQR($student);
             }
 
-            // Generate QR code data URI for email
             $qrCodeDataUri = null;
             if ($studentQR) {
                 $qrService = app(StudentQRService::class);
                 $qrCodeDataUri = $qrService->generateQRCodeDataUri($studentQR->qr_data);
             }
 
-            // Prepare data for email
             $data = [
                 'studentName' => $student->first_name . ' ' . $student->surname,
                 'tiitvtRegNo' => $student->tiitvt_reg_no,
@@ -711,16 +261,13 @@ new class extends Component {
                 'enrollmentDate' => $student->enrollment_date ?: now()->format('d/m/Y'),
                 'courseFees' => $student->course_fees,
                 'downPayment' => $student->down_payment ?: 0,
-                'noOfInstallments' => $student->no_of_installments ?: 0,
-                'monthlyInstallment' => $monthlyInstallment,
                 'qrCodeUrl' => $qrCodeDataUri,
             ];
 
-            // Send email using EmailNotificationHelper
             $result = \App\Helpers\EmailNotificationHelper::sendNotificationByType('registration_success', $student->email, $data, ['queue' => true]);
 
             if ($result) {
-                $this->success('Registration email resent successfully to student!', position: 'toast-bottom');
+                $this->success('Registration email resent successfully!', position: 'toast-bottom');
             } else {
                 $this->warning('Failed to resend registration email. Please check logs.', position: 'toast-bottom');
             }
@@ -735,269 +282,11 @@ new class extends Component {
             $this->warning('Failed to resend registration email. Please check logs.', position: 'toast-bottom');
         }
     }
-
-    public function openEditAmountModal($installmentId)
-    {
-        $this->editAmountInstallment = Installment::findOrFail($installmentId);
-        $this->editAmountValue = $this->editAmountInstallment->amount;
-        $this->showEditAmountModal = true;
-    }
-
-    public function closeEditAmountModal()
-    {
-        $this->showEditAmountModal = false;
-        $this->editAmountInstallment = null;
-        $this->editAmountValue = '';
-    }
-
-    public function updateInstallmentAmount()
-    {
-        if (!$this->editAmountInstallment) {
-            return;
-        }
-        $this->validate([
-            'editAmountValue' => 'required|numeric|min:0.01',
-        ]);
-        $installment = $this->editAmountInstallment;
-        $oldAmount = $installment->amount;
-        $installment->amount = $this->editAmountValue;
-        $installment->save();
-        $this->success('Installment amount updated from ₹' . number_format($oldAmount, 2) . ' to ₹' . number_format($installment->amount, 2), position: 'toast-bottom');
-        $this->student->refresh();
-        $this->closeEditAmountModal();
-    }
-
-    public function openDeleteInstallmentModal($installmentId)
-    {
-        $this->deleteInstallmentId = $installmentId;
-        $this->showDeleteInstallmentModal = true;
-    }
-
-    public function closeDeleteInstallmentModal()
-    {
-        $this->deleteInstallmentId = null;
-        $this->showDeleteInstallmentModal = false;
-    }
-
-    public function deleteInstallment()
-    {
-        $installment = $this->student->installments()->findOrFail($this->deleteInstallmentId);
-        if ($installment->status->isPaid() || $installment->status->isPartial()) {
-            $this->addError('delete', 'Cannot delete a paid or partially paid installment.');
-            return;
-        }
-        $installment->delete();
-        $this->student->refresh();
-        $this->success('Installment deleted successfully!', position: 'toast-bottom');
-        $this->closeDeleteInstallmentModal();
-    }
-
-    public function toggleAlterationSection()
-    {
-        $this->showAlterationSection = !$this->showAlterationSection;
-        if ($this->showAlterationSection) {
-            $this->alterInstallmentCount = $this->student->installments->count();
-            $this->alterAmountPerInstallment = '';
-        }
-    }
-
-    public function getAlterationStats()
-    {
-        $installments = $this->student->installments;
-        $paidCount = $installments->filter(fn($i) => $i->status->isPaid())->count();
-        $partialCount = $installments->filter(fn($i) => $i->status->isPartial())->count();
-        $overdueCount = $installments->filter(fn($i) => $i->status->isOverdue())->count();
-        $pendingCount = $installments->filter(fn($i) => $i->status->isPending())->count();
-        $protectedCount = $paidCount + $partialCount + $overdueCount;
-
-        $downPayment = $this->student->down_payment ?: 0;
-        $totalPaid = $downPayment;
-        foreach ($installments as $inst) {
-            if ($inst->status->isPaid() || $inst->status->isPartial()) {
-                $totalPaid += $inst->paid_amount;
-            }
-        }
-        $remainingBalance = max(0, $this->student->course_fees - $totalPaid);
-        $pendingInstallments = $installments->filter(fn($i) => $i->status->isPending());
-
-        return [
-            'totalCount' => $installments->count(),
-            'paidCount' => $paidCount,
-            'partialCount' => $partialCount,
-            'overdueCount' => $overdueCount,
-            'pendingCount' => $pendingCount,
-            'protectedCount' => $protectedCount,
-            'remainingBalance' => $remainingBalance,
-            'pendingTotal' => $pendingInstallments->sum('amount'),
-        ];
-    }
-
-    public function increaseInstallments()
-    {
-        $currentCount = $this->student->installments->count();
-        $targetCount = (int) $this->alterInstallmentCount;
-
-        if ($targetCount <= $currentCount) {
-            $this->error('Target count must be greater than current count (' . $currentCount . ').', position: 'toast-bottom');
-            return;
-        }
-
-        $newCount = $targetCount - $currentCount;
-        $stats = $this->getAlterationStats();
-        $amountPerNew = $newCount > 0 ? round($stats['remainingBalance'] / ($stats['pendingCount'] + $newCount), 2) : 0;
-
-        // Get last installment's due date for calculating new due dates
-        $lastInstallment = $this->student->installments()->orderBy('due_date', 'desc')->first();
-        $lastDueDate = $lastInstallment ? $lastInstallment->due_date->copy() : now();
-        $maxNo = $this->student->installments()->max('installment_no') ?? 0;
-
-        try {
-            for ($i = 1; $i <= $newCount; $i++) {
-                $dueDate = $lastDueDate->copy()->addMonths($i);
-                $this->student->installments()->create([
-                    'installment_no' => $maxNo + $i,
-                    'amount' => $amountPerNew,
-                    'due_date' => $dueDate,
-                    'status' => InstallmentStatusEnum::Pending->value,
-                ]);
-            }
-
-            // Redistribute remaining balance across ALL pending installments
-            $this->student->refresh();
-            $pendingInstallments = $this->student->installments->filter(fn($i) => $i->status->isPending());
-            if ($pendingInstallments->count() > 0 && $stats['remainingBalance'] > 0) {
-                $perInstallment = round($stats['remainingBalance'] / $pendingInstallments->count(), 2);
-                $lastPending = $pendingInstallments->last();
-                $distributed = 0;
-                foreach ($pendingInstallments as $inst) {
-                    if ($inst->id === $lastPending->id) {
-                        $inst->update(['amount' => round($stats['remainingBalance'] - $distributed, 2)]);
-                    } else {
-                        $inst->update(['amount' => $perInstallment]);
-                        $distributed += $perInstallment;
-                    }
-                }
-            }
-
-            // Update student's no_of_installments
-            $this->student->update(['no_of_installments' => $targetCount]);
-            $this->student->refresh();
-            $this->alterInstallmentCount = $this->student->installments->count();
-
-            $this->success("Successfully added {$newCount} installment(s). Total: {$targetCount}", position: 'toast-bottom');
-        } catch (\Exception $e) {
-            \Log::error('Increase installments failed: ' . $e->getMessage());
-            $this->error('Failed to increase installments: ' . $e->getMessage(), position: 'toast-bottom');
-        }
-    }
-
-    public function reduceInstallments()
-    {
-        $currentCount = $this->student->installments->count();
-        $targetCount = (int) $this->alterInstallmentCount;
-        $stats = $this->getAlterationStats();
-
-        if ($targetCount >= $currentCount) {
-            $this->error('Target count must be less than current count (' . $currentCount . ').', position: 'toast-bottom');
-            return;
-        }
-
-        if ($targetCount < $stats['protectedCount']) {
-            $this->error('Cannot reduce below ' . $stats['protectedCount'] . ' (paid/partial/overdue installments).', position: 'toast-bottom');
-            return;
-        }
-
-        $toRemove = $currentCount - $targetCount;
-
-        try {
-            // Get pending installments sorted by installment_no descending (remove from end)
-            $removable = $this->student->installments->filter(fn($i) => $i->status->isPending())->sortByDesc('installment_no')->take($toRemove);
-
-            if ($removable->count() < $toRemove) {
-                $this->error('Not enough pending installments to remove. Only ' . $removable->count() . ' can be removed.', position: 'toast-bottom');
-                return;
-            }
-
-            $removedCount = 0;
-            foreach ($removable as $installment) {
-                $installment->delete();
-                $removedCount++;
-            }
-
-            // Update student's no_of_installments
-            $this->student->update(['no_of_installments' => $targetCount]);
-            $this->student->refresh();
-            $this->alterInstallmentCount = $this->student->installments->count();
-
-            $this->success("Successfully removed {$removedCount} installment(s). Total: {$targetCount}", position: 'toast-bottom');
-        } catch (\Exception $e) {
-            \Log::error('Reduce installments failed: ' . $e->getMessage());
-            $this->error('Failed to reduce installments: ' . $e->getMessage(), position: 'toast-bottom');
-        }
-    }
-
-    public function updateAllPendingAmounts()
-    {
-        $this->validate([
-            'alterAmountPerInstallment' => 'required|numeric|min:0.01',
-        ]);
-
-        try {
-            $pendingInstallments = $this->student->installments->filter(fn($i) => $i->status->isPending());
-
-            if ($pendingInstallments->count() === 0) {
-                $this->error('No pending installments to update.', position: 'toast-bottom');
-                return;
-            }
-
-            $updatedCount = 0;
-            foreach ($pendingInstallments as $installment) {
-                $installment->update(['amount' => $this->alterAmountPerInstallment]);
-                $updatedCount++;
-            }
-
-            $this->student->refresh();
-            $this->success('Updated amount to ₹' . number_format($this->alterAmountPerInstallment, 2) . " for {$updatedCount} pending installment(s).", position: 'toast-bottom');
-        } catch (\Exception $e) {
-            $this->error('Failed to update amounts: ' . $e->getMessage(), position: 'toast-bottom');
-        }
-    }
-
-    public function redistributeRemainingBalance()
-    {
-        try {
-            $stats = $this->getAlterationStats();
-            $pendingInstallments = $this->student->installments->filter(fn($i) => $i->status->isPending())->sortBy('installment_no');
-
-            if ($pendingInstallments->count() === 0) {
-                $this->error('No pending installments to redistribute.', position: 'toast-bottom');
-                return;
-            }
-
-            $remaining = $stats['remainingBalance'];
-            $count = $pendingInstallments->count();
-            $perInstallment = round($remaining / $count, 2);
-            $distributed = 0;
-            $lastPending = $pendingInstallments->last();
-
-            foreach ($pendingInstallments as $installment) {
-                if ($installment->id === $lastPending->id) {
-                    // Give the last one the remainder to avoid rounding issues
-                    $installment->update(['amount' => round($remaining - $distributed, 2)]);
-                } else {
-                    $installment->update(['amount' => $perInstallment]);
-                    $distributed += $perInstallment;
-                }
-            }
-
-            $this->student->refresh();
-            $this->success('Redistributed ₹' . number_format($remaining, 2) . " across {$count} pending installment(s) (₹" . number_format($perInstallment, 2) . ' each).', position: 'toast-bottom');
-        } catch (\Exception $e) {
-            $this->error('Failed to redistribute balance: ' . $e->getMessage(), position: 'toast-bottom');
-        }
-    }
 }; ?>
-
+@assets
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endassets
 <div>
     <!-- Header -->
     <div class="flex justify-between items-start lg:items-center flex-col lg:flex-row mt-3 mb-5 gap-2">
@@ -1219,13 +508,6 @@ new class extends Component {
                         </div>
                     @endif
 
-                    @if ($student->no_of_installments)
-                        <div>
-                            <label class="text-sm font-medium text-gray-600">Installments</label>
-                            <p class="text-sm">{{ $student->no_of_installments }} installments</p>
-                        </div>
-                    @endif
-
                     @if ($student->enrollment_date)
                         <div>
                             <label class="text-sm font-medium text-gray-600">Enrollment Date</label>
@@ -1345,586 +627,174 @@ new class extends Component {
         </x-card>
     </div>
 
-    <!-- Installments -->
-    @if ($student->installments && $student->installments->count() > 0)
-        <div class="mt-6">
-            <x-card shadow>
-                @php
-                    $summary = $this->getInstallmentSummary();
-                @endphp
+    <!-- Payment Log -->
+    <div class="mt-6">
+        <x-card shadow>
+            @php
+                $summary = $this->getPaymentSummary();
+            @endphp
 
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-primary">Installment Details</h3>
-                    <div class="flex gap-2">
-                        <x-button label="Refresh Overdue" icon="o-arrow-path" class="btn-sm btn-outline btn-info"
-                            wire:click="refreshOverdueStatus" tooltip="Refresh overdue status" responsive />
-                        <x-button label="Mark Overdue" icon="o-exclamation-triangle"
-                            class="btn-sm btn-outline btn-warning" wire:click="markOverdueInstallments"
-                            tooltip="Mark overdue installments" responsive />
-                    </div>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-primary">Payment Log</h3>
+                <x-button label="Add Payment" icon="o-plus" class="btn-sm btn-primary btn-outline"
+                    wire:click="openAddPaymentModal" />
+            </div>
 
-                    <!-- Delete Installment Modal -->
-                    <x-modal wire:model="showDeleteInstallmentModal" title="Delete Installment"
-                        class="backdrop-blur">
-                        <div class="space-y-4">
-                            <div class="text-error">Are you sure you want to delete this installment?
-                                This action
-                                cannot be undone.</div>
-                        </div>
-                        <x-slot:actions>
-                            <x-button label="Cancel" @click="$wire.closeDeleteInstallmentModal()" />
-                            <x-button label="Delete" class="btn-error" wire:click="deleteInstallment" />
-                        </x-slot:actions>
-                    </x-modal>
-                </div>
-
-                <!-- Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Total Amount</div>
-                        <div class="stat-value text-primary text-lg">
-                            ₹{{ number_format($summary['courseFees'], 2) }}
-                        </div>
-                    </div>
-
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Installment Total Amount</div>
-                        <div class="stat-value text-primary text-lg">
-                            ₹{{ number_format($summary['installmentTotal'], 2) }}
-                        </div>
-                    </div>
-
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Paid Amount</div>
-                        <div class="stat-value text-success text-lg">
-                            ₹{{ number_format($summary['paid'], 2) }}</div>
-                        @if ($summary['downPayment'] > 0)
-                            <div class="text-xs text-success mt-1">Down Payment:
-                                ₹{{ number_format($summary['downPayment'], 2) }}</div>
-                        @endif
-                    </div>
-
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Pending Amount</div>
-                        <div class="stat-value text-warning text-lg">
-                            ₹{{ number_format($summary['pending'], 2) }}
-                        </div>
-                    </div>
-
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Overdue Amount</div>
-                        <div class="stat-value text-error text-lg">
-                            ₹{{ number_format($summary['overdue'], 2) }}
-                            @if ($summary['overdue'] > 0)
-                                <div class="text-xs text-error mt-1">({{ $summary['overdueCount'] }}
-                                    overdue)
-                                </div>
-                            @endif
-                        </div>
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Course Fees</div>
+                    <div class="stat-value text-primary text-lg">
+                        ₹{{ number_format($summary['courseFees'], 2) }}
                     </div>
                 </div>
 
-                <!-- Additional Summary Info -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Pending Count</div>
-                        <div class="stat-value text-warning text-lg">{{ $summary['pendingCount'] }}
-                        </div>
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Total Paid</div>
+                    <div class="stat-value text-success text-lg">
+                        ₹{{ number_format($summary['totalPaid'], 2) }}
                     </div>
-
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Overdue Count</div>
-                        <div class="stat-value text-error text-lg">{{ $summary['overdueCount'] }}
-                        </div>
-                    </div>
-
-                    <div class="stat bg-base-200 rounded-lg">
-                        <div class="stat-title">Next Due</div>
-                        <div class="stat-value text-info text-lg">
-                            @if ($this->getNextDueInstallment())
-                                {{ $this->getNextDueInstallment()->formatted_due_date }}
-                            @else
-                                N/A
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Payment Progress -->
-                <div class="mb-6">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm font-medium">Payment Progress</span>
-                        <span
-                            class="text-sm text-gray-600">{{ number_format($summary['paymentProgress'], 1) }}%</span>
-                    </div>
-                    <x-progress value="{{ $summary['paymentProgress'] }}" max="100" class="w-full" />
-                </div>
-
-                <!-- Overdue Installments Alert -->
-                @if ($summary['overdue'] > 0)
-                    <div class="mb-6 p-4 bg-error/10 border border-error rounded-lg">
-                        <div class="flex items-center gap-2 mb-2">
-                            <x-icon name="o-exclamation-triangle" class="text-error" />
-                            <h4 class="text-lg font-semibold text-error">Overdue Installments</h4>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                                <strong>Total Overdue Amount:</strong>
-                                <span class="text-error font-bold">₹{{ number_format($summary['overdue'], 2) }}</span>
-                            </div>
-                            <div>
-                                <strong>Overdue Count:</strong>
-                                <span class="text-error font-bold">{{ $summary['overdueCount'] }}</span>
-                                installment(s)
-                            </div>
-                            <div>
-                                <strong>Action Required:</strong>
-                                <span class="text-error">Immediate attention needed</span>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                <!-- Installment Alteration Section -->
-                <div class="mb-6">
-                    <x-button
-                        label="{{ $showAlterationSection ? 'Hide Alteration Panel' : 'Installment Alteration' }}"
-                        icon="{{ $showAlterationSection ? 'o-chevron-up' : 'o-adjustments-horizontal' }}"
-                        class="btn-sm btn-outline btn-accent w-full" wire:click="toggleAlterationSection" />
-
-                    @if ($showAlterationSection)
-                        @php $altStats = $this->getAlterationStats(); @endphp
-                        <div class="mt-4 p-5 bg-base-200 rounded-xl border border-accent/30 space-y-5">
-                            <h4 class="text-md font-semibold text-accent flex items-center gap-2">
-                                <x-icon name="o-adjustments-horizontal" class="w-5 h-5" />
-                                Installment Alteration
-                            </h4>
-
-                            {{-- Current Stats --}}
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div class="bg-base-100 rounded-lg p-3 text-center">
-                                    <div class="text-xs text-gray-500">Total</div>
-                                    <div class="text-lg font-bold">{{ $altStats['totalCount'] }}</div>
-                                </div>
-                                <div class="bg-base-100 rounded-lg p-3 text-center">
-                                    <div class="text-xs text-success">Paid</div>
-                                    <div class="text-lg font-bold text-success">{{ $altStats['paidCount'] }}</div>
-                                </div>
-                                <div class="bg-base-100 rounded-lg p-3 text-center">
-                                    <div class="text-xs text-warning">Pending</div>
-                                    <div class="text-lg font-bold text-warning">{{ $altStats['pendingCount'] }}</div>
-                                </div>
-                                <div class="bg-base-100 rounded-lg p-3 text-center">
-                                    <div class="text-xs text-error">Overdue</div>
-                                    <div class="text-lg font-bold text-error">{{ $altStats['overdueCount'] }}</div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div class="bg-base-100 rounded-lg p-3">
-                                    <div class="text-xs text-gray-500">Protected (cannot remove)</div>
-                                    <div class="text-md font-bold text-error">{{ $altStats['protectedCount'] }}
-                                        <span class="text-xs font-normal text-gray-400">(paid + partial +
-                                            overdue)</span>
-                                    </div>
-                                </div>
-                                <div class="bg-base-100 rounded-lg p-3">
-                                    <div class="text-xs text-gray-500">Remaining Balance</div>
-                                    <div class="text-md font-bold text-primary">
-                                        ₹{{ number_format($altStats['remainingBalance'], 2) }}</div>
-                                </div>
-                            </div>
-
-                            <hr class="border-accent/20">
-
-                            {{-- Increase / Reduce Installment Count --}}
-                            <div>
-                                <label class="text-sm font-semibold mb-2 block">Adjust Installment Count</label>
-                                <div class="flex flex-col sm:flex-row gap-3 items-center">
-                                    <div class="flex-1">
-                                        <x-input type="number" wire:model.live="alterInstallmentCount"
-                                            label="Target Count" min="{{ $altStats['protectedCount'] }}"
-                                            step="1"
-                                            hint="Min: {{ $altStats['protectedCount'] }} (protected) | Current: {{ $altStats['totalCount'] }}">
-                                            <x-slot:prepend>
-                                                <x-button label="Increase" icon="o-plus"
-                                                    class="btn-success btn-outline join-item"
-                                                    wire:click="increaseInstallments" spinner="increaseInstallments"
-                                                    :disabled="empty($alterInstallmentCount) ||
-                                                        (int) $alterInstallmentCount <= $altStats['totalCount']"
-                                                    tooltip="Add installments to reach target count" />
-
-                                            </x-slot:prepend>
-                                            <x-slot:append>
-                                                <x-button label="Reduce" icon="o-minus"
-                                                    class="btn-error btn-outline join-item"
-                                                    wire:click="reduceInstallments" spinner="reduceInstallments"
-                                                    :disabled="empty($alterInstallmentCount) ||
-                                                        (int) $alterInstallmentCount >= $altStats['totalCount'] ||
-                                                        (int) $alterInstallmentCount < $altStats['protectedCount']"
-                                                    tooltip="Remove pending installments from the end" />
-                                            </x-slot:append>
-                                        </x-input>
-                                    </div>
-                                </div>
-                                @if ((int) $alterInstallmentCount < $altStats['protectedCount'] && !empty($alterInstallmentCount))
-                                    <div class="text-xs text-error mt-1">
-                                        ⚠ Cannot reduce below {{ $altStats['protectedCount'] }} protected installments
-                                    </div>
-                                @endif
-                            </div>
-
-                            <hr class="border-accent/20">
-
-                            {{-- Bulk Amount Edit for Pending Installments --}}
-                            <div>
-                                <label class="text-sm font-semibold mb-2 block">Edit All Pending Installment
-                                    Amounts</label>
-                                <div class="flex flex-col sm:flex-row gap-3 items-end">
-                                    <div class="flex-1">
-                                        <x-input type="number" wire:model.live="alterAmountPerInstallment"
-                                            label="Amount Per Installment" step="0.01" min="0.01"
-                                            placeholder="Enter amount for each pending installment"
-                                            hint="Applies to {{ $altStats['pendingCount'] }} pending installment(s)">
-                                            <x-slot:prepend>
-                                                <x-button label="Auto Redistribute" icon="o-arrow-path-rounded-square"
-                                                    class="join-item btn-accent btn-outline"
-                                                    wire:click="redistributeRemainingBalance"
-                                                    spinner="redistributeRemainingBalance" :disabled="!empty($alterAmountPerInstallment) ||
-                                                        $altStats['pendingCount'] === 0 ||
-                                                        $altStats['remainingBalance'] <= 0"
-                                                    tooltip="Evenly distribute ₹{{ number_format($altStats['remainingBalance'], 2) }} across {{ $altStats['pendingCount'] }} pending installments" />
-                                            </x-slot:prepend>
-
-                                            <x-slot:append>
-                                                <x-button label="Apply to All" icon="o-pencil-square"
-                                                    class="join-item btn-info btn-outline"
-                                                    wire:click="updateAllPendingAmounts"
-                                                    spinner="updateAllPendingAmounts" :disabled="empty($alterAmountPerInstallment) ||
-                                                        $alterAmountPerInstallment <= 0 ||
-                                                        $altStats['pendingCount'] === 0"
-                                                    tooltip="Set this amount for all pending installments" />
-                                            </x-slot:append>
-                                        </x-input>
-                                    </div>
-                                </div>
-                                @if ($altStats['pendingCount'] > 0 && $altStats['remainingBalance'] > 0)
-                                    <div class="text-xs text-gray-500 mt-2">
-                                        Auto-redistribute will set each pending installment to
-                                        ≈
-                                        ₹{{ number_format($altStats['remainingBalance'] / $altStats['pendingCount'], 2) }}
-                                    </div>
-                                @endif
-                            </div>
-
-                            @if ($altStats['pendingCount'] === 0)
-                                <div class="alert alert-warning text-sm">
-                                    <x-icon name="o-information-circle" />
-                                    No pending installments available. Only pending installments can be modified.
-                                </div>
-                            @endif
-                        </div>
+                    @if ($summary['downPayment'] > 0)
+                        <div class="text-xs text-success mt-1">Incl. Down Payment:
+                            ₹{{ number_format($summary['downPayment'], 2) }}</div>
                     @endif
                 </div>
 
-                <!-- Installment Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @foreach ($student->installments as $installment)
-                        <x-card
-                            class="bg-base-200 rounded-lg p-4 hover:shadow-md transition-shadow {{ $installment->shouldBeOverdue() ? 'border-error border-2' : '' }}">
-                            <!-- Selection Checkbox -->
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="flex items-center gap-2">
-                                    <input type="checkbox" class="checkbox checkbox-sm checkbox-primary"
-                                        wire:click="toggleInstallmentSelection({{ $installment->id }})"
-                                        @if (in_array($installment->id, $selectedInstallments)) checked @endif
-                                        @if ($installment->status->isPaid()) disabled @endif>
-                                    <span class="text-sm font-medium text-gray-600">Installment
-                                        {{ $installment->installment_no }}</span>
-                                </div>
-                                <span class="badge {{ $installment->status_badge_class }} text-xs">
-                                    {{ $installment->status->label() }}
-                                </span>
-                            </div>
-
-                            <div class="text-lg font-bold text-primary mb-1">
-                                ₹{{ number_format($installment->amount, 2) }}
-                                @if ($installment->status->isPending() || $installment->status->isOverdue())
-                                    <button wire:click="openEditAmountModal({{ $installment->id }})"
-                                        class="btn btn-xs btn-outline btn-info ml-2">Edit
-                                        Amount</button>
-                                    <button wire:click="openDeleteInstallmentModal({{ $installment->id }})"
-                                        class="btn btn-xs btn-outline btn-error ml-2">Delete</button>
-                                @endif
-                            </div>
-
-                            <div class="text-xs text-gray-500">
-                                Due: {{ $installment->formatted_due_date }}
-                                @if ($installment->shouldBeOverdue())
-                                    <span class="text-error font-medium">(OVERDUE)</span>
-                                @endif
-                            </div>
-
-                            @if ($installment->status->isPaid())
-                                <div class="text-xs text-success mt-1">
-                                    Paid: {{ $installment->formatted_paid_date }}
-                                </div>
-                                @if ($installment->paid_amount != $installment->amount)
-                                    <div class="text-xs text-warning mt-1">
-                                        Amount: ₹{{ number_format($installment->paid_amount, 2) }}
-                                    </div>
-                                @endif
-                                @if ($installment->payment_method)
-                                    <div class="text-xs text-gray-600 mt-1">
-                                        Method: {{ $installment->payment_method->label() }}
-                                    </div>
-                                @endif
-                                @if ($installment->cheque_number)
-                                    <div class="text-xs text-gray-600 mt-1">
-                                        Cheque: {{ $installment->cheque_number }}
-                                    </div>
-                                @endif
-                                @if ($installment->withdrawn_date)
-                                    <div class="text-xs text-gray-600 mt-1">
-                                        Withdrawn: {{ $installment->withdrawn_date->format('d/m/Y') }}
-                                    </div>
-                                @endif
-                            @elseif ($installment->status->isPartial())
-                                <div class="text-xs text-info mt-1">
-                                    Partial: ₹{{ number_format($installment->paid_amount, 2) }} paid
-                                </div>
-                                <div class="text-xs text-warning mt-1">
-                                    Remaining:
-                                    ₹{{ number_format($installment->getRemainingAmount(), 2) }}
-                                </div>
-                                @if ($installment->payment_method)
-                                    <div class="text-xs text-gray-600 mt-1">
-                                        Method: {{ $installment->payment_method->label() }}
-                                    </div>
-                                @endif
-                                @if ($installment->cheque_number)
-                                    <div class="text-xs text-gray-600 mt-1">
-                                        Cheque: {{ $installment->cheque_number }}
-                                    </div>
-                                @endif
-                                @if ($installment->withdrawn_date)
-                                    <div class="text-xs text-gray-600 mt-1">
-                                        Withdrawn: {{ $installment->withdrawn_date->format('d/m/Y') }}
-                                    </div>
-                                @endif
-                            @endif
-
-                            @if ($installment->notes)
-                                <div class="text-xs text-gray-600 mt-1 italic">
-                                    "{{ $installment->notes }}"
-                                </div>
-                            @endif
-
-                            <div class="mt-3">
-                                <div class="flex gap-2 flex-wrap">
-                                    <button wire:click="openStatusModal({{ $installment->id }})"
-                                        class="btn btn-sm btn-outline btn-primary flex-1">
-                                        Update Status
-                                    </button>
-                                    @if (($installment->status->isPending() || $installment->status->isPartial()) && $installment->getRemainingAmount() > 0)
-                                        <button wire:click="openPartialPaymentModal({{ $installment->id }})"
-                                            class="btn btn-sm btn-outline btn-info">
-                                            Add Payment
-                                        </button>
-                                    @endif
-                                    @if ($installment->status->isPending() && $installment->shouldBeOverdue())
-                                        <button wire:click="markSpecificInstallmentAsOverdue({{ $installment->id }})"
-                                            class="btn btn-sm btn-outline btn-error">
-                                            Mark Overdue
-                                        </button>
-                                    @endif
-                                    @if (($installment->status->isPaid() || $installment->status->isPartial()) && ($installment->paid_amount ?? 0) > 0)
-                                        <a href="{{ route('receipt.payment', ['type' => 'installment', 'id' => $installment->id]) }}"
-                                            target="_blank" class="btn btn-sm btn-outline btn-success">
-                                            Print Receipt
-                                        </a>
-                                    @endif
-                                </div>
-                            </div>
-                        </x-card>
-                    @endforeach
-
-                    <!-- Edit Installment Amount Modal -->
-                    <x-modal wire:model="showEditAmountModal" title="Edit Installment Amount" class="backdrop-blur">
-                        <div class="space-y-4">
-                            @if ($editAmountInstallment)
-                                <div class="flex justify-between items-center">
-                                    <span class="text-lg font-bold text-primary">Installment
-                                        {{ $editAmountInstallment->installment_no }}</span>
-                                    <span class="text-lg font-bold text-primary">Current:
-                                        ₹{{ number_format($editAmountInstallment->amount, 2) }}</span>
-                                </div>
-                                <x-input label="New Amount" type="number" wire:model.live="editAmountValue"
-                                    step="0.01" min="0.01" placeholder="Enter new amount" />
-                            @else
-                                <div class="text-error">No installment selected for editing.</div>
-                            @endif
-                        </div>
-                        <x-slot:actions>
-                            <x-button label="Cancel" @click="$wire.closeEditAmountModal()" />
-                            <x-button label="Update Amount" class="btn-primary" wire:click="updateInstallmentAmount"
-                                :disabled="!$editAmountInstallment || empty($editAmountValue) || $editAmountValue <= 0" />
-                        </x-slot:actions>
-                    </x-modal>
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Remaining Balance</div>
+                    <div class="stat-value text-warning text-lg">
+                        ₹{{ number_format($summary['remainingBalance'], 2) }}
+                    </div>
                 </div>
 
-                <!-- Bulk Actions Info -->
-                @if (count($selectedInstallments) > 0)
-                    <div class="mt-4 p-3 bg-info/10 border border-info rounded-lg">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-info">
-                                {{ count($selectedInstallments) }} installment(s) selected
-                            </span>
-                            <div class="flex gap-2">
-                                <x-button label="Clear Selection" class="btn-xs btn-ghost"
-                                    wire:click="clearInstallmentSelection" />
-                                <x-button label="Update Selected" class="btn-xs btn-primary"
-                                    wire:click="openBulkUpdateModal" />
-                            </div>
-                        </div>
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Payments</div>
+                    <div class="stat-value text-info text-lg">
+                        {{ $summary['paidCount'] + $summary['pendingCount'] }}
                     </div>
-                @endif
-            </x-card>
-        </div>
-    @endif
-
-    <!-- Installment Status Update Modal -->
-    <x-modal wire:model="showStatusModal" title="Update Installment Status" class="backdrop-blur">
-        <div class="space-y-4">
-            <div class="flex justify-between items-center">
-                <span class="text-lg font-bold text-primary">Installment
-                    {{ $selectedInstallment?->installment_no }}</span>
-                <span
-                    class="text-lg font-bold text-primary">₹{{ number_format($selectedInstallment?->amount, 2) }}</span>
+                </div>
             </div>
 
-            <x-select label="Status" wire:model.live="newStatus" class="select select-bordered w-full"
-                :options="$this->getStatusOptions()" />
+            <!-- Payment Progress -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium">Payment Progress</span>
+                    <span class="text-sm text-gray-600">{{ number_format($summary['paymentProgress'], 1) }}%</span>
+                </div>
+                <x-progress value="{{ $summary['paymentProgress'] }}" max="100" class="w-full" />
+            </div>
 
-            @if ($this->isStatusPartial($newStatus))
-                <x-input label="Paid Amount" type="number" wire:model="paidAmount" step="0.01" min="0.01"
-                    :max="$selectedInstallment?->amount" placeholder="Enter partial payment amount"
-                    hint="Maximum: ₹{{ number_format($selectedInstallment?->amount, 2) }}"></x-input>
-
-                <x-select label="Payment Method" wire:model.live="paymentMethod"
-                    class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
-
-                @if ($paymentMethod === 'cheque')
-                    <x-input label="Cheque Number" wire:model="chequeNumber" placeholder="Enter cheque number" />
-                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate" />
-                @endif
-            @elseif ($this->isStatusPaid($newStatus))
-                <x-select label="Payment Method" wire:model.live="paymentMethod"
-                    class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
-
-                @if ($paymentMethod === 'cheque')
-                    <x-input label="Cheque Number" wire:model="chequeNumber" placeholder="Enter cheque number" />
-                    <x-input label="Withdrawn Date" type="date" wire:model="withdrawnDate" />
-                @endif
+            <!-- Payment Records Table -->
+            @if ($student->installments && $student->installments->count() > 0)
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Paid Date</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($student->installments->sortByDesc('created_at') as $index => $payment)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td class="font-bold">₹{{ number_format($payment->amount, 2) }}</td>
+                                    <td>
+                                        <span class="badge {{ $payment->status_badge_class }} text-xs">
+                                            {{ $payment->status->label() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ $payment->formatted_paid_date }}</td>
+                                    <td class="max-w-xs truncate">{{ $payment->notes ?? '-' }}</td>
+                                    <td>
+                                        <div class="flex gap-1">
+                                            @if ($payment->status->isPending())
+                                                <button wire:click="openMarkPaidModal({{ $payment->id }})"
+                                                    class="btn btn-xs btn-outline btn-success">
+                                                    Mark Paid
+                                                </button>
+                                                <button wire:click="openDeletePaymentModal({{ $payment->id }})"
+                                                    class="btn btn-xs btn-outline btn-error">
+                                                    Delete
+                                                </button>
+                                            @endif
+                                            @if ($payment->status->isPaid() && ($payment->paid_amount ?? 0) > 0)
+                                                <a href="{{ route('receipt.payment', ['type' => 'installment', 'id' => $payment->id]) }}"
+                                                    target="_blank" class="btn btn-xs btn-outline btn-success">
+                                                    Receipt
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-8 text-gray-500">
+                    <x-icon name="o-banknotes" class="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                    <p>No payments recorded yet.</p>
+                    <p class="text-sm">Click "Add Payment" to record the first payment.</p>
+                </div>
             @endif
+        </x-card>
+    </div>
 
-            <x-textarea label="Notes (Optional)" wire:model="notes" class="textarea textarea-bordered w-full"
-                rows="3" placeholder="Add any notes about this installment..."></x-textarea>
+    <!-- Add Payment Modal -->
+    <x-modal wire:model="showAddPaymentModal" title="Record Payment" class="backdrop-blur">
+        <div class="space-y-4">
+            <x-input label="Payment Amount" type="number" wire:model.live.debounce.500ms="paymentAmount"
+                step="0.01" min="0.01" placeholder="Enter payment amount" icon="o-currency-rupee" />
+
+            <x-datepicker label="Payment Date" wire:model.live="paymentDate" icon="o-calendar" :config="$dateConfig"
+                hint="Leave blank for today's date" />
+
+            <x-textarea label="Notes (Optional)" wire:model="paymentNotes" class="textarea textarea-bordered w-full"
+                rows="3" placeholder="Add any notes about this payment..." />
         </div>
 
         <x-slot:actions>
-            <x-button label="Cancel" @click="$wire.showStatusModal = false" />
-            <x-button label="Update Status" class="btn-primary" wire:click="updateInstallmentStatus" />
+            <x-button label="Cancel" @click="$wire.closeAddPaymentModal()" />
+            <x-button label="Record Payment" class="btn-primary" wire:click="addPayment" :disabled="empty($paymentAmount) || ($paymentAmount ?? 0) <= 0"
+                spinner="addPayment" />
         </x-slot:actions>
     </x-modal>
 
-    <!-- Bulk Installment Status Update Modal -->
-    <x-modal wire:model="showBulkUpdateModal" title="Bulk Update Installment Status" class="backdrop-blur">
+    <!-- Mark as Paid Modal -->
+    <x-modal wire:model="showMarkPaidModal" title="Mark Payment as Paid" class="backdrop-blur">
         <div class="space-y-4">
-            <x-alert class="alert-info" icon="o-information-circle" title="Info"
-                description="You have selected {{ count($selectedInstallments) }} installment(s) for bulk update." />
-
-            <div>
-                <x-select label="New Status" wire:model.live="bulkStatus" class="select select-bordered w-full"
-                    :options="$this->getBulkStatusOptions()" />
-            </div>
-
-            @if ($this->isStatusPaid($bulkStatus))
-                <div>
-                    <x-select label="Payment Method" wire:model.live="bulkPaymentMethod"
-                        class="select select-bordered w-full" :options="$this->getPaymentMethodOptions()"
-                        placeholder="Select payment method" />
+            @if ($selectedPayment)
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-primary">Amount:
+                        ₹{{ number_format($selectedPayment->amount, 2) }}</span>
                 </div>
-
-                @if ($bulkPaymentMethod === 'cheque')
-                    <div>
-                        <x-input label="Cheque Number" wire:model="bulkChequeNumber"
-                            placeholder="Enter cheque number" />
-                    </div>
-                    <div>
-                        <x-input label="Withdrawn Date" type="date" wire:model="bulkWithdrawnDate" />
-                    </div>
-                @endif
             @endif
 
-            <div>
-                <x-textarea label="Notes (Optional)" wire:model="bulkNotes" class="textarea textarea-bordered w-full"
-                    rows="3" placeholder="Add notes for all selected installments..." />
-            </div>
-
-            <x-alert class="alert-warning" icon="o-exclamation-triangle" title="Warning"
-                description="This action will update all selected installments to the chosen status. This cannot be undone." />
+            <x-textarea label="Notes (Optional)" wire:model="paidNotes" class="textarea textarea-bordered w-full"
+                rows="3" placeholder="Add any notes..." />
         </div>
 
         <x-slot:actions>
-            <x-button label="Cancel" @click="$wire.showBulkUpdateModal = false" />
-            <x-button label="Update All Selected" class="btn-primary" wire:click="bulkUpdateInstallmentStatus"
-                :disabled="!empty($bulkStatus)" />
+            <x-button label="Cancel" @click="$wire.closeMarkPaidModal()" />
+            <x-button label="Mark as Paid" class="btn-success" wire:click="markPaymentAsPaid"
+                spinner="markPaymentAsPaid" />
         </x-slot:actions>
     </x-modal>
 
-    <!-- Partial Payment Modal -->
-    <x-modal wire:model="showPartialPaymentModal" title="Add Partial Payment" class="backdrop-blur">
+    <!-- Delete Payment Modal -->
+    <x-modal wire:model="showDeletePaymentModal" title="Delete Payment" class="backdrop-blur">
         <div class="space-y-4">
-            <div class="flex justify-between items-center">
-                <span class="text-lg font-bold text-primary">Installment
-                    {{ $selectedInstallment?->installment_no }}</span>
-                <div class="text-right">
-                    <div class="text-lg font-bold text-primary">
-                        ₹{{ number_format($selectedInstallment?->amount, 2) }}
-                    </div>
-                    @if ($selectedInstallment?->status->isPartial())
-                        <div class="text-sm text-info">Already paid:
-                            ₹{{ number_format($selectedInstallment?->paid_amount, 2) }}</div>
-                        <div class="text-sm text-warning">Remaining:
-                            ₹{{ number_format($selectedInstallment?->getRemainingAmount(), 2) }}</div>
-                    @endif
-                </div>
+            <div class="text-error">Are you sure you want to delete this payment record? This action cannot be undone.
             </div>
-
-            <x-input label="Payment Amount" type="number" wire:model.live="partialPaymentAmount" step="0.01"
-                min="0.01" :max="$selectedInstallment?->getRemainingAmount()" placeholder="Enter payment amount"
-                hint="Max: ₹{{ number_format($selectedInstallment?->getRemainingAmount(), 2) }}" />
-
-            <x-select label="Payment Method" wire:model="partialPaymentMethod" class="select select-bordered w-full"
-                :options="$this->getPaymentMethodOptions()" placeholder="Select payment method" />
-
-            @if ($partialPaymentMethod === 'cheque')
-                <x-input label="Cheque Number" wire:model="partialChequeNumber" placeholder="Enter cheque number" />
-                <x-input label="Withdrawn Date" type="date" wire:model="partialWithdrawnDate" />
-            @endif
-
-            <x-textarea label="Notes (Optional)" wire:model="partialPaymentNotes"
-                class="textarea textarea-bordered w-full" rows="3"
-                placeholder="Add any notes about this payment..."></x-textarea>
-
-            <x-alert class="alert-info" icon="o-information-circle" title="Info"
-                description="If the payment amount equals or exceeds the remaining amount, the installment will be marked as fully paid." />
         </div>
-
         <x-slot:actions>
-            <x-button label="Cancel" @click="$wire.showPartialPaymentModal = false" />
-            <x-button label="Add Payment" class="btn-primary" wire:click="addPartialPayment" :disabled="empty($partialPaymentAmount) || $partialPaymentAmount <= 0" />
+            <x-button label="Cancel" @click="$wire.closeDeletePaymentModal()" />
+            <x-button label="Delete" class="btn-error" wire:click="deletePayment" spinner="deletePayment" />
         </x-slot:actions>
     </x-modal>
 </div>

@@ -2,36 +2,33 @@
 
 namespace App\Services;
 
-use App\Models\Installment;
 use App\Models\Student;
-use App\Mail\NotificationMail;
-use App\Helpers\MailHelper;
 use App\Helpers\EmailNotificationHelper;
 use App\Enums\InstallmentStatusEnum;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class InstallmentReminderService
 {
     /**
-     * Send installment reminders to students based on remaining days
+     * Send payment reminders to students with outstanding balances.
+     * Uses enrollment_date to determine reminder schedule.
      *
      * @return int
      */
     public function sendReminders(): int
     {
         $remindersSent = 0;
-        $reminderDays = [7, 5, 3, 2, 1];
 
-        foreach ($reminderDays as $days) {
-            $installments = $this->getInstallmentsDueInDays($days);
+        // Find students with outstanding balances
+        $students = $this->getStudentsWithOutstandingBalance();
 
-            foreach ($installments as $installment) {
-                if ($this->shouldSendReminder($installment, $days)) {
-                    $this->sendReminder($installment, $days);
-                    $remindersSent++;
-                }
+        foreach ($students as $student) {
+            $daysSinceEnrollment = $this->getDaysSinceEnrollment($student);
+
+            if ($daysSinceEnrollment !== null && $this->shouldSendReminder($student, $daysSinceEnrollment)) {
+                $this->sendReminder($student, $daysSinceEnrollment);
+                $remindersSent++;
             }
         }
 
@@ -39,68 +36,87 @@ class InstallmentReminderService
     }
 
     /**
-     * Get installments due in specific number of days
+     * Get students with outstanding balance (course_fees > total paid).
      *
-     * @param int $days
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    private function getInstallmentsDueInDays(int $days)
+    private function getStudentsWithOutstandingBalance()
     {
-        $targetDate = Carbon::now()->addDays($days)->startOfDay();
-
-        return Installment::with(['student'])
-            ->where('status', InstallmentStatusEnum::Pending->value)
-            ->whereDate('due_date', $targetDate)
-            ->get();
+        return Student::with(['installments'])
+            ->whereNotNull('enrollment_date')
+            ->whereNotNull('course_fees')
+            ->where('course_fees', '>', 0)
+            ->get()
+            ->filter(function ($student) {
+                $totalPaid = ($student->down_payment ?? 0) +
+                    $student->installments->where('status', InstallmentStatusEnum::Paid)->sum('paid_amount');
+                return $totalPaid < $student->course_fees;
+            });
     }
 
     /**
-     * Check if reminder should be sent for this installment
+     * Get days since enrollment for a student.
      *
-     * @param Installment $installment
-     * @param int $days
+     * @param Student $student
+     * @return int|null
+     */
+    private function getDaysSinceEnrollment(Student $student): ?int
+    {
+        if (!$student->enrollment_date) {
+            return null;
+        }
+
+        return Carbon::parse($student->enrollment_date)->diffInDays(Carbon::now());
+    }
+
+    /**
+     * Check if reminder should be sent for this student based on enrollment date.
+     * Sends reminders at specific intervals after enrollment.
+     *
+     * @param Student $student
+     * @param int $daysSinceEnrollment
      * @return bool
      */
-    private function shouldSendReminder(Installment $installment, int $days): bool
+    private function shouldSendReminder(Student $student, int $daysSinceEnrollment): bool
     {
-        // Check if reminder was already sent for this installment and day
-        $reminderKey = "installment_reminder_{$installment->id}_{$days}";
+        // Send reminders at 30, 60, 90 day intervals after enrollment, and every 30 days after
+        $reminderIntervals = [30, 60, 90, 120, 150, 180];
 
-        // For now, we'll always send reminders. In production, you might want to track this
-        // to avoid sending duplicate reminders
-        return true;
+        return in_array($daysSinceEnrollment, $reminderIntervals);
     }
 
     /**
-     * Send reminder email for an installment
+     * Send reminder email for outstanding balance.
      *
-     * @param Installment $installment
-     * @param int $days
+     * @param Student $student
+     * @param int $daysSinceEnrollment
      * @return void
      */
-    private function sendReminder(Installment $installment, int $days): void
+    private function sendReminder(Student $student, int $daysSinceEnrollment): void
     {
         try {
-            $student = $installment->student;
-
-            if (!$student || !$student->email) {
-                Log::warning("Cannot send reminder: Student or email not found for installment {$installment->id}");
+            if (!$student->email) {
+                Log::warning("Cannot send reminder: Email not found for student {$student->id}");
                 return;
             }
 
-            // Use the new EmailNotificationHelper for better template management and consistency
+            $totalPaid = ($student->down_payment ?? 0) +
+                $student->installments->where('status', InstallmentStatusEnum::Paid)->sum('paid_amount');
+            $remainingBalance = max(0, $student->course_fees - $totalPaid);
+
             $data = [
                 'student' => $student,
-                'installment' => $installment,
-                'days' => $days,
-                'dueDate' => $installment->due_date->format('d/m/Y'),
-                'amount' => number_format($installment->amount, 2),
-                'urgencyText' => $days === 1 ? 'URGENT' : 'Important'
+                'daysSinceEnrollment' => $daysSinceEnrollment,
+                'enrollmentDate' => $student->enrollment_date->format('d/m/Y'),
+                'totalFees' => number_format($student->course_fees, 2),
+                'totalPaid' => number_format($totalPaid, 2),
+                'remainingBalance' => number_format($remainingBalance, 2),
+                'urgencyText' => $daysSinceEnrollment >= 90 ? 'URGENT' : 'Important',
             ];
 
             $options = [
-                'queue' => true, // Queue the email for better performance
-                'subject_prefix' => $days === 1 ? 'URGENT: ' : 'Reminder: '
+                'queue' => true,
+                'subject_prefix' => $daysSinceEnrollment >= 90 ? 'URGENT: ' : 'Reminder: ',
             ];
 
             $result = EmailNotificationHelper::sendNotificationByType(
@@ -111,58 +127,16 @@ class InstallmentReminderService
             );
 
             if ($result) {
-                Log::info("Installment reminder sent successfully to {$student->email} for installment {$installment->id} due in {$days} days");
+                Log::info("Payment reminder sent to {$student->email} ({$daysSinceEnrollment} days since enrollment, balance: ₹{$remainingBalance})");
             } else {
-                Log::warning("Failed to send installment reminder to {$student->email} for installment {$installment->id}");
+                Log::warning("Failed to send payment reminder to {$student->email}");
             }
         } catch (\Exception $e) {
-            Log::error("Failed to send installment reminder: " . $e->getMessage(), [
-                'installment_id' => $installment->id,
-                'student_id' => $installment->student_id,
-                'days' => $days,
+            Log::error("Failed to send payment reminder: " . $e->getMessage(), [
+                'student_id' => $student->id,
+                'days_since_enrollment' => $daysSinceEnrollment,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
         }
-    }
-
-    /**
-     * Get the subject line for the reminder email
-     *
-     * @param int $days
-     * @return string
-     */
-    private function getReminderSubject(int $days): string
-    {
-        if ($days === 1) {
-            return 'Urgent: Installment Payment Due Tomorrow';
-        }
-
-        return "Reminder: Installment Payment Due in {$days} Days";
-    }
-
-    /**
-     * Get the body content for the reminder email
-     *
-     * @param Installment $installment
-     * @param int $days
-     * @return string
-     */
-    private function getReminderBody(Installment $installment, int $days): string
-    {
-        $student = $installment->student;
-        $dueDate = $installment->due_date->format('d/m/Y');
-        $amount = number_format($installment->amount, 2);
-
-        $urgencyText = $days === 1 ? 'URGENT' : 'Important';
-
-        return view('mail.notification.installment.reminder', [
-            'student' => $student,
-            'installment' => $installment,
-            'days' => $days,
-            'dueDate' => $dueDate,
-            'amount' => $amount,
-            'urgencyText' => $urgencyText
-        ])->render();
     }
 }

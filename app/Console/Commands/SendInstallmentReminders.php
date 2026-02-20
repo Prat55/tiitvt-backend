@@ -3,10 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\Installment;
-use App\Models\Student;
 use App\Services\InstallmentReminderService;
-use Carbon\Carbon;
 
 class SendInstallmentReminders extends Command
 {
@@ -22,19 +19,19 @@ class SendInstallmentReminders extends Command
      *
      * @var string
      */
-    protected $description = 'Send installment reminders to students based on remaining days (7, 5, 3, 2, 1)';
+    protected $description = 'Send payment reminders to students with outstanding balances based on enrollment date';
 
     /**
      * Execute the console command.
      */
     public function handle(InstallmentReminderService $reminderService)
     {
-        $this->info('Starting installment reminder process...');
+        $this->info('Starting payment reminder process...');
 
         try {
             $remindersSent = $reminderService->sendReminders();
 
-            $this->info("Installment reminders sent successfully!");
+            $this->info("Payment reminders sent successfully!");
             $this->info("Total reminders sent: {$remindersSent}");
 
             return Command::SUCCESS;
