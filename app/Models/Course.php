@@ -23,12 +23,16 @@ class Course extends Model
         'price',
         'rating',
         'is_active',
+        'auto_certificate',
+        'passing_percentage',
     ];
 
     protected $casts = [
         'mrp' => 'decimal:2',
         'price' => 'decimal:2',
         'is_active' => 'boolean',
+        'auto_certificate' => 'boolean',
+        'passing_percentage' => 'integer',
     ];
 
     protected static function booted()

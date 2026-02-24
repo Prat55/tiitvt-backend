@@ -161,6 +161,62 @@ new class extends Component {
         }
     }
 
+    // --- Exam Results & Certificates ---
+    public function getExamResults()
+    {
+        return $this->student->courses
+            ->map(function ($course) {
+                // Get all results for this course
+                $allCourseResults = \App\Models\ExamResult::where('student_id', $this->student->id)
+                    ->whereHas('exam', function ($query) use ($course) {
+                        $query->where('course_id', $course->id);
+                    })
+                    ->orderBy('submitted_at', 'desc')
+                    ->get();
+
+                if ($allCourseResults->isEmpty()) {
+                    return (object) [
+                        'course' => $course,
+                        'percentage' => $course->auto_certificate ? ($course->passing_percentage ?: 80) : null,
+                        'is_passed' => $course->auto_certificate,
+                        'can_generate_certificate' => $course->auto_certificate,
+                        'last_updated' => null,
+                        'has_results' => false,
+                    ];
+                }
+
+                // Get the most recent result for each subject (category)
+                $categoryResults = $allCourseResults
+                    ->groupBy('category_id')
+                    ->map(function ($results) {
+                        return $results->first();
+                    })
+                    ->values();
+
+                // Calculate overall percentage
+                $totalPoints = 0;
+                $pointsEarned = 0;
+
+                foreach ($categoryResults as $result) {
+                    $totalPoints += $result->total_points ?: 100;
+                    $pointsEarned += $result->points_earned ?: $result->score ?: 0;
+                }
+
+                $overallPercentage = $totalPoints > 0 ? ($pointsEarned / $totalPoints) * 100 : 0;
+                $isPassed = $course->auto_certificate ? $overallPercentage >= ($course->passing_percentage ?: 80) : $overallPercentage >= 50;
+
+                return (object) [
+                    'course' => $course,
+                    'percentage' => round($overallPercentage, 2),
+                    'is_passed' => $isPassed,
+                    'can_generate_certificate' => $course->auto_certificate,
+                    'last_updated' => $allCourseResults->first()->submitted_at,
+                    'has_results' => true,
+                ];
+            })
+            ->values();
+    }
+
     // --- Mark Pending as Paid ---
     public function openMarkPaidModal($paymentId)
     {
@@ -578,11 +634,12 @@ new class extends Component {
                     </div>
                 </x-card>
             </div>
+
         </div>
 
         <div class="grid gap-6">
             <!-- Course & Fees Information -->
-            <x-card shadow>
+            <x-card shadow class="h-fit">
                 <h3 class="text-lg font-semibold text-primary mb-4">Course & Fees</h3>
 
                 <div class="space-y-4">
@@ -639,7 +696,7 @@ new class extends Component {
             </x-card>
 
             <!-- QR Code Section -->
-            <x-card shadow title="Student QR Code">
+            <x-card shadow title="Student QR Code" class="h-fit">
                 @if ($student->qrCode)
                     <x-slot:menu>
                         <x-button tooltip-left="Regenerate QR Code" icon="o-arrow-path"
@@ -680,6 +737,79 @@ new class extends Component {
             </x-card>
         </div>
     </div>
+
+    <!-- Exam Results & Certificates -->
+    @php $examResults = $this->getExamResults(); @endphp
+    @if ($examResults->isNotEmpty())
+        <div class="mt-6">
+            <x-card shadow>
+                <h3 class="text-lg font-semibold text-primary mb-4">Exam Results & Certificates</h3>
+                <div class="overflow-x-auto">
+                    <table class="table table-compact w-full">
+                        <thead>
+                            <tr>
+                                <th>Course</th>
+                                <th>Percentage</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($examResults as $result)
+                                <tr>
+                                    <td>{{ $result->course->name }}</td>
+                                    <td>
+                                        @if ($result->has_results || ($result->course->auto_certificate && $result->percentage))
+                                            {{ $result->percentage }}%
+                                        @else
+                                            <span class="text-gray-400">N/A</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if ($result->has_results)
+                                            @if ($result->is_passed)
+                                                <span class="badge badge-success h-fit">Passed</span>
+                                            @else
+                                                <span class="badge badge-error h-fit">Failed</span>
+                                            @endif
+                                        @elseif ($result->course->auto_certificate)
+                                            <span class="badge badge-success h-fit">Passed</span>
+                                        @else
+                                            <span class="badge badge-warning h-fit">Pending</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="flex gap-2">
+                                            @if ($result->can_generate_certificate)
+                                                <x-button label="Preview" icon="o-eye"
+                                                    class="btn-sm btn-outline btn-primary"
+                                                    link="{{ route('certificate.exam.preview', ['regNo' => str_replace('/', '_', $student->tiitvt_reg_no), 'courseId' => $result->course->id]) }}"
+                                                    external />
+                                                <x-button label="Download" icon="o-arrow-down-tray"
+                                                    class="btn-sm btn-primary"
+                                                    link="{{ route('certificate.exam.download', ['regNo' => str_replace('/', '_', $student->tiitvt_reg_no), 'courseId' => $result->course->id]) }}"
+                                                    external />
+                                            @else
+                                                <span class="text-xs text-gray-500 italic">
+                                                    @if (!$result->has_results)
+                                                        Awaiting exam results
+                                                    @elseif (!$result->course->auto_certificate)
+                                                        Manual cert only
+                                                    @else
+                                                        Below passing marks
+                                                    @endif
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+        </div>
+    @endif
 
     <!-- Payment Log -->
     <div class="mt-6">

@@ -104,6 +104,11 @@
                             </a>
                         </li>
                         <li>
+                            <a href="{{ route('student.certificate.verify') }}">
+                                Verify Certificate
+                            </a>
+                        </li>
+                        <li>
                             <a href="{{ route('frontend.exam.login') }}">
                                 Exam Login
                             </a>

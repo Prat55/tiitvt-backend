@@ -101,7 +101,7 @@ class StudentController extends Controller
             }
 
             $center = $student->center;
-            $course = $student->course;
+            $courses = $student->courses;
 
             // Calculate payment details
             $currentPaymentAmount = $student->down_payment;
@@ -159,7 +159,7 @@ class StudentController extends Controller
             return view('receipt.payment', compact(
                 'student',
                 'center',
-                'course',
+                'courses',
                 'currentPaymentAmount',
                 'totalFees',
                 'totalPreviousPaid',
@@ -199,7 +199,7 @@ class StudentController extends Controller
             }
 
             $center = $student->center;
-            $course = $student->course;
+            $courses = $student->courses;
 
             // Calculate payment details
             $currentPaymentAmount = $installment->paid_amount ?? 0;
@@ -265,7 +265,7 @@ class StudentController extends Controller
                 'installment',
                 'student',
                 'center',
-                'course',
+                'courses',
                 'currentPaymentAmount',
                 'totalFees',
                 'totalPreviousPaid',

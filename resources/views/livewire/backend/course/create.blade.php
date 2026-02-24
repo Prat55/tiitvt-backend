@@ -21,6 +21,8 @@ new class extends Component {
     public float $mrp = 0;
     public float $price = 0;
     public bool $is_active = true;
+    public bool $auto_certificate = false;
+    public int $passing_percentage = 80;
     public array $category_ids = [];
     public int $rating = 4;
 
@@ -47,6 +49,8 @@ new class extends Component {
             'category_ids.*' => 'exists:categories,id',
             'course_image' => 'nullable|image|max:2048',
             'rating' => 'nullable|integer|min:0|max:5',
+            'auto_certificate' => 'boolean',
+            'passing_percentage' => 'required_if:auto_certificate,true|nullable|integer|min:1|max:100',
         ];
     }
 
@@ -82,6 +86,8 @@ new class extends Component {
                 'price' => $this->price ?: null,
                 'is_active' => $this->is_active,
                 'rating' => $this->rating ?? 4,
+                'auto_certificate' => $this->auto_certificate,
+                'passing_percentage' => $this->auto_certificate ? $this->passing_percentage ?? 80 : null,
             ];
 
             if ($this->course_image) {
@@ -271,14 +277,30 @@ new class extends Component {
                 <x-editor wire:model="description" label="Description" hint="The full course description" />
             </div>
 
-            <!-- Status -->
-            <div class="grid grid-cols-1 gap-3">
-                <div>
+            <!-- Status & Certificates -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-3">
                     <h3 class="text-lg font-semibold text-primary">Status</h3>
+                    <x-toggle label="Active Course" wire:model="is_active"
+                        hint="Inactive courses won't be visible to students" />
                 </div>
 
-                <x-toggle label="Active Course" wire:model="is_active"
-                    hint="Inactive courses won't be visible to students" />
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-primary">Certificate Settings</h3>
+                    <div class="flex items-center gap-4">
+                        <x-toggle label="Auto Certificate Creation" wire:model.live="auto_certificate"
+                            hint="Automatically create certificates based on exam results" />
+
+                        @if ($auto_certificate)
+                            <div class="flex-1">
+                                <x-input label="Passing Percentage (%)" type="number"
+                                    wire:model="passing_percentage" min="1" max="100"
+                                    icon="o-academic-cap"
+                                    hint="Predefined passing marks for auto-certificate creation" />
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
 
             <!-- Form Actions -->

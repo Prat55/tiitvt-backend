@@ -50,7 +50,7 @@ class CertificateController extends Controller
     /**
      * Preview certificate by TIITVT registration number (auto certificate)
      */
-    public function preview($regNo)
+    public function preview($regNo, $courseId = null)
     {
         $originalRegNo = str_replace('_', '/', $regNo);
 
@@ -61,7 +61,7 @@ class CertificateController extends Controller
             abort(404, 'Student not found');
         }
 
-        $data = $this->getCertificateData($student);
+        $data = $this->getCertificateData($student, $courseId);
         $certificate = $data->certificate;
         $qrDataUri = $data->qrDataUri;
 
@@ -71,7 +71,7 @@ class CertificateController extends Controller
     /**
      * Download certificate PDF with overlay
      */
-    public function download($regNo)
+    public function download($regNo, $courseId = null)
     {
         // Convert _ back to / for database lookup
         $originalRegNo = str_replace('_', '/', $regNo);
@@ -83,12 +83,54 @@ class CertificateController extends Controller
             abort(404, 'Student not found');
         }
 
-        // Reuse logic from preview to get certificate data (we could refactor this into a private method)
+        $certificateData = $this->getCertificateData($student, $courseId);
+
+        $pdfContent = $this->overlayService->generate($certificateData->certificate, $certificateData->qrDataUri);
+
+        $filename = 'Certificate_' . str_replace('/', '_', $student->tiitvt_reg_no) . '.pdf';
+
+        // Track certificate download
+        trackPageVisit('certificate_download', [
+            'student_id' => $student->id,
+            'reg_no' => $student->tiitvt_reg_no,
+        ]);
+
+        return response($pdfContent)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    }
+
+    /**
+     * Download certificate PDF by QR token (Public)
+     */
+    public function downloadByToken($token)
+    {
+        $studentQR = \App\Models\StudentQR::where('qr_token', $token)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$studentQR) {
+            abort(404, 'Invalid certificate token.');
+        }
+
+        $student = $studentQR->student;
+
+        if (!$student) {
+            abort(404, 'Student not found.');
+        }
+
         $certificateData = $this->getCertificateData($student);
 
         $pdfContent = $this->overlayService->generate($certificateData->certificate, $certificateData->qrDataUri);
 
         $filename = 'Certificate_' . str_replace('/', '_', $student->tiitvt_reg_no) . '.pdf';
+
+        // Track certificate download
+        trackPageVisit('certificate_download', [
+            'student_id' => $student->id,
+            'reg_no' => $student->tiitvt_reg_no,
+            'token' => $token,
+        ]);
 
         return response($pdfContent)
             ->header('Content-Type', 'application/pdf')
@@ -98,16 +140,36 @@ class CertificateController extends Controller
     /**
      * Helper to get consolidated certificate data
      */
-    private function getCertificateData(Student $student)
+    private function getCertificateData(Student $student, $courseId = null)
     {
-        // Get all exam results for this student grouped by exam
-        $examResults = ExamResult::with(['exam.course', 'student', 'category'])
-            ->where('student_id', $student->id)
-            ->get()
-            ->groupBy('exam_id');
+        // Get all exam results for this student
+        $query = ExamResult::with(['exam.course', 'student', 'category'])
+            ->where('student_id', $student->id);
+
+        if ($courseId) {
+            $query->whereHas('exam', function ($q) use ($courseId) {
+                $q->where('course_id', $courseId);
+            });
+        }
+
+        $examResults = $query->get()->groupBy('exam_id');
 
         if ($examResults->isEmpty()) {
-            abort(404, 'No exam result found for this student');
+            // Check if student has any auto-certificate courses
+            $courseQuery = $student->courses()->where('auto_certificate', true);
+
+            if ($courseId) {
+                $courseQuery->where('courses.id', $courseId);
+            }
+
+            $autoCourse = $courseQuery->latest()->first();
+
+            if (!$autoCourse) {
+                abort(404, 'No exam result or auto-certificate course found for this student');
+            }
+
+            // Generate dummy certificate data based on course categories
+            return $this->generateAutoCertificateData($student, $autoCourse);
         }
 
         // Get the latest exam (most recent)
@@ -183,6 +245,61 @@ class CertificateController extends Controller
                 'total_marks' => $totalMarks,
                 'total_marks_obtained' => round($totalMarksObtained),
                 'total_result' => $overallPercentage >= 50 ? 'PASS' : 'FAIL'
+            ]
+        ];
+
+        return (object) ['certificate' => $certificate, 'qrDataUri' => $qrDataUri];
+    }
+
+    /**
+     * Generate automated certificate data for courses with auto_certificate enabled
+     */
+    private function generateAutoCertificateData(Student $student, \App\Models\Course $course)
+    {
+        // Get or create student QR code
+        $studentQR = $student->qrCode;
+        if (!$studentQR) {
+            $studentQR = $this->studentQRService->generateStudentQR($student);
+        }
+
+        // Generate QR code data URI
+        $qrDataUri = $this->studentQRService->generateQRCodeDataUri($studentQR->qr_data);
+
+        // Calculate statistics based on passing percentage
+        $passingPercentage = (int) ($course->passing_percentage ?: 80);
+        $totalMarks = 0;
+        $totalMarksObtained = 0;
+
+        // Use course categories as subjects
+        $subjects = $course->categories->map(function ($category) use ($passingPercentage, &$totalMarks, &$totalMarksObtained) {
+            $maxMarks = 100;
+            $obtainedMarks = $passingPercentage; // Set marks to exact passing percentage
+
+            $totalMarks += $maxMarks;
+            $totalMarksObtained += $obtainedMarks;
+
+            return [
+                'name' => $category->name,
+                'maximum' => (int) $maxMarks,
+                'obtained' => (int) round($obtainedMarks),
+                'result' => 'PASS'
+            ];
+        })->values()->toArray();
+
+        // Create certificate data
+        $certificate = (object) [
+            'reg_no' => $student->tiitvt_reg_no,
+            'student_name' => $student->full_name,
+            'course_name' => $course->name,
+            'percentage' => (float) $passingPercentage,
+            'grade' => $this->calculateGrade($passingPercentage),
+            'issued_on' => now(), // Auto-certificate is issued when requested
+            'center_name' => $student->center->name ?? $this->websiteSettings->getWebsiteName(),
+            'data' => [
+                'subjects' => $subjects,
+                'total_marks' => $totalMarks,
+                'total_marks_obtained' => round($totalMarksObtained),
+                'total_result' => 'PASS'
             ]
         ];
 

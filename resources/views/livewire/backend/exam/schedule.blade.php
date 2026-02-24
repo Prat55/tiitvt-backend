@@ -711,7 +711,10 @@ new class extends Component {
 
                     <div class="space-y-6">
                         <div>
-                            <x-choices-offline label="Select Course" wire:model.live="selectedCourse" :options="Course::all(['id', 'name'])->toArray()"
+                            <x-choices-offline label="Select Course" wire:model.live="selectedCourse" :options="Course::active()
+                                ->where('auto_certificate', false)
+                                ->get(['id', 'name'])
+                                ->toArray()"
                                 placeholder="Choose a course..." icon="o-academic-cap" single searchable clearable
                                 class="text-base" />
                         </div>

@@ -109,6 +109,11 @@ new class extends Component {
                     <p class="text-gray-500">Enter your exam credentials to continue</p>
                 </div>
 
+                <div class="mb-6">
+                    <x-button label="Verify Certificate" icon="o-shield-check"
+                        link="{{ route('student.certificate.verify') }}" class="btn-outline btn-sm w-full" />
+                </div>
+
                 <x-form wire:submit="login" class="space-y-6" no-seperator>
                     <div>
                         <x-input label="Exam User ID" wire:model="examUserId" icon="o-user"

@@ -432,7 +432,7 @@
                         (<strong>{{ $amountInWords }} Rupees Only</strong>)
                         {{ $paymentType }} payment by
                         <strong>{{ ucfirst($paymentMethod) }}</strong>
-                        on account of course <strong>{{ $course?->name ?? 'N/A' }}</strong>
+                        on account of course <strong>{{ $courses->pluck('name')->implode(', ') ?: 'N/A' }}</strong>
                         @if (
                             $paymentMethod === 'cheque' &&
                                 (isset($chequeNumber) ? $chequeNumber : isset($installment) && $installment->cheque_number))
@@ -509,7 +509,7 @@
                         (<strong>{{ $amountInWords }} Rupees Only</strong>)
                         {{ $paymentType }} payment by
                         <strong>{{ ucfirst($paymentMethod) }}</strong>
-                        on account of course <strong>{{ $course?->name ?? 'N/A' }}</strong>
+                        on account of course <strong>{{ $courses->pluck('name')->implode(', ') ?: 'N/A' }}</strong>
                         @if (
                             $paymentMethod === 'cheque' &&
                                 (isset($chequeNumber) ? $chequeNumber : isset($installment) && $installment->cheque_number))

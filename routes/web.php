@@ -114,8 +114,8 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
     // Certificate preview route (authenticated users only - admin or center)
     Route::group(['middleware' => ['role:admin|center']], function () {
         Route::prefix('/app/certificate')->name('certificate.')->group(function () {
-            Route::get('/exam/preview/{regNo}', [CertificateController::class, 'preview'])->name('exam.preview');
-            Route::get('/exam/download/{regNo}', [CertificateController::class, 'download'])->name('exam.download');
+            Route::get('/exam/preview/{regNo}/{courseId?}', [CertificateController::class, 'preview'])->name('exam.preview');
+            Route::get('/exam/download/{regNo}/{courseId?}', [CertificateController::class, 'download'])->name('exam.download');
         });
     });
 });
@@ -143,8 +143,14 @@ Route::get('/certificate/verify/{token}', function ($token) {
     return view('certificates.verify', compact('certificate'));
 })->name('certificate.verify');
 
+// Public certificate download route - by QR token
+Route::get('/certificate/download/p/{token}', [CertificateController::class, 'downloadByToken'])->name('certificate.public.download');
+
 // Student QR verification route (public) - by QR token using Volt
 Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');
+
+// Public certificate verification route - by Registration Number
+Volt::route('/student/certificate/verify', 'frontend.student.certificate-verification')->name('student.certificate.verify');
 
 Route::get('/student/result/{regNo}', [StudentController::class, 'resultView'])->name('student.result.view');
 

@@ -92,6 +92,10 @@
                                 href="#">Shop</a></li>
                         <li><a class="inline-block no-underline hover:text-black hover:underline py-2 px-4"
                                 href="#">About</a></li>
+                        <li><a class="inline-block no-underline hover:text-black hover:underline py-2 px-4 font-bold text-primary"
+                                href="{{ route('student.certificate.verify') }}">Verify Certificate</a></li>
+                        <li><a class="inline-block no-underline hover:text-black hover:underline py-2 px-4"
+                                href="{{ route('frontend.exam.login') }}">Exam Login</a></li>
                     </ul>
                 </nav>
             </div>

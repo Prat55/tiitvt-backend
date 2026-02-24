@@ -2,12 +2,13 @@
 
 use Carbon\Carbon;
 use Livewire\Volt\Component;
-use Livewire\Attributes\Layout;
 use App\Services\StudentQRService;
 use App\Models\{Student, StudentQR};
+use Livewire\Attributes\{Layout, Title};
 
 new class extends Component {
     #[Layout('components.layouts.guest')]
+    #[Title('Student Verification Portal')]
     public $studentQR;
     public $student = null;
 
@@ -152,26 +153,6 @@ new class extends Component {
                                         <span
                                             class="text-xs sm:text-sm font-semibold">{{ $student->tiitvt_reg_no }}</span>
                                     </div>
-                                    @if ($student->date_of_birth)
-                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
-                                            <span class="text-xs sm:text-sm font-medium">Date of Birth</span>
-                                            <span
-                                                class="text-xs sm:text-sm font-semibold">{{ \Carbon\Carbon::parse($student->date_of_birth)->format('d M Y') }}</span>
-                                        </div>
-                                    @endif
-                                    @if ($student->email)
-                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
-                                            <span class="text-xs sm:text-sm font-medium">Email</span>
-                                            <span class="text-xs sm:text-sm font-semibold">{{ $student->email }}</span>
-                                        </div>
-                                    @endif
-                                    @if ($student->mobile)
-                                        <div class="flex justify-between items-center py-2 border-b border-base-100">
-                                            <span class="text-xs sm:text-sm font-medium">Mobile</span>
-                                            <span
-                                                class="text-xs sm:text-sm font-semibold">{{ $student->mobile }}</span>
-                                        </div>
-                                    @endif
                                 </div>
                             </x-card>
 
@@ -248,21 +229,44 @@ new class extends Component {
 
                         <!-- Exam Results -->
                         @if ($student->examResults && $student->examResults->count() > 0)
-                            <x-card title="Exam Results" class="bg-base-200">
-                                @php
-                                    $groupedResults = $student->examResults->groupBy('exam_id');
-                                @endphp
+                            @php
+                                $groupedResults = $student->examResults
+                                    ->groupBy(fn($r) => $r->exam->course_id)
+                                    ->map(function ($results) {
+                                        return $results
+                                            ->sortByDesc(fn($r) => $r->submitted_at ?? $r->created_at)
+                                            ->groupBy('category_id')
+                                            ->map(fn($group) => $group->first());
+                                    });
+                            @endphp
+
+                            <x-card class="bg-base-200">
+                                <x-slot:title>
+                                    <div class="flex justify-between items-center w-full">
+                                        <span>Exam Results</span>
+                                        <x-button label="Download Certificate" icon="o-arrow-down-tray"
+                                            class="btn-primary btn-sm"
+                                            link="{{ route('certificate.public.download', $this->studentQR->qr_token) }}"
+                                            external />
+                                    </div>
+                                </x-slot:title>
 
                                 <div class="space-y-4 sm:space-y-6">
-                                    @foreach ($groupedResults as $examId => $examResults)
+                                    @foreach ($groupedResults as $courseId => $examResults)
                                         @php
-                                            $exam = $examResults->first()->exam;
+                                            $course = $examResults->first()->exam->course;
                                             $overallPercentage = $examResults->avg('percentage');
                                             $totalMarks =
                                                 $examResults->sum('total_points') ?: $examResults->count() * 100;
                                             $totalMarksObtained =
                                                 $examResults->sum('points_earned') ?: $examResults->sum('score');
                                             $overallGrade = $this->calculateGrade($overallPercentage);
+
+                                            // Get latest exam info for display
+                                            $latestResult = $examResults
+                                                ->sortByDesc(fn($r) => $r->submitted_at ?? $r->created_at)
+                                                ->first();
+                                            $latestExam = $latestResult->exam;
                                         @endphp
 
                                         <div class="bg-base-100 rounded-xl p-4 sm:p-6">
@@ -270,10 +274,11 @@ new class extends Component {
                                                 class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 space-y-3 sm:space-y-0">
                                                 <div class="flex-1">
                                                     <h4 class="text-lg sm:text-xl font-bold mb-1">
-                                                        {{ $exam->course->name }}</h4>
-                                                    <p class="text-sm sm:text-base mb-1">{{ $exam->name }}</p>
+                                                        {{ $course->name }}</h4>
+                                                    <p class="text-sm sm:text-base mb-1">Consolidated Results</p>
                                                     <p class="text-xs sm:text-sm">
-                                                        {{ $exam->date ? \Carbon\Carbon::parse($exam->date)->format('d M Y') : 'Date not set' }}
+                                                        Last Exam:
+                                                        {{ $latestExam->date ? \Carbon\Carbon::parse($latestExam->date)->format('d M Y') : 'Date not set' }}
                                                     </p>
                                                 </div>
                                                 <div class="text-center sm:text-right">

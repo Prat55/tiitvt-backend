@@ -46,7 +46,7 @@ class CertificateOverlayService
         $pdf->useTemplate($tplId, 0, 0, $pageWidth, $pageHeight);
 
         // Set font
-        $pdf->SetFont('Arial', 'B', 14); // Reduced from 16
+        $pdf->SetFont('Arial', 'B', 10); // Reduced from 14 to 12
         $pdf->SetTextColor(0, 0, 0);
 
         // --- Placement Logic ---
@@ -66,7 +66,7 @@ class CertificateOverlayService
         // 3. Student Name (Center area)
         $pdf->SetY(102);
         $pdf->SetX(0);
-        $pdf->SetFont('Arial', 'B', 16);
+        $pdf->SetFont('Arial', 'B', 12); // Reduced from 16 to 12
         $pdf->Cell($pageWidth, 10, $certificate->student_name, 0, 0, 'C');
 
         // 4. Course Name (Below Name)
@@ -127,9 +127,9 @@ class CertificateOverlayService
         $totalTableWidth = $wSR + $wSub + $wMax + $wObs + $wRes; // 160mm
         $startX = ($pageWidth - $totalTableWidth) / 2; // Center the table
 
-        $pdf->SetFont('Arial', 'B', 9);
-        $headerHeight = 7;
-        $lineHeight = 3.5;
+        $pdf->SetFont('Arial', 'B', 11); // Increased from 9 to 12
+        $headerHeight = 9; // Increased from 7 to 9
+        $lineHeight = 4.5; // Increased from 3.5 to 4.5
 
         // Header: SR. NO.
         $pdf->SetXY($startX, $startY);
@@ -176,7 +176,7 @@ class CertificateOverlayService
             }
 
             // TOTAL MARKS ROW - Keep all borders (especially top border 1)
-            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->SetFont('Arial', 'B', 11); // Increased from 9 to 12
 
             $pdf->SetXY($startX, $currentY);
             $pdf->Cell($wSR, $rowHeight, '', 1, 0, 'C'); // Empty cell for SR. NO. column
