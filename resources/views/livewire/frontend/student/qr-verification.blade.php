@@ -63,6 +63,60 @@ new class extends Component {
         }
         return 'F';
     }
+
+    public function getExamResults()
+    {
+        if (!$this->student) {
+            return collect();
+        }
+
+        return $this->student->courses
+            ->map(function ($course) {
+                $allCourseResults = \App\Models\ExamResult::where('student_id', $this->student->id)
+                    ->whereHas('exam', function ($query) use ($course) {
+                        $query->where('course_id', $course->id);
+                    })
+                    ->orderBy('submitted_at', 'desc')
+                    ->get();
+
+                if ($allCourseResults->isEmpty()) {
+                    return (object) [
+                        'course' => $course,
+                        'percentage' => $course->auto_certificate ? ($course->passing_percentage ?: 80) : null,
+                        'is_passed' => $course->auto_certificate,
+                        'can_generate_certificate' => $course->auto_certificate,
+                        'has_results' => false,
+                    ];
+                }
+
+                $categoryResults = $allCourseResults
+                    ->groupBy('category_id')
+                    ->map(function ($results) {
+                        return $results->first();
+                    })
+                    ->values();
+
+                $totalPoints = 0;
+                $pointsEarned = 0;
+
+                foreach ($categoryResults as $result) {
+                    $totalPoints += $result->total_points ?: 100;
+                    $pointsEarned += $result->points_earned ?: $result->score ?: 0;
+                }
+
+                $overallPercentage = $totalPoints > 0 ? ($pointsEarned / $totalPoints) * 100 : 0;
+                $isPassed = $course->auto_certificate ? $overallPercentage >= ($course->passing_percentage ?: 80) : $overallPercentage >= 50;
+
+                return (object) [
+                    'course' => $course,
+                    'percentage' => round($overallPercentage, 2),
+                    'is_passed' => $isPassed,
+                    'can_generate_certificate' => $course->auto_certificate,
+                    'has_results' => true,
+                ];
+            })
+            ->values();
+    }
 }; ?>
 <div class="min-h-screen bg-base-300 py-4 px-2 sm:py-8 sm:px-4 lg:px-8">
     <div class="max-w-4xl mx-auto">
@@ -227,110 +281,58 @@ new class extends Component {
                             </x-card>
                         @endif
 
-                        <!-- Exam Results -->
-                        @if ($student->examResults && $student->examResults->count() > 0)
-                            @php
-                                $groupedResults = $student->examResults
-                                    ->groupBy(fn($r) => $r->exam->course_id)
-                                    ->map(function ($results) {
-                                        return $results
-                                            ->sortByDesc(fn($r) => $r->submitted_at ?? $r->created_at)
-                                            ->groupBy('category_id')
-                                            ->map(fn($group) => $group->first());
-                                    });
-                            @endphp
-
-                            <x-card class="bg-base-200">
-                                <x-slot:title>
-                                    <div class="flex justify-between items-center w-full">
-                                        <span>Exam Results</span>
-                                        <x-button label="Download Certificate" icon="o-arrow-down-tray"
-                                            class="btn-primary btn-sm"
-                                            link="{{ route('certificate.public.download', $this->studentQR->qr_token) }}"
-                                            external />
-                                    </div>
-                                </x-slot:title>
-
-                                <div class="space-y-4 sm:space-y-6">
-                                    @foreach ($groupedResults as $courseId => $examResults)
-                                        @php
-                                            $course = $examResults->first()->exam->course;
-                                            $overallPercentage = $examResults->avg('percentage');
-                                            $totalMarks =
-                                                $examResults->sum('total_points') ?: $examResults->count() * 100;
-                                            $totalMarksObtained =
-                                                $examResults->sum('points_earned') ?: $examResults->sum('score');
-                                            $overallGrade = $this->calculateGrade($overallPercentage);
-
-                                            // Get latest exam info for display
-                                            $latestResult = $examResults
-                                                ->sortByDesc(fn($r) => $r->submitted_at ?? $r->created_at)
-                                                ->first();
-                                            $latestExam = $latestResult->exam;
-                                        @endphp
-
-                                        <div class="bg-base-100 rounded-xl p-4 sm:p-6">
-                                            <div
-                                                class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 space-y-3 sm:space-y-0">
-                                                <div class="flex-1">
-                                                    <h4 class="text-lg sm:text-xl font-bold mb-1">
-                                                        {{ $course->name }}</h4>
-                                                    <p class="text-sm sm:text-base mb-1">Consolidated Results</p>
-                                                    <p class="text-xs sm:text-sm">
-                                                        Last Exam:
-                                                        {{ $latestExam->date ? \Carbon\Carbon::parse($latestExam->date)->format('d M Y') : 'Date not set' }}
-                                                    </p>
-                                                </div>
-                                                <div class="text-center sm:text-right">
-                                                    <div class="text-2xl sm:text-3xl font-bold mb-1">
-                                                        {{ number_format($overallPercentage, 1) }}%
-                                                    </div>
-                                                    <div class="text-base sm:text-lg font-semibold mb-1">
-                                                        {{ $overallGrade }}</div>
-                                                    <div class="text-xs sm:text-sm">
-                                                        {{ $totalMarksObtained }}/{{ $totalMarks }} marks
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Category-wise Results -->
-                                            <div class="space-y-3">
-                                                <h5 class="text-xs sm:text-sm font-semibold uppercase tracking-wide">
-                                                    Category-wise Results</h5>
-                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                                    @foreach ($examResults as $result)
-                                                        @php
-                                                            $categoryGrade = $this->calculateGrade($result->percentage);
-                                                        @endphp
-                                                        <div
-                                                            class="flex justify-between items-center bg-base-300 rounded-lg px-3 py-2 sm:px-4 sm:py-3">
-                                                            <div>
-                                                                <span class="text-xs sm:text-sm font-medium">
-                                                                    {{ $result->category->name ?? 'Unknown Category' }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="text-right">
-                                                                <span class="text-xs sm:text-sm font-semibold">
-                                                                    {{ number_format($result->percentage, 1) }}%
-                                                                </span>
-                                                                <span class="text-xs ml-2">{{ $categoryGrade }}</span>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </x-card>
-                        @else
-                            <x-card title="Exam Results" class="bg-base-200">
-                                <div class="text-center py-8 sm:py-12">
-                                    <x-icon name="o-document-text"
-                                        class="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4" />
-                                    <h3 class="text-base sm:text-lg font-semibold mb-2">No Exam Results Available</h3>
-                                    <p class="text-sm sm:text-base">Exam results will appear here once you complete
-                                        your examinations.</p>
+                        @php $examResults = $this->getExamResults(); @endphp
+                        @if ($examResults->isNotEmpty())
+                            <x-card title="Exam Results & Certificates" class="bg-base-200">
+                                <div class="overflow-x-auto">
+                                    <table class="table w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Course</th>
+                                                <th>Percentage</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($examResults as $result)
+                                                <tr>
+                                                    <td>{{ $result->course->name }}</td>
+                                                    <td>
+                                                        @if ($result->has_results || ($result->course->auto_certificate && $result->percentage))
+                                                            {{ $result->percentage }}%
+                                                        @else
+                                                            <span class="text-gray-400">N/A</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if ($result->has_results)
+                                                            @if ($result->is_passed)
+                                                                <span class="badge badge-success h-fit">Passed</span>
+                                                            @else
+                                                                <span class="badge badge-error h-fit">Failed</span>
+                                                            @endif
+                                                        @elseif ($result->course->auto_certificate)
+                                                            <span class="badge badge-success h-fit">Passed</span>
+                                                        @else
+                                                            <span class="badge badge-warning h-fit">Pending</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if ($result->can_generate_certificate)
+                                                            <x-button label="Download" icon="o-arrow-down-tray"
+                                                                class="btn-sm btn-primary"
+                                                                link="{{ route('certificate.public.download', ['token' => $this->studentQR->qr_token, 'courseId' => $result->course->id]) }}"
+                                                                external />
+                                                        @else
+                                                            <span class="text-xs text-gray-500 italic">Manual cert
+                                                                only</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
                                 </div>
                             </x-card>
                         @endif

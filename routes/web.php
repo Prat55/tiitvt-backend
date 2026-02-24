@@ -144,7 +144,7 @@ Route::get('/certificate/verify/{token}', function ($token) {
 })->name('certificate.verify');
 
 // Public certificate download route - by QR token
-Route::get('/certificate/download/p/{token}', [CertificateController::class, 'downloadByToken'])->name('certificate.public.download');
+Route::get('/certificate/download/p/{token}/{courseId?}', [CertificateController::class, 'downloadByToken'])->name('certificate.public.download');
 
 // Student QR verification route (public) - by QR token using Volt
 Volt::route('/student/qr/{token}', 'frontend.student.qr-verification')->name('student.qr.verify');

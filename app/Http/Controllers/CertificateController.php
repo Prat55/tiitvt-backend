@@ -103,7 +103,7 @@ class CertificateController extends Controller
     /**
      * Download certificate PDF by QR token (Public)
      */
-    public function downloadByToken($token)
+    public function downloadByToken($token, $courseId = null)
     {
         $studentQR = \App\Models\StudentQR::where('qr_token', $token)
             ->where('is_active', true)
@@ -119,7 +119,7 @@ class CertificateController extends Controller
             abort(404, 'Student not found.');
         }
 
-        $certificateData = $this->getCertificateData($student);
+        $certificateData = $this->getCertificateData($student, $courseId);
 
         $pdfContent = $this->overlayService->generate($certificateData->certificate, $certificateData->qrDataUri);
 
@@ -130,6 +130,7 @@ class CertificateController extends Controller
             'student_id' => $student->id,
             'reg_no' => $student->tiitvt_reg_no,
             'token' => $token,
+            'course_id' => $courseId,
         ]);
 
         return response($pdfContent)
