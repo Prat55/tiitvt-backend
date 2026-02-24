@@ -394,7 +394,8 @@ new class extends Component {
 
 <div>
     {{-- Header Section --}}
-    <div class="flex justify-between items-start lg:items-center flex-col lg:flex-row mt-3 mb-5 gap-4">
+    <div
+        class="flex justify-between items-start lg:items-center flex-col lg:flex-row mt-3 mb-5 gap-4 flex-wrap lg:flex-nowrap">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
                 Exam Result Details
@@ -412,7 +413,7 @@ new class extends Component {
                             Exam Results
                         </a>
                     </li>
-                    <li class="font-medium flex items-center gap-2 md:flex-nowrap flex-wrap">
+                    <li class="font-medium flex items-center flex-wrap lg:flex-nowrap gap-2">
                         <div class="badge badge-soft badge-sm">
                             Exam #{{ $examResult->exam?->exam_id }}
                         </div>
@@ -424,19 +425,22 @@ new class extends Component {
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3">
-            @if (!$examResult->result)
+        <div class="flex items-center justify-end gap-3">
+            {{-- @if (!$examResult->result)
                 <x-button label="Declare Result" icon="o-flag" class="btn-primary btn-sm"
                     wire:click="openDeclareModal" />
-            @endif
-            <x-button label="View Answers" icon="o-document-text" class="btn-info btn-sm"
-                wire:click="openAnswersModal" />
+            @endif --}}
+            <x-button tooltip="View Answers" icon="o-document-text" class="btn-info btn-sm"
+                wire:click="openAnswersModal" responsive />
             @if ($this->getOverallResult() !== 'failed')
-                <x-button label="Preview Certificate" icon="o-document" class="btn-success btn-sm"
+                <x-button tooltip="Preview Certificate" icon="o-document" class="btn-success btn-sm"
                     link="{{ route('certificate.exam.preview', str_replace('/', '_', $examResult->student->tiitvt_reg_no)) }}"
-                    external />
+                    external responsive />
+                <x-button tooltip="Download Certificate" icon="o-arrow-down-tray" class="btn-primary btn-sm"
+                    link="{{ route('certificate.exam.download', str_replace('/', '_', $examResult->student->tiitvt_reg_no)) }}"
+                    external responsive />
             @endif
-            <x-button label="Back to Results" icon="o-arrow-left" class="btn-ghost btn-sm"
+            <x-button label="Go Back" icon="o-arrow-left" class="btn-outline btn-sm"
                 link="{{ route('admin.exam.results') }}" />
         </div>
     </div>
@@ -496,13 +500,13 @@ new class extends Component {
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="font-medium">Exam ID:</span>
-                            <div class="">
-                                <span class="badge badge-soft">{{ $examResult->exam?->exam_id ?? 'N/A' }}</span>
+                            <div class="mt-2">
+                                <span class="badge badge-soft h-fit">{{ $examResult->exam?->exam_id ?? 'N/A' }}</span>
                             </div>
                         </div>
                         <div>
                             <span class="font-medium">Duration:</span>
-                            <div class="">
+                            <div class="mt-2">
                                 <span class="badge badge-soft badge-primary">
                                     {{ $examResult->exam_duration }} minutes
                                 </span>
@@ -559,43 +563,19 @@ new class extends Component {
 
     {{-- Result Summary --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="stat bg-base-100 shadow-sm rounded-lg">
-            <div class="stat-figure text-primary">
-                <x-icon name="o-star" class="w-8 h-8" />
-            </div>
-            <div class="stat-title">Score</div>
-            <div class="stat-value text-primary">{{ $examResult->score }}</div>
-            <div class="stat-desc">{{ $examResult->points_earned }}/{{ $examResult->total_points }} points</div>
-        </div>
+        <x-stat title="Score" value="{{ $examResult->score }}" icon="o-star"
+            description="{{ $examResult->points_earned }}/{{ $examResult->total_points }} points"
+            color="text-primary" />
 
-        <div class="stat bg-base-100 shadow-sm rounded-lg">
-            <div class="stat-figure text-success">
-                <x-icon name="o-chart-bar" class="w-8 h-8" />
-            </div>
-            <div class="stat-title">Percentage</div>
-            <div class="stat-value text-success">{{ number_format($examResult->percentage, 1) }}%</div>
-            <div class="stat-desc">Grade: {{ $this->getGradeFromPercentage($examResult->percentage) }}</div>
-        </div>
+        <x-stat title="Percentage" value="{{ number_format($examResult->percentage, 1) }}%" icon="o-chart-bar"
+            description="Grade: {{ $this->getGradeFromPercentage($examResult->percentage) }}" color="text-success" />
 
-        <div class="stat bg-base-100 shadow-sm rounded-lg">
-            <div class="stat-figure text-info">
-                <x-icon name="o-question-mark-circle" class="w-8 h-8" />
-            </div>
-            <div class="stat-title">Questions</div>
-            <div class="stat-value text-info">
-                {{ $examResult->answered_questions }}/{{ $examResult->total_questions }}
-            </div>
-            <div class="stat-desc">{{ $examResult->skipped_questions }} skipped</div>
-        </div>
+        <x-stat title="Questions" value="{{ $examResult->answered_questions }}/{{ $examResult->total_questions }}"
+            icon="o-question-mark-circle" description="{{ $examResult->skipped_questions }} skipped"
+            color="text-info" />
 
-        <div class="stat bg-base-100 shadow-sm rounded-lg">
-            <div class="stat-figure text-warning">
-                <x-icon name="o-clock" class="w-8 h-8" />
-            </div>
-            <div class="stat-title">Time Taken</div>
-            <div class="stat-value text-warning">{{ number_format($examResult->time_taken_minutes, 1) }}m</div>
-            <div class="stat-desc">Submitted: {{ $examResult->submitted_at?->format('M d, g:i A') }}</div>
-        </div>
+        <x-stat title="Time Taken" value="{{ number_format($examResult->time_taken_minutes, 1) }}m" icon="o-clock"
+            description="Submitted: {{ $examResult->submitted_at?->format('M d, g:i A') }}" color="text-warning" />
     </div>
 
     {{-- Result Status --}}

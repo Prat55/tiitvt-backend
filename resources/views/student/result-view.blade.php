@@ -148,6 +148,14 @@
                     </div>
                 </div>
 
+                @if ($latestResult->percentage >= 50)
+                    <div class="flex justify-center mb-6">
+                        <x-button label="Download Certificate" icon="o-arrow-down-tray" class="btn-primary btn-wide"
+                            link="{{ route('certificate.exam.download', str_replace('/', '_', $student->tiitvt_reg_no)) }}"
+                            external />
+                    </div>
+                @endif
+
                 <!-- Latest Result/Certificate Highlight -->
                 <x-card class="bg-base-200 mb-4 sm:mb-8">
                     <x-slot:title>

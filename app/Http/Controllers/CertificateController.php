@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\ExamResult;
 use App\Services\StudentQRService;
 use App\Services\WebsiteSettingsService;
+use App\Services\CertificateOverlayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,11 +15,13 @@ class CertificateController extends Controller
 {
     protected StudentQRService $studentQRService;
     protected WebsiteSettingsService $websiteSettings;
+    protected CertificateOverlayService $overlayService;
 
-    public function __construct(StudentQRService $studentQRService, WebsiteSettingsService $websiteSettings)
+    public function __construct(StudentQRService $studentQRService, WebsiteSettingsService $websiteSettings, CertificateOverlayService $overlayService)
     {
         $this->studentQRService = $studentQRService;
         $this->websiteSettings = $websiteSettings;
+        $this->overlayService = $overlayService;
     }
 
     /**
@@ -49,6 +52,27 @@ class CertificateController extends Controller
      */
     public function preview($regNo)
     {
+        $originalRegNo = str_replace('_', '/', $regNo);
+
+        // Find the student by TIITVT registration number
+        $student = Student::where('tiitvt_reg_no', $originalRegNo)->first();
+
+        if (!$student) {
+            abort(404, 'Student not found');
+        }
+
+        $data = $this->getCertificateData($student);
+        $certificate = $data->certificate;
+        $qrDataUri = $data->qrDataUri;
+
+        return view('certificates.exam-result-preview', compact('certificate', 'qrDataUri'));
+    }
+
+    /**
+     * Download certificate PDF with overlay
+     */
+    public function download($regNo)
+    {
         // Convert _ back to / for database lookup
         $originalRegNo = str_replace('_', '/', $regNo);
 
@@ -59,6 +83,23 @@ class CertificateController extends Controller
             abort(404, 'Student not found');
         }
 
+        // Reuse logic from preview to get certificate data (we could refactor this into a private method)
+        $certificateData = $this->getCertificateData($student);
+
+        $pdfContent = $this->overlayService->generate($certificateData->certificate, $certificateData->qrDataUri);
+
+        $filename = 'Certificate_' . str_replace('/', '_', $student->tiitvt_reg_no) . '.pdf';
+
+        return response($pdfContent)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    }
+
+    /**
+     * Helper to get consolidated certificate data
+     */
+    private function getCertificateData(Student $student)
+    {
         // Get all exam results for this student grouped by exam
         $examResults = ExamResult::with(['exam.course', 'student', 'category'])
             ->where('student_id', $student->id)
@@ -78,7 +119,6 @@ class CertificateController extends Controller
         $courseId = $latestExamResult->exam->course_id;
 
         // Get all exam results from the same course across all exams
-        // This includes categories from previous exams and current exam
         $allCourseResults = ExamResult::with(['exam.course', 'student', 'category'])
             ->where('student_id', $student->id)
             ->whereHas('exam', function ($query) use ($courseId) {
@@ -90,12 +130,8 @@ class CertificateController extends Controller
 
         // Group by category_id and get the most recent result for each unique category
         $categoryResults = $allCourseResults->groupBy('category_id')->map(function ($results) {
-            // Return the most recent result for this category (first in the sorted collection)
             return $results->first();
         })->values();
-
-        // Generate QR code for the student using StudentQRService
-        $qrDataUri = null;
 
         // Get or create student QR code
         $studentQR = $student->qrCode;
@@ -106,7 +142,7 @@ class CertificateController extends Controller
         // Generate QR code data URI
         $qrDataUri = $this->studentQRService->generateQRCodeDataUri($studentQR->qr_data);
 
-        // Calculate overall statistics from all categories (using the most recent result for each category)
+        // Calculate overall statistics
         $totalMarks = 0;
         $totalMarksObtained = 0;
 
@@ -117,19 +153,12 @@ class CertificateController extends Controller
 
         $overallPercentage = $totalMarks > 0 ? ($totalMarksObtained / $totalMarks) * 100 : 0;
 
-        // Create subjects array from categories (using the most recent result for each category)
+        // Create subjects array
         $subjects = $categoryResults->map(function ($result) {
-            // Get max marks from total_points, default to 100 if not set
             $maxMarks = $result->total_points && $result->total_points > 0 ? $result->total_points : 100;
-
-            // Get obtained marks from points_earned, fallback to score
             $obtainedMarks = $result->points_earned ?? $result->score ?? 0;
-
-            // Get passing points from exam_categories table
             $examCategory = $result->exam->examCategories()->where('category_id', $result->category_id)->first();
             $passingPoints = $examCategory ? (int) $examCategory->passing_points : 0;
-
-            // Calculate result based on passing points
             $resultStatus = $obtainedMarks >= $passingPoints ? 'PASS' : 'FAIL';
 
             return [
@@ -140,7 +169,7 @@ class CertificateController extends Controller
             ];
         })->values()->toArray();
 
-        // Create certificate data from exam results
+        // Create certificate data
         $certificate = (object) [
             'reg_no' => $student->tiitvt_reg_no,
             'student_name' => $student->first_name . ($student->fathers_name ? ' ' . $student->fathers_name : '') . ($student->surname ? ' ' . $student->surname : ''),
@@ -157,7 +186,7 @@ class CertificateController extends Controller
             ]
         ];
 
-        return view('certificates.exam-result-preview', compact('certificate', 'qrDataUri'));
+        return (object) ['certificate' => $certificate, 'qrDataUri' => $qrDataUri];
     }
 
     /**

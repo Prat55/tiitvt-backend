@@ -115,6 +115,7 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
     Route::group(['middleware' => ['role:admin|center']], function () {
         Route::prefix('/app/certificate')->name('certificate.')->group(function () {
             Route::get('/exam/preview/{regNo}', [CertificateController::class, 'preview'])->name('exam.preview');
+            Route::get('/exam/download/{regNo}', [CertificateController::class, 'download'])->name('exam.download');
         });
     });
 });

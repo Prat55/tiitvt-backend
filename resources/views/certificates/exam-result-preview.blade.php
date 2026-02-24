@@ -212,11 +212,18 @@
                             Authentic
                         </p>
                     </div>
-                    <button onclick="window.print()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors duration-200 flex items-center space-x-2">
-                        <i class="fas fa-print"></i>
-                        <span>Print Certificate</span>
-                    </button>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <a href="{{ route('certificate.exam.download', str_replace('/', '_', $certificate->reg_no)) }}"
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors duration-200 flex items-center space-x-2">
+                            <i class="fas fa-download"></i>
+                            <span>Download PDF</span>
+                        </a>
+                        <button onclick="window.print()"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors duration-200 flex items-center space-x-2">
+                            <i class="fas fa-print"></i>
+                            <span>Print Certificate</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
