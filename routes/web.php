@@ -20,15 +20,17 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
         Route::group(['middleware' => ['role:admin|center']], function () {
             Volt::route('/dashboard', 'backend.dashboard.index')->name('index');
             Volt::route('/profile', 'backend.profile.index')->name('profile');
-        });
 
-        Route::group(['middleware' => ['role:admin']], function () {
             Route::prefix('certificate')->name('certificate.')->group(function () {
                 Volt::route('/', 'backend.certificate.index')->name('index');
                 Volt::route('/create', 'backend.certificate.create')->name('create');
                 Volt::route('/{certificate}/edit', 'backend.certificate.edit')->name('edit');
                 Route::get('/{id}/show', [CertificateController::class, 'display'])->name('show');
             });
+        });
+
+        Route::group(['middleware' => ['role:admin']], function () {
+
 
             Route::prefix('center')->name('center.')->group(function () {
                 Volt::route('/', 'backend.center.index')->name('index');

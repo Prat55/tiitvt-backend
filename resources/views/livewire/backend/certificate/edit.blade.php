@@ -25,6 +25,13 @@ new class extends Component {
 
     public function mount(ExternalCertificate $certificate): void
     {
+        $centerId = getUserCenterId();
+
+        // Authorization check: Centers can only edit their own certificates
+        if ($centerId && $certificate->center_id !== $centerId) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $this->certificate = $certificate;
         $this->reg_no = $certificate->reg_no;
         $this->course_name = $certificate->course_name;
@@ -77,6 +84,17 @@ new class extends Component {
 
     public function update()
     {
+        $centerId = getUserCenterId();
+
+        // Authorization check again before update
+        if ($centerId && $this->certificate->center_id !== $centerId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($centerId) {
+            $this->center_id = $centerId;
+        }
+
         $this->validate();
 
         // Calculate totals and overall result

@@ -9,13 +9,20 @@ use Illuminate\Support\Facades\Storage;
 new class extends Component {
     use Toast;
     public $search = '';
-    public $headers = [['key' => 'reg_no', 'label' => 'Reg No', 'class' => 'w-48'], ['key' => 'student_name', 'label' => 'Student', 'class' => 'w-64'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-64'], ['key' => 'issued_on', 'label' => 'Issued On', 'class' => 'w-40'], ['key' => 'actions', 'label' => 'Actions', 'class' => 'w-32']];
-    public $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
+    public $headers = [['key' => 'reg_no', 'label' => 'Reg No', 'class' => 'w-48'], ['key' => 'student_name', 'label' => 'Student', 'class' => 'w-64'], ['key' => 'course_name', 'label' => 'Course', 'class' => 'w-64'], ['key' => 'issued_on', 'label' => 'Issued On', 'class' => 'w-20']];
+    public $sortBy = ['column' => 'id', 'direction' => 'desc'];
     public $perPage = 20;
 
     public function with()
     {
         $query = ExternalCertificate::query();
+
+        // Filter by center if user is a center
+        $centerId = getUserCenterId();
+        if ($centerId) {
+            $query->where('center_id', $centerId);
+        }
+
         if (!empty($this->search)) {
             $query->whereAny(['reg_no', 'student_name', 'course_name'], 'like', "%{$this->search}%");
         }
@@ -35,8 +42,16 @@ new class extends Component {
 
     public function deleteCertificate($certificateId)
     {
+        $centerId = getUserCenterId();
+
         try {
             $certificate = ExternalCertificate::findOrFail($certificateId);
+
+            // Authorization check: Centers can only delete their own certificates
+            if ($centerId && $certificate->center_id !== $centerId) {
+                $this->error('Unauthorized action.');
+                return;
+            }
 
             // Delete QR code file if exists
             if ($certificate->qr_code_path && Storage::disk('public')->exists($certificate->qr_code_path)) {
@@ -103,14 +118,16 @@ new class extends Component {
             {{ optional($certificate->issued_on)->format('d M Y') ?? '—' }}
         @endscope
 
-        @scope('cell_actions', $certificate)
-            <x-button icon="o-eye" link="{{ route('admin.certificate.show', $certificate->id) }}" class="btn-xs btn-ghost"
-                title="View Certificate" external />
-            <x-button icon="o-pencil" link="{{ route('admin.certificate.edit', $certificate->id) }}"
-                class="btn-xs btn-ghost" title="Edit" />
-            <x-button icon="o-trash" class="btn-xs btn-ghost text-error"
-                wire:click="deleteCertificate({{ $certificate->id }})"
-                wire:confirm="Are you sure you want to delete this certificate?" title="Delete" />
+        @scope('actions', $certificate)
+            <div class="flex gap-2 items-center">
+                <x-button icon="o-eye" link="{{ route('admin.certificate.show', $certificate->id) }}"
+                    class="btn-xs btn-ghost" title="View Certificate" external />
+                <x-button icon="o-pencil" link="{{ route('admin.certificate.edit', $certificate->id) }}"
+                    class="btn-xs btn-ghost" title="Edit" />
+                <x-button icon="o-trash" class="btn-xs btn-ghost text-error"
+                    wire:click="deleteCertificate({{ $certificate->id }})"
+                    wire:confirm="Are you sure you want to delete this certificate?" title="Delete" />
+            </div>
         @endscope
     </x-table>
 </div>

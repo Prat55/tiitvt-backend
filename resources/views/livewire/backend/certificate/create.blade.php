@@ -23,8 +23,9 @@ new class extends Component {
 
     public function mount(): void
     {
-        if (hasAuthRole(RolesEnum::Center->value)) {
-            $this->center_id = auth()->user()->center->id;
+        $centerId = getUserCenterId();
+        if ($centerId) {
+            $this->center_id = $centerId;
         }
     }
 
@@ -59,6 +60,11 @@ new class extends Component {
 
     public function submit()
     {
+        $centerId = getUserCenterId();
+        if ($centerId) {
+            $this->center_id = $centerId;
+        }
+
         $this->validate();
 
         $qrToken = Str::random(32);

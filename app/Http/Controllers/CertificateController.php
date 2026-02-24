@@ -28,6 +28,12 @@ class CertificateController extends Controller
     {
         $certificate = ExternalCertificate::with('center')->findOrFail($id);
 
+        // Authorization check for center users
+        $centerId = getUserCenterId();
+        if ($centerId && $certificate->center_id !== $centerId) {
+            abort(403, 'Unauthorized action.');
+        }
+
         // Generate QR code data URI if not exists
         $qrDataUri = null;
         if ($certificate->qr_code_path && Storage::disk('public')->exists($certificate->qr_code_path)) {
