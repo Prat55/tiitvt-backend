@@ -325,8 +325,15 @@ new class extends Component {
                                                                 link="{{ route('certificate.public.download', ['token' => $this->studentQR->qr_token, 'courseId' => $result->course->id]) }}"
                                                                 external />
                                                         @else
-                                                            <span class="text-xs text-gray-500 italic">Manual cert
-                                                                only</span>
+                                                            <span class="text-xs text-gray-500 italic">
+                                                                @if (!$result->has_results)
+                                                                    Awaiting exam results
+                                                                @elseif (!$result->course->auto_certificate)
+                                                                    Manual cert only
+                                                                @else
+                                                                    Below passing marks
+                                                                @endif
+                                                            </span>
                                                         @endif
                                                     </td>
                                                 </tr>
