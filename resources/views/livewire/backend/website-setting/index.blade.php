@@ -122,8 +122,8 @@ new class extends Component {
             'meta_keywords' => 'nullable|string|max:500',
             'meta_description' => 'nullable|string|max:500',
             'meta_author' => 'nullable|string|max:255',
-            'backup_duration' => 'required|in:daily,weekly,monthly',
-            'backup_type' => 'required|in:sql,zip',
+            // 'backup_duration' => 'required|in:daily,weekly,monthly',
+            // 'backup_type' => 'required|in:sql,zip',
             'backup_mail' => 'nullable|email|max:255',
         ]);
 
@@ -133,8 +133,8 @@ new class extends Component {
             'meta_keywords' => $this->meta_keywords,
             'meta_description' => $this->meta_description,
             'meta_author' => $this->meta_author,
-            'backup_duration' => $this->backup_duration,
-            'backup_type' => $this->backup_type,
+            'backup_duration' => $this->backup_duration ?? 'daily',
+            'backup_type' => $this->backup_type ?? 'zip',
             'backup_mail' => $this->backup_mail,
         ]);
 
