@@ -9,6 +9,7 @@ use App\Models\Installment;
 use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class StudentApiController extends Controller
 {
@@ -90,6 +91,7 @@ class StudentApiController extends Controller
     public function paymentLogs(Request $request): JsonResponse
     {
         $student = $this->resolveStudent($request);
+        $hasInstallmentNo = Schema::hasColumn('installments', 'installment_no');
 
         $logs = collect();
 
@@ -106,14 +108,22 @@ class StudentApiController extends Controller
             ]);
         }
 
-        $installments = $student->installments()
-            ->orderBy('installment_no')
+        $installmentsQuery = $student->installments();
+
+        if ($hasInstallmentNo) {
+            $installmentsQuery->orderBy('installment_no');
+        } else {
+            $installmentsQuery->oldest('id');
+        }
+
+        $installments = $installmentsQuery
             ->get()
-            ->map(function (Installment $installment) {
+            ->values()
+            ->map(function (Installment $installment, int $index) use ($hasInstallmentNo) {
                 return [
                     'type' => 'installment',
                     'id' => $installment->id,
-                    'installment_no' => $installment->installment_no,
+                    'installment_no' => $hasInstallmentNo ? $installment->installment_no : ($index + 1),
                     'amount' => (float) $installment->amount,
                     'paid_amount' => (float) ($installment->paid_amount ?? 0),
                     'status' => $installment->status?->value ?? (string) $installment->status,
