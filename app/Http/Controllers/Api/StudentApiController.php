@@ -91,6 +91,7 @@ class StudentApiController extends Controller
     {
         $student = $this->resolveStudent($request);
         $hasInstallmentNo = Schema::hasColumn('installments', 'installment_no');
+        $courseFee = (float) $student->course_fees;
 
         $logs = collect();
 
@@ -99,7 +100,7 @@ class StudentApiController extends Controller
                 'type' => 'down_payment',
                 'id' => $student->id,
                 'installment_no' => null,
-                'amount' => (float) $student->down_payment,
+                'amount' => $courseFee,
                 'paid_amount' => (float) $student->down_payment,
                 'status' => 'paid',
                 'paid_date' => optional($student->enrollment_date)?->toDateString(),
@@ -118,16 +119,21 @@ class StudentApiController extends Controller
         $installments = $installmentsQuery
             ->get()
             ->values()
-            ->map(function (Installment $installment, int $index) use ($hasInstallmentNo) {
+            ->map(function (Installment $installment, int $index) use ($courseFee, $hasInstallmentNo) {
+                $paidAmount = (float) ($installment->paid_amount ?? 0);
+                $status = $installment->status?->value ?? (string) $installment->status;
+
                 return [
                     'type' => 'installment',
                     'id' => $installment->id,
                     'installment_no' => $hasInstallmentNo ? $installment->installment_no : ($index + 1),
-                    'amount' => (float) $installment->amount,
-                    'paid_amount' => (float) ($installment->paid_amount ?? 0),
-                    'status' => $installment->status?->value ?? (string) $installment->status,
+                    'amount' => $courseFee,
+                    'paid_amount' => $paidAmount,
+                    'status' => $status,
                     'paid_date' => optional($installment->paid_date)?->toDateString(),
-                    'receipt_download_url' => route('api.documents.receipts.installment', $installment),
+                    'receipt_download_url' => $status === 'paid'
+                        ? route('api.documents.receipts.installment', $installment)
+                        : null,
                 ];
             });
 
