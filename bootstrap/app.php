@@ -1,14 +1,19 @@
 <?php
 
-use App\Http\Middleware\AdminAuthMiddleware;
-use App\Http\Middleware\SiteAccessMiddleware;
-use App\Http\Middleware\Verify2FA;
 use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
-use Spatie\Permission\Middleware\PermissionMiddleware;
-use Spatie\Permission\Middleware\RoleMiddleware;
-use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Foundation\Configuration\{Exceptions, Middleware};
+use App\Http\Middleware\{
+    AdminAuthMiddleware,
+    ForceJsonResponse,
+    SiteAccessMiddleware,
+    Verify2FA
+};
+use Spatie\Permission\Middleware\{
+    PermissionMiddleware,
+    RoleMiddleware,
+    RoleOrPermissionMiddleware
+};
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__ . '/../routes/api.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->group('api', [
+            'throttle:api',
+            SubstituteBindings::class,
+            ForceJsonResponse::class,
+        ]);
+
         // Apply site access middleware globally
         $middleware->web(append: [
             SiteAccessMiddleware::class,

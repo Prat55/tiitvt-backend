@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Laravel\Sanctum\HasApiTokens;
 
 class Student extends Model
 {
-    use HasFactory;
+    use HasFactory, HasApiTokens;
 
     protected $fillable = [
         'center_id',
@@ -201,12 +202,25 @@ class Student extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->whereAny(['first_name', 'fathers_name', 'surname', 'tiitvt_reg_no', 'mobile', 'email'], 'like', "%{$search}%")
-            ->orWhereHas('courses', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
-            })->orWhereHas('center', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
-            });
+        $like = "%{$search}%";
+
+        return $query->where(function ($q) use ($like) {
+            $q->whereAny(
+                ['first_name', 'fathers_name', 'surname', 'tiitvt_reg_no', 'mobile', 'email'],
+                'like',
+                $like
+            )
+                ->orWhereRaw(
+                    "TRIM(CONCAT_WS(' ', first_name, fathers_name, surname)) LIKE ?",
+                    [$like]
+                )
+                ->orWhereHas('courses', function ($courseQuery) use ($like) {
+                    $courseQuery->where('name', 'like', $like);
+                })
+                ->orWhereHas('center', function ($centerQuery) use ($like) {
+                    $centerQuery->where('name', 'like', $like);
+                });
+        });
     }
 
     /**
