@@ -131,10 +131,11 @@ class AuthApiController extends Controller
 
     private function pruneTokens(object $authenticatable, int $maxAllowedTokens): void
     {
-        $tokenIdsToDelete = $authenticatable->tokens()
+        $allTokenIds = $authenticatable->tokens()
             ->orderByDesc('id')
-            ->skip($maxAllowedTokens)
             ->pluck('id');
+
+        $tokenIdsToDelete = $allTokenIds->slice($maxAllowedTokens)->values();
 
         if ($tokenIdsToDelete->isEmpty()) {
             return;
