@@ -201,7 +201,12 @@ class Student extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->whereAny(['first_name', 'fathers_name', 'surname', 'tiitvt_reg_no', 'mobile', 'email'], 'like', "%{$search}%");
+        return $query->whereAny(['first_name', 'fathers_name', 'surname', 'tiitvt_reg_no', 'mobile', 'email'], 'like', "%{$search}%")
+            ->orWhereHas('courses', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            })->orWhereHas('center', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
     }
 
     /**

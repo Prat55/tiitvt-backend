@@ -30,7 +30,7 @@ new class extends Component {
 
     public function mount($uid)
     {
-        $this->center = Center::whereUid($uid)->first();
+        $this->center = Center::where('uid', $uid)->first();
 
         if (!$this->center) {
             $this->error('Center not found!', position: 'toast-bottom', redirect: route('admin.center.index'));
@@ -212,15 +212,7 @@ new class extends Component {
 
     public function rendering(View $view): void
     {
-        $view->students = $this->center
-            ->students()
-            ->with('courses')
-            ->orderBy(...array_values($this->sortBy))
-            ->whereAny(['tiitvt_reg_no', 'first_name', 'fathers_name', 'mobile', 'email', 'telephone_no'], 'like', "%$this->search%")
-            ->orWhereHas('courses', function ($query) {
-                $query->where('name', 'like', "%$this->search%");
-            })
-            ->paginate(20);
+        $view->students = Student::where('center_id', $this->center->id)->with('courses')->orderBy(...array_values($this->sortBy))->search($this->search)->paginate(20);
 
         $view->title('Center Details - ' . $this->center->name);
     }
