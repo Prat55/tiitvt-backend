@@ -80,8 +80,8 @@ class AuthApiController extends Controller
             return $failDirectly ? response()->json(['message' => 'Invalid center credentials.'], 401) : null;
         }
 
-        $user->tokens()->delete();
         $token = $user->createToken('center-mobile')->plainTextToken;
+        $this->pruneTokens($user, 3);
 
         return response()->json([
             'token' => $token,
@@ -113,8 +113,8 @@ class AuthApiController extends Controller
             return $failDirectly ? response()->json(['message' => 'Invalid student credentials.'], 401) : null;
         }
 
-        $student->tokens()->delete();
         $token = $student->createToken('student-mobile')->plainTextToken;
+        $this->pruneTokens($student, 3);
 
         return response()->json([
             'token' => $token,
@@ -127,5 +127,21 @@ class AuthApiController extends Controller
                 'email' => $student->email,
             ],
         ]);
+    }
+
+    private function pruneTokens(object $authenticatable, int $maxAllowedTokens): void
+    {
+        $tokenIdsToDelete = $authenticatable->tokens()
+            ->orderByDesc('id')
+            ->skip($maxAllowedTokens)
+            ->pluck('id');
+
+        if ($tokenIdsToDelete->isEmpty()) {
+            return;
+        }
+
+        $authenticatable->tokens()
+            ->whereIn('id', $tokenIdsToDelete)
+            ->delete();
     }
 }
