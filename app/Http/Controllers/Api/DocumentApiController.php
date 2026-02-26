@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\Installment;
 use App\Models\Student;
 use App\Models\User;
+use App\Models\ExamResult;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -38,35 +39,50 @@ class DocumentApiController extends Controller
         return $pdf->download('receipt_down_payment_' . $student->id . '.pdf');
     }
 
-    public function certificateDownload(Request $request, Certificate $certificate)
+    public function certificateDownload(Request $request, string $certificate)
     {
-        $student = $this->resolveAccessibleStudent($request, $certificate->student);
+        $certificateRecord = Certificate::with('student')->find($certificate);
+
+        if ($certificateRecord) {
+            $student = $this->resolveAccessibleStudent($request, $certificateRecord->student);
+            $courseId = $certificateRecord->course_id;
+        } else {
+            $course = Course::findOrFail($certificate);
+            $actor = $request->user();
+
+            if (!$actor instanceof Student) {
+                abort(403, 'Only student token can access generated certificate download.');
+            }
+
+            $student = $actor->loadMissing(['courses:id,name,auto_certificate']);
+            $enrolledCourse = $student->courses->firstWhere('id', $course->id);
+
+            if (!$enrolledCourse) {
+                abort(404, 'Course not found for this student.');
+            }
+
+            $hasExamResults = ExamResult::query()
+                ->where('student_id', $student->id)
+                ->whereHas('exam', function ($query) use ($course) {
+                    $query->where('course_id', $course->id);
+                })
+                ->exists();
+
+            if (!$hasExamResults && !$enrolledCourse->auto_certificate) {
+                abort(404, 'Certificate not available for this course.');
+            }
+
+            $courseId = $course->id;
+        }
 
         $regNo = str_replace('/', '_', $student->tiitvt_reg_no);
 
-        return app(CertificateController::class)->download($regNo, $certificate->course_id);
+        return app(CertificateController::class)->download($regNo, $courseId);
     }
 
     public function autoCertificateDownload(Request $request, Course $course)
     {
-        $actor = $request->user();
-
-        if (!$actor instanceof Student) {
-            abort(403, 'Only student token can access this endpoint.');
-        }
-
-        $student = $actor->loadMissing(['courses:id,name,auto_certificate']);
-
-        $isEligible = $student->courses
-            ->contains(fn (Course $enrolledCourse) => $enrolledCourse->id === $course->id && $enrolledCourse->auto_certificate);
-
-        if (!$isEligible) {
-            abort(404, 'Auto certificate not found.');
-        }
-
-        $regNo = str_replace('/', '_', $student->tiitvt_reg_no);
-
-        return app(CertificateController::class)->download($regNo, $course->id);
+        return $this->certificateDownload($request, (string) $course->id);
     }
 
     private function resolveAccessibleStudent(Request $request, ?Student $targetStudent = null): Student

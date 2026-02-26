@@ -152,32 +152,28 @@ class StudentApiController extends Controller
             ->select('courses.id', 'courses.name', 'courses.auto_certificate', 'courses.passing_percentage')
             ->get();
 
-        $courseIds = $courses->pluck('id')->values();
-
-        $resultsByCourse = ExamResult::query()
-            ->with('exam:id,course_id')
-            ->where('student_id', $student->id)
-            ->whereHas('exam', function ($query) use ($courseIds) {
-                $query->whereIn('course_id', $courseIds->all());
-            })
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('id')
-            ->get()
-            ->groupBy(function (ExamResult $result) {
-                return $result->exam?->course_id;
-            });
-
         $certificates = $courses
-            ->map(function ($course) use ($student, $resultsByCourse) {
-                if (!$course->auto_certificate) {
+            ->map(function ($course) use ($student) {
+                $allCourseResults = ExamResult::query()
+                    ->where('student_id', $student->id)
+                    ->whereHas('exam', function ($query) use ($course) {
+                        $query->where('course_id', $course->id);
+                    })
+                    ->orderByDesc('submitted_at')
+                    ->orderByDesc('id')
+                    ->get();
+
+                $hasResults = $allCourseResults->isNotEmpty();
+                $isAuto = (bool) $course->auto_certificate;
+
+                if (!$hasResults && !$isAuto) {
                     return null;
                 }
 
-                $allCourseResults = $resultsByCourse->get($course->id, collect());
-
-                if ($allCourseResults->isEmpty()) {
+                if (!$hasResults) {
                     $percentage = (float) ($course->passing_percentage ?: 80);
                     $issuedOn = optional($student->enrollment_date)?->toDateString();
+                    $isPassed = true;
                 } else {
                     $categoryResults = $allCourseResults
                         ->groupBy('category_id')
@@ -197,18 +193,22 @@ class StudentApiController extends Controller
                     $overallPercentage = $totalPoints > 0 ? ($pointsEarned / $totalPoints) * 100 : 0;
                     $percentage = round($overallPercentage, 2);
                     $issuedOn = optional($allCourseResults->first()->submitted_at)?->toDateString();
+                    $isPassed = $isAuto
+                        ? $overallPercentage >= (float) ($course->passing_percentage ?: 80)
+                        : $overallPercentage >= 50;
                 }
 
                 return [
-                    'id' => null,
                     'course_id' => $course->id,
                     'course_name' => $course->name,
-                    'certificate_number' => null,
-                    'status' => 'auto_available',
+                    'status' => $isPassed ? 'eligible' : 'not_eligible',
+                    'has_results' => $hasResults,
+                    'auto_certificate' => $isAuto,
                     'issued_on' => $issuedOn,
                     'percentage' => $percentage,
-                    'download_url' => route('api.documents.certificates.auto-download', $course),
-                    'type' => 'auto',
+                    'download_url' => $isPassed
+                        ? route('api.documents.certificates.download', $course->id)
+                        : null,
                 ];
             })
             ->filter()
