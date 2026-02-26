@@ -155,70 +155,68 @@
     @endphp
 
     <div class="page">
-        @foreach (['Student Copy', 'Center Copy'] as $copyLabel)
-            <div class="receipt-copy">
-                <table class="copy-header">
-                    <tr>
-                        <td>
-                            <div class="center-block">
-                                <div class="center-name">{{ $center->name ?? ($websiteName ?? 'TIITVT') }}</div>
-                                <div class="center-address">{{ $centerAddress }}</div>
-                                <div><strong>Cash | Cheque Receipt</strong></div>
-                            </div>
-                        </td>
-                        <td class="copy-type">{{ $copyLabel }}</td>
-                    </tr>
-                </table>
+        <div class="receipt-copy">
+            <table class="copy-header">
+                <tr>
+                    <td>
+                        <div class="center-block">
+                            <div class="center-name">{{ $center->name ?? ($websiteName ?? 'TIITVT') }}</div>
+                            <div class="center-address">{{ $centerAddress }}</div>
+                            <div><strong>Cash | Cheque Receipt</strong></div>
+                        </div>
+                    </td>
+                    <td class="copy-type">Student Copy</td>
+                </tr>
+            </table>
 
-                <div class="line"></div>
+            <div class="line"></div>
 
-                <table class="meta">
-                    <tr>
-                        <td><strong>Receipt No:</strong> {{ $receiptNumber }}</td>
-                        <td><strong>Date:</strong> {{ $paidDate }}</td>
-                    </tr>
-                </table>
+            <table class="meta">
+                <tr>
+                    <td><strong>Receipt No:</strong> {{ $receiptNumber }}</td>
+                    <td><strong>Date:</strong> {{ $paidDate }}</td>
+                </tr>
+            </table>
 
-                <div class="ack">
-                    Received with thanks from {{ $studentTitle }} <strong>{{ $studentName }}</strong> a sum of
-                    <strong>Rs. {{ number_format($currentPaymentAmount, 2) }}</strong>
-                    (<strong>{{ $amountInWords }} Rupees Only</strong>)
-                    as {{ $paymentType }} payment by
-                    <strong>{{ ucfirst($paymentMethod) }}</strong> on account of course
-                    <strong>{{ $courseNames }}</strong>.
-                </div>
-
-                <table class="amount-table">
-                    <tr>
-                        <td><strong>TOTAL FEES</strong></td>
-                        <td>Rs. {{ number_format($totalFees, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>PREVIOUS PAID</strong></td>
-                        <td>Rs. {{ number_format($totalPreviousPaidWithDown ?? $totalPreviousPaid, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>FEES PAID</strong></td>
-                        <td>Rs. {{ number_format($currentPaymentAmount, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>BALANCE</strong></td>
-                        <td>Rs. {{ number_format($balanceAmount, 2) }}</td>
-                    </tr>
-                </table>
-
-                <table class="sign-table">
-                    <tr>
-                        <td><span class="sign-line">Center Seal</span></td>
-                        <td><span class="sign-line">Authorized Signatory</span></td>
-                    </tr>
-                </table>
-
-                <div class="footer-note">
-                    Cheque is subject to realization. Fees once paid will not be refunded in any condition.
-                </div>
+            <div class="ack">
+                Received with thanks from {{ $studentTitle }} <strong>{{ $studentName }}</strong> a sum of
+                <strong>Rs. {{ number_format($currentPaymentAmount, 2) }}</strong>
+                (<strong>{{ $amountInWords }} Rupees Only</strong>)
+                as {{ $paymentType }} payment by
+                <strong>{{ ucfirst($paymentMethod) }}</strong> on account of course
+                <strong>{{ $courseNames }}</strong>.
             </div>
-        @endforeach
+
+            <table class="amount-table">
+                <tr>
+                    <td><strong>TOTAL FEES</strong></td>
+                    <td>Rs. {{ number_format($totalFees, 2) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>PREVIOUS PAID</strong></td>
+                    <td>Rs. {{ number_format($totalPreviousPaidWithDown ?? $totalPreviousPaid, 2) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>FEES PAID</strong></td>
+                    <td>Rs. {{ number_format($currentPaymentAmount, 2) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>BALANCE</strong></td>
+                    <td>Rs. {{ number_format($balanceAmount, 2) }}</td>
+                </tr>
+            </table>
+
+            <table class="sign-table">
+                <tr>
+                    <td><span class="sign-line">Center Seal</span></td>
+                    <td><span class="sign-line">Authorized Signatory</span></td>
+                </tr>
+            </table>
+
+            <div class="footer-note">
+                Cheque is subject to realization. Fees once paid will not be refunded in any condition.
+            </div>
+        </div>
     </div>
 </body>
 
