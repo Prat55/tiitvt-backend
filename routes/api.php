@@ -39,4 +39,6 @@ Route::middleware('auth:sanctum')->prefix('documents')->name('api.documents.')->
         ->name('receipts.down-payment');
     Route::get('/certificates/{certificate}/download', [DocumentApiController::class, 'certificateDownload'])
         ->name('certificates.download');
+    Route::get('/certificates/auto/{course}/download', [DocumentApiController::class, 'autoCertificateDownload'])
+        ->name('certificates.auto-download');
 });

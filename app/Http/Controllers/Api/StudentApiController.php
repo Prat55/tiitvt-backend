@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Certificate;
 use App\Models\ExamResult;
 use App\Models\Installment;
 use App\Models\Student;
@@ -143,22 +142,70 @@ class StudentApiController extends Controller
     {
         $student = $this->resolveStudent($request);
 
-        $certificates = $student->certificates()
-            ->with('course:id,name')
-            ->latest('issued_on')
-            ->latest('id')
+        $courses = $student->courses()
+            ->select('courses.id', 'courses.name', 'courses.auto_certificate', 'courses.passing_percentage')
+            ->get();
+
+        $courseIds = $courses->pluck('id')->values();
+
+        $resultsByCourse = ExamResult::query()
+            ->with('exam:id,course_id')
+            ->where('student_id', $student->id)
+            ->whereHas('exam', function ($query) use ($courseIds) {
+                $query->whereIn('course_id', $courseIds->all());
+            })
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
             ->get()
-            ->map(function (Certificate $certificate) {
+            ->groupBy(function (ExamResult $result) {
+                return $result->exam?->course_id;
+            });
+
+        $certificates = $courses
+            ->map(function ($course) use ($student, $resultsByCourse) {
+                if (!$course->auto_certificate) {
+                    return null;
+                }
+
+                $allCourseResults = $resultsByCourse->get($course->id, collect());
+
+                if ($allCourseResults->isEmpty()) {
+                    $percentage = (float) ($course->passing_percentage ?: 80);
+                    $issuedOn = optional($student->enrollment_date)?->toDateString();
+                } else {
+                    $categoryResults = $allCourseResults
+                        ->groupBy('category_id')
+                        ->map(function ($results) {
+                            return $results->first();
+                        })
+                        ->values();
+
+                    $totalPoints = 0;
+                    $pointsEarned = 0;
+
+                    foreach ($categoryResults as $result) {
+                        $totalPoints += $result->total_points ?: 100;
+                        $pointsEarned += $result->points_earned ?: $result->score ?: 0;
+                    }
+
+                    $overallPercentage = $totalPoints > 0 ? ($pointsEarned / $totalPoints) * 100 : 0;
+                    $percentage = round($overallPercentage, 2);
+                    $issuedOn = optional($allCourseResults->first()->submitted_at)?->toDateString();
+                }
+
                 return [
-                    'id' => $certificate->id,
-                    'course_id' => $certificate->course_id,
-                    'course_name' => $certificate->course?->name,
-                    'certificate_number' => $certificate->certificate_number,
-                    'status' => $certificate->status,
-                    'issued_on' => optional($certificate->issued_on)?->toDateString(),
-                    'download_url' => route('api.documents.certificates.download', $certificate),
+                    'id' => null,
+                    'course_id' => $course->id,
+                    'course_name' => $course->name,
+                    'certificate_number' => null,
+                    'status' => 'auto_available',
+                    'issued_on' => $issuedOn,
+                    'percentage' => $percentage,
+                    'download_url' => route('api.documents.certificates.auto-download', $course),
+                    'type' => 'auto',
                 ];
             })
+            ->filter()
             ->values();
 
         return response()->json([

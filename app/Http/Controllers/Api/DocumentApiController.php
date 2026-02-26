@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
+use App\Models\Course;
 use App\Models\Installment;
 use App\Models\Student;
 use App\Models\User;
@@ -42,6 +43,28 @@ class DocumentApiController extends Controller
         $regNo = str_replace('/', '_', $student->tiitvt_reg_no);
 
         return app(CertificateController::class)->download($regNo, $certificate->course_id);
+    }
+
+    public function autoCertificateDownload(Request $request, Course $course)
+    {
+        $actor = $request->user();
+
+        if (!$actor instanceof Student) {
+            abort(403, 'Only student token can access this endpoint.');
+        }
+
+        $student = $actor->loadMissing(['courses:id,name,auto_certificate']);
+
+        $isEligible = $student->courses
+            ->contains(fn (Course $enrolledCourse) => $enrolledCourse->id === $course->id && $enrolledCourse->auto_certificate);
+
+        if (!$isEligible) {
+            abort(404, 'Auto certificate not found.');
+        }
+
+        $regNo = str_replace('/', '_', $student->tiitvt_reg_no);
+
+        return app(CertificateController::class)->download($regNo, $course->id);
     }
 
     private function resolveAccessibleStudent(Request $request, ?Student $targetStudent = null): Student
