@@ -2,83 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\ExamResult;
 use App\Models\Installment;
 use App\Models\Student;
-use App\Models\User;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class StudentApiController extends Controller
 {
-    public function login(Request $request): JsonResponse
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
-        $user = User::query()
-            ->where('email', $credentials['email'])
-            ->where('is_active', true)
-            ->first();
-
-        if (!$user || !$user->hasRole('student')) {
-            return response()->json([
-                'message' => 'Invalid student credentials.',
-            ], 401);
-        }
-
-        $defaultPassword = (string) env('STUDENT_DEFAULT_PASSWORD', '12345');
-
-        $validPassword = Hash::check($credentials['password'], (string) $user->password)
-            || hash_equals($defaultPassword, $credentials['password']);
-
-        if (!$validPassword) {
-            return response()->json([
-                'message' => 'Invalid student credentials.',
-            ], 401);
-        }
-
-        $student = Student::query()->where('email', $user->email)->first();
-
-        if (!$student) {
-            return response()->json([
-                'message' => 'Student profile not found for this account.',
-            ], 404);
-        }
-
-        $user->tokens()->delete();
-
-        $token = $user->createToken('student-mobile')->plainTextToken;
-
-        return response()->json([
-            'token' => $token,
-            'token_type' => 'Bearer',
-            'student' => [
-                'id' => $student->id,
-                'registration_no' => $student->tiitvt_reg_no,
-                'name' => $student->full_name,
-                'email' => $student->email,
-            ],
-        ]);
-    }
-
-    public function logout(Request $request): JsonResponse
-    {
-        $request->user()?->currentAccessToken()?->delete();
-
-        return response()->json([
-            'message' => 'Logged out successfully.',
-        ]);
-    }
-
     public function profile(Request $request): JsonResponse
     {
         $student = $this->resolveStudent($request);
@@ -168,7 +101,7 @@ class StudentApiController extends Controller
                 'paid_amount' => (float) $student->down_payment,
                 'status' => 'paid',
                 'paid_date' => optional($student->enrollment_date)?->toDateString(),
-                'receipt_download_url' => route('api.student.payment-logs.down-payment.receipt'),
+                'receipt_download_url' => route('api.documents.receipts.down-payment', $student),
             ]);
         }
 
@@ -184,7 +117,7 @@ class StudentApiController extends Controller
                     'paid_amount' => (float) ($installment->paid_amount ?? 0),
                     'status' => $installment->status?->value ?? (string) $installment->status,
                     'paid_date' => optional($installment->paid_date)?->toDateString(),
-                    'receipt_download_url' => route('api.student.payment-logs.installment.receipt', $installment),
+                    'receipt_download_url' => route('api.documents.receipts.installment', $installment),
                 ];
             });
 
@@ -193,36 +126,6 @@ class StudentApiController extends Controller
         return response()->json([
             'data' => $logs,
         ]);
-    }
-
-    public function installmentReceipt(Request $request, Installment $installment)
-    {
-        $student = $this->resolveStudent($request);
-
-        if ($installment->student_id !== $student->id) {
-            abort(404, 'Receipt not found.');
-        }
-
-        $pdf = Pdf::loadView('receipt.payment', $this->buildInstallmentReceiptData($student, $installment));
-
-        $filename = 'receipt_installment_' . $installment->id . '.pdf';
-
-        return $pdf->download($filename);
-    }
-
-    public function downPaymentReceipt(Request $request)
-    {
-        $student = $this->resolveStudent($request);
-
-        if ((float) $student->down_payment <= 0) {
-            abort(404, 'Down payment receipt not found.');
-        }
-
-        $pdf = Pdf::loadView('receipt.payment', $this->buildDownPaymentReceiptData($student));
-
-        $filename = 'receipt_down_payment_' . $student->id . '.pdf';
-
-        return $pdf->download($filename);
     }
 
     public function certificates(Request $request): JsonResponse
@@ -242,7 +145,7 @@ class StudentApiController extends Controller
                     'certificate_number' => $certificate->certificate_number,
                     'status' => $certificate->status,
                     'issued_on' => optional($certificate->issued_on)?->toDateString(),
-                    'download_url' => route('api.student.certificates.download', $certificate),
+                    'download_url' => route('api.documents.certificates.download', $certificate),
                 ];
             })
             ->values();
@@ -252,125 +155,16 @@ class StudentApiController extends Controller
         ]);
     }
 
-    public function certificateDownload(Request $request, Certificate $certificate)
-    {
-        $student = $this->resolveStudent($request);
-
-        if ($certificate->student_id !== $student->id) {
-            abort(404, 'Certificate not found.');
-        }
-
-        $regNo = str_replace('/', '_', $student->tiitvt_reg_no);
-
-        return app(CertificateController::class)->download($regNo, $certificate->course_id);
-    }
-
     private function resolveStudent(Request $request): Student
     {
-        /** @var User $user */
-        $user = Auth::user();
+        $actor = $request->user();
 
-        if (!$user || !$user->hasRole('student')) {
-            abort(403, 'Unauthorized.');
+        if (!$actor instanceof Student) {
+            abort(403, 'Only student token can access this endpoint.');
         }
 
-        $student = Student::query()
-            ->with(['center:id,name,address,state,country', 'courses:id,name'])
-            ->where('email', $user->email)
-            ->first();
+        $actor->loadMissing(['center:id,name,address,state,country', 'courses:id,name']);
 
-        if (!$student) {
-            abort(404, 'Student profile not found.');
-        }
-
-        return $student;
-    }
-
-    private function buildInstallmentReceiptData(Student $student, Installment $installment): array
-    {
-        $center = $student->center;
-        $courses = $student->courses;
-
-        $currentPaymentAmount = (float) ($installment->paid_amount ?? 0);
-        $totalFees = (float) $student->course_fees;
-        $downPayment = (float) ($student->down_payment ?? 0);
-
-        $previousInstallmentsPaid = (float) $student->installments()
-            ->where('id', '!=', $installment->id)
-            ->sum('paid_amount');
-
-        $totalPreviousPaid = $previousInstallmentsPaid + $downPayment;
-        $totalPaidAfter = $totalPreviousPaid + $currentPaymentAmount;
-        $balanceAmount = max(0, $totalFees - $totalPaidAfter);
-
-        $centerAddress = trim(implode(', ', array_filter([
-            $center?->address,
-            $center?->state,
-            $center?->country,
-        ])));
-
-        return [
-            'student' => $student,
-            'center' => $center,
-            'courses' => $courses,
-            'currentPaymentAmount' => $currentPaymentAmount,
-            'totalFees' => $totalFees,
-            'totalPreviousPaid' => $totalPreviousPaid,
-            'totalPaidAfter' => $totalPaidAfter,
-            'balanceAmount' => $balanceAmount,
-            'receiptNumber' => 'RCP-' . date('Y') . '-' . str_pad((string) $installment->id, 6, '0', STR_PAD_LEFT),
-            'centerAddress' => $centerAddress,
-            'paymentMethod' => 'cash',
-            'paymentType' => 'full',
-            'amountInWords' => numberToWords($currentPaymentAmount),
-            'studentName' => trim($student->first_name . ' ' . ($student->surname ?? '')),
-            'studentTitle' => 'Mr./Ms./Mrs.',
-            'websiteName' => getWebsiteName(),
-            'paymentDate' => $installment->paid_date ?? now(),
-            'chequeNumber' => null,
-            'withdrawnDate' => null,
-        ];
-    }
-
-    private function buildDownPaymentReceiptData(Student $student): array
-    {
-        $center = $student->center;
-        $courses = $student->courses;
-
-        $currentPaymentAmount = (float) $student->down_payment;
-        $totalFees = (float) $student->course_fees;
-
-        $paidInstallments = (float) $student->installments()->sum('paid_amount');
-        $totalPreviousPaid = 0;
-        $totalPaidAfter = $currentPaymentAmount + $paidInstallments;
-        $balanceAmount = max(0, $totalFees - $totalPaidAfter);
-
-        $centerAddress = trim(implode(', ', array_filter([
-            $center?->address,
-            $center?->state,
-            $center?->country,
-        ])));
-
-        return [
-            'student' => $student,
-            'center' => $center,
-            'courses' => $courses,
-            'currentPaymentAmount' => $currentPaymentAmount,
-            'totalFees' => $totalFees,
-            'totalPreviousPaid' => $totalPreviousPaid,
-            'totalPaidAfter' => $totalPaidAfter,
-            'balanceAmount' => $balanceAmount,
-            'receiptNumber' => 'RCP-DP-' . date('Y') . '-' . str_pad((string) $student->id, 6, '0', STR_PAD_LEFT),
-            'centerAddress' => $centerAddress,
-            'paymentMethod' => 'cash',
-            'paymentType' => 'down payment',
-            'amountInWords' => numberToWords($currentPaymentAmount),
-            'studentName' => trim($student->first_name . ' ' . ($student->surname ?? '')),
-            'studentTitle' => 'Mr./Ms./Mrs.',
-            'websiteName' => getWebsiteName(),
-            'paymentDate' => $student->enrollment_date ?? now(),
-            'chequeNumber' => null,
-            'withdrawnDate' => null,
-        ];
+        return $actor;
     }
 }
