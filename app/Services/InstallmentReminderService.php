@@ -71,7 +71,7 @@ class InstallmentReminderService
 
     /**
      * Check if reminder should be sent for this student based on enrollment date.
-     * Sends reminders at specific intervals after enrollment.
+     * Sends reminder every month when today's day-of-month matches enrollment day.
      *
      * @param Student $student
      * @param int $daysSinceEnrollment
@@ -79,10 +79,19 @@ class InstallmentReminderService
      */
     private function shouldSendReminder(Student $student, int $daysSinceEnrollment): bool
     {
-        // Send reminders at 30, 60, 90 day intervals after enrollment, and every 30 days after
-        $reminderIntervals = [30, 60, 90, 120, 150, 180];
+        if (!$student->enrollment_date) {
+            return false;
+        }
 
-        return in_array($daysSinceEnrollment, $reminderIntervals);
+        $today = Carbon::now();
+        $enrollmentDate = Carbon::parse($student->enrollment_date);
+
+        // Do not send reminder before actual enrollment date.
+        if ($enrollmentDate->gt($today)) {
+            return false;
+        }
+
+        return $enrollmentDate->day === $today->day;
     }
 
     /**

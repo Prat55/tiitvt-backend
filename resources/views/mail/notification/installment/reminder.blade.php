@@ -16,8 +16,9 @@
 
         <div style="margin-bottom: 25px;">
             <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 15px;">
-                This is a friendly reminder that you have an outstanding balance on your course fees.
-                It has been <strong>{{ $daysSinceEnrollment }} days</strong> since your enrollment.
+                This is your monthly fee reminder for your enrollment date.
+                Your course fee payment is pending, and the remaining balance is
+                <strong>₹{{ $remainingBalance }}</strong>.
             </p>
 
             <div style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 20px; border-radius: 6px;">

@@ -129,11 +129,11 @@ class EmailNotificationHelper
 
         switch ($type) {
             case 'installment_reminder':
-                $days = $data['days'] ?? 0;
-                if ($days === 1) {
-                    return $prefix . 'Installment Payment Due Tomorrow';
+                $pendingAmount = $data['remainingBalance'] ?? $data['amount'] ?? null;
+                if ($pendingAmount !== null && $pendingAmount !== '') {
+                    return $prefix . "Fees Pending - ₹{$pendingAmount}";
                 }
-                return $prefix . "Installment Payment Due in {$days} Days";
+                return $prefix . 'Fees Pending';
 
             case 'overdue_notification':
                 $daysOverdue = $data['daysOverdue'] ?? 0;
