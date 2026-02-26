@@ -23,12 +23,6 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__ . '/../routes/api.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->group('api', [
-            'throttle:api',
-            SubstituteBindings::class,
-            ForceJsonResponse::class,
-        ]);
-
         // Apply site access middleware globally
         $middleware->web(append: [
             SiteAccessMiddleware::class,
@@ -41,6 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.auth' => AdminAuthMiddleware::class,
             'site.access' => SiteAccessMiddleware::class,
             'verify.2fa' => Verify2FA::class,
+            'api' => [
+                'throttle:api',
+                SubstituteBindings::class,
+                ForceJsonResponse::class,
+            ],
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
