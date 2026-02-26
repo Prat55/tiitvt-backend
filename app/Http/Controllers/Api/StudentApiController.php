@@ -24,6 +24,7 @@ class StudentApiController extends Controller
                 'email' => $student->email,
                 'mobile' => $student->mobile,
                 'enrollment_date' => optional($student->enrollment_date)?->toDateString(),
+                'date_of_birth' => $student->date_of_birth->format('Y-m-d'),
             ],
         ]);
     }
