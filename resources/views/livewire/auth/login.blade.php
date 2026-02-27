@@ -1,12 +1,11 @@
 <?php
 
 use Mary\Traits\Toast;
+use Illuminate\Support\Str;
 use Livewire\Volt\Component;
-use Livewire\Attributes\Rule;
-use Livewire\Attributes\Title;
-use Livewire\Attributes\Layout;
-use Illuminate\Support\Facades\Auth;
-use App\Services\SsoService;
+use Livewire\Attributes\{Rule, Title, Layout};
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\{Auth, RateLimiter};
 
 new class extends Component {
     use Toast;
@@ -31,13 +30,45 @@ new class extends Component {
     {
         $credentials = $this->validate();
 
+        $key = Str::lower($this->email) . '|' . request()->ip();
+
+        // Check if too many attempts
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            $minutes = floor($seconds / 60);
+            $remainingSeconds = $seconds % 60;
+
+            $time = '';
+
+            if ($minutes > 0) {
+                $time .= $minutes . ' minute' . ($minutes > 1 ? 's' : '');
+            }
+
+            if ($remainingSeconds > 0) {
+                if ($minutes > 0) {
+                    $time .= ' and ';
+                }
+                $time .= $remainingSeconds . ' second' . ($remainingSeconds > 1 ? 's' : '');
+            }
+
+            throw ValidationException::withMessages([
+                'email' => "Too many login attempts. Please try again in {$time}.",
+            ]);
+        }
+
         if (auth()->attempt($credentials, $this->remember)) {
+            RateLimiter::clear($key); // Reset attempts on success
+
             request()->session()->regenerate();
 
             $user = auth()->user();
             $welcomeMessage = 'Welcome again ' . $user->name;
+
             $this->success($welcomeMessage, redirectTo: route('admin.index'));
         } else {
+            RateLimiter::hit($key, 300); // 300 seconds = 5 minutes
+
             $this->addError('email', 'The provided credentials do not match our records.');
         }
     }
