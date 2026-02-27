@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AuthApiController extends Controller
 {
@@ -19,6 +20,18 @@ class AuthApiController extends Controller
             'role' => ['nullable', 'in:student,center'],
         ]);
 
+        $email = strtolower((string) $credentials['email']);
+        $throttleKey = $this->loginThrottleKey($request, $email);
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            return response()->json([
+                'message' => 'Too many failed login attempts. Try again later.',
+                'retry_after_seconds' => $seconds,
+            ], 429);
+        }
+
         $role = $credentials['role'] ?? null;
         $centerLoginEnabled = filter_var(env('ENABLE_CENTER_API_LOGIN', false), FILTER_VALIDATE_BOOLEAN);
 
@@ -29,24 +42,44 @@ class AuthApiController extends Controller
                 ], 403);
             }
 
-            return $this->attemptCenterLogin($credentials['email'], $credentials['password']);
+            $response = $this->attemptCenterLogin($credentials['email'], $credentials['password']);
+
+            if ($response->getStatusCode() === 401) {
+                RateLimiter::hit($throttleKey, 300);
+            } else {
+                RateLimiter::clear($throttleKey);
+            }
+
+            return $response;
         }
 
         if ($role === 'student') {
-            return $this->attemptStudentLogin($credentials['email'], $credentials['password']);
+            $response = $this->attemptStudentLogin($credentials['email'], $credentials['password']);
+
+            if ($response->getStatusCode() === 401) {
+                RateLimiter::hit($throttleKey, 300);
+            } else {
+                RateLimiter::clear($throttleKey);
+            }
+
+            return $response;
         }
 
         if ($centerLoginEnabled) {
             $centerResponse = $this->attemptCenterLogin($credentials['email'], $credentials['password'], false);
             if ($centerResponse instanceof JsonResponse) {
+                RateLimiter::clear($throttleKey);
                 return $centerResponse;
             }
         }
 
         $studentResponse = $this->attemptStudentLogin($credentials['email'], $credentials['password'], false);
         if ($studentResponse instanceof JsonResponse) {
+            RateLimiter::clear($throttleKey);
             return $studentResponse;
         }
+
+        RateLimiter::hit($throttleKey, 300);
 
         return response()->json([
             'message' => 'Invalid credentials.',
@@ -144,5 +177,10 @@ class AuthApiController extends Controller
         $authenticatable->tokens()
             ->whereIn('id', $tokenIdsToDelete)
             ->delete();
+    }
+
+    private function loginThrottleKey(Request $request, string $email): string
+    {
+        return 'api-login:' . $request->ip() . '|' . $email;
     }
 }

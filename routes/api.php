@@ -8,10 +8,13 @@ use Illuminate\Support\Facades\Route;
 
 // Access control trigger endpoint (bypasses site access middleware)
 Route::post('/access-control/trigger', [AccessControlController::class, 'trigger'])
+    ->middleware('throttle:api-auth')
     ->name('api.access-control.trigger');
 
 Route::prefix('auth')->name('api.auth.')->group(function () {
-    Route::post('/login', [AuthApiController::class, 'login'])->name('login');
+    Route::post('/login', [AuthApiController::class, 'login'])
+        ->middleware('throttle:api-auth')
+        ->name('login');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthApiController::class, 'logout'])->name('logout');
@@ -20,7 +23,9 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
 
 Route::prefix('student')->name('api.student.')->group(function () {
     // Backward compatible student-only login
-    Route::post('/login', [AuthApiController::class, 'studentLogin'])->name('login');
+    Route::post('/login', [AuthApiController::class, 'studentLogin'])
+        ->middleware('throttle:api-auth')
+        ->name('login');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthApiController::class, 'logout'])->name('logout');

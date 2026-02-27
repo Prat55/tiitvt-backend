@@ -22,6 +22,7 @@ class Course extends Model
         'mrp',
         'price',
         'rating',
+        'lectures',
         'is_active',
         'auto_certificate',
         'passing_percentage',
@@ -30,6 +31,7 @@ class Course extends Model
     protected $casts = [
         'mrp' => 'decimal:2',
         'price' => 'decimal:2',
+        'lectures' => 'array',
         'is_active' => 'boolean',
         'auto_certificate' => 'boolean',
         'passing_percentage' => 'integer',

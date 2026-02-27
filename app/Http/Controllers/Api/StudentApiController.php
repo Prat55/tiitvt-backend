@@ -34,22 +34,39 @@ class StudentApiController extends Controller
         $student = $this->resolveStudent($request);
 
         $courses = $student->courses()
-            ->select('courses.id', 'courses.name', 'courses.slug', 'courses.duration', 'courses.price')
+            ->select('courses.id', 'courses.name', 'courses.slug', 'courses.duration', 'courses.price', 'courses.lectures')
             ->withPivot(['course_taken', 'batch_time', 'enrollment_date'])
             ->get()
             ->map(function ($course) {
-                $lectureUrl = $course->pivot->course_taken;
+                $lectures = collect($course->lectures ?? [])
+                    ->map(function ($lecture, int $index) {
+                        if (!is_array($lecture)) {
+                            return null;
+                        }
+
+                        $title = trim((string) ($lecture['title'] ?? ''));
+                        $url = trim((string) ($lecture['url'] ?? ''));
+
+                        if ($title === '' || $url === '') {
+                            return null;
+                        }
+
+                        return [
+                            'order' => $index + 1,
+                            'title' => $title,
+                            'url' => $url,
+                            'open_url' => $url,
+                        ];
+                    })
+                    ->filter()
+                    ->values();
 
                 return [
                     'id' => $course->id,
                     'name' => $course->name,
                     'slug' => $course->slug,
-                    'duration' => $course->duration,
-                    'price' => (float) $course->price,
-                    'enrollment_date' => optional($course->pivot->enrollment_date)?->toDateString(),
                     'batch_time' => $course->pivot->batch_time,
-                    'lecture_url' => $lectureUrl,
-                    'open_lecture_url' => $lectureUrl,
+                    'lectures' => $lectures,
                 ];
             })
             ->values();
