@@ -34,9 +34,302 @@
     <link href="{{ asset('frontend/style.css') }}" rel="stylesheet">
     <!-- ========== End Stylesheet ========== -->
     @stack('cdn')
+
+    <style>
+        :root {
+            --gov-india-saffron: #ff9933;
+            --gov-india-green: #138808;
+            --gov-india-navy: #0b3d91;
+            --gov-surface: #ffffff;
+            --gov-page-bg: #f4f7fb;
+            --gov-text: #1f2a37;
+        }
+
+        body.gov-ui-theme {
+            background: var(--gov-page-bg);
+            color: var(--gov-text);
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        }
+
+        .gov-ui-theme .top-bar-area.top-bar-style-one {
+            background: var(--gov-india-navy) !important;
+            border-top: 3px solid var(--gov-india-saffron);
+            border-bottom: 3px solid var(--gov-india-green);
+        }
+
+        .gov-ui-theme .top-bar-area ul li a {
+            color: #ffffff !important;
+            font-size: 13px;
+            letter-spacing: 0.2px;
+        }
+
+        .gov-ui-theme nav.navbar {
+            background: var(--gov-surface) !important;
+            border-bottom: 1px solid #d7e0ee;
+            box-shadow: none;
+        }
+
+        .gov-ui-theme .navbar.navbar-sticky::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gov-india-saffron);
+        }
+
+        .gov-ui-theme .navbar-brand img.logo,
+        .gov-ui-theme .navbar .navbar-brand img {
+            max-height: 62px;
+            width: auto;
+        }
+
+        .gov-ui-theme nav.navbar .container {
+            min-height: 86px;
+            gap: 18px;
+            align-items: center;
+        }
+
+        .gov-ui-theme nav.navbar .item-flex {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .gov-ui-theme nav.navbar .navbar-header {
+            margin-right: 0;
+            flex-shrink: 0;
+        }
+
+        .gov-ui-theme nav.navbar .navbar-brand {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .gov-ui-theme nav.navbar .search-form {
+            flex: 1 1 340px;
+            max-width: 460px;
+            margin: 0;
+        }
+
+        .gov-ui-theme nav.navbar .search-form .form-control {
+            height: 42px;
+            font-size: 14px;
+            padding-left: 14px;
+        }
+
+        .gov-ui-theme nav.navbar .search-form button {
+            min-width: 44px;
+            height: 42px;
+        }
+
+        .gov-ui-theme nav.navbar .nav-item-box {
+            gap: 18px;
+            margin-left: auto;
+            flex: 0 0 auto;
+        }
+
+        .gov-ui-theme nav.navbar .navbar-collapse {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .gov-ui-theme .navbar .nav>li>a {
+            line-height: 1.2;
+        }
+
+        .gov-ui-theme nav.navbar .attr-nav>ul>li>a {
+            padding: 0;
+        }
+
+        .gov-ui-theme .navbar .nav>li>a {
+            color: var(--gov-india-navy) !important;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            font-size: 13px;
+        }
+
+        .gov-ui-theme .navbar .nav>li>a:hover,
+        .gov-ui-theme .navbar .nav>li.active>a {
+            color: var(--gov-india-saffron) !important;
+        }
+
+        .gov-ui-theme .search-form .form-control {
+            border: 1px solid #c8d3e3;
+            border-radius: 2px;
+            background: #ffffff;
+        }
+
+        .gov-ui-theme .search-form button {
+            background: var(--gov-india-navy);
+            color: #ffffff;
+        }
+
+        .gov-ui-theme .attr-nav .menu-icon span {
+            background-color: var(--gov-india-navy);
+        }
+
+        .gov-ui-theme .gov-main-wrapper {
+            background: var(--gov-surface);
+        }
+
+        .gov-ui-theme footer.footer-style-one {
+            background: #0e2d61 !important;
+            border-top: 4px solid var(--gov-india-saffron);
+            position: relative;
+        }
+
+        .gov-ui-theme footer.footer-style-one::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 4px;
+            background: var(--gov-india-green);
+        }
+
+        .gov-ui-theme .footer-style-one .f-item p,
+        .gov-ui-theme .footer-style-one .f-item a,
+        .gov-ui-theme .footer-style-one .widget-title,
+        .gov-ui-theme .footer-style-one h5 a {
+            color: #f5f8ff !important;
+        }
+
+        .gov-ui-theme .footer-style-one .f-item a:hover,
+        .gov-ui-theme .footer-style-one .link-list li a:hover {
+            color: var(--gov-india-saffron) !important;
+        }
+
+        .gov-ui-theme .footer-bottom.style-one {
+            background: #0a2148;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .gov-ui-theme .footer-social li a,
+        .gov-ui-theme .widget.social .link li a {
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: transparent;
+        }
+
+        .gov-ui-theme .footer-social li a:hover,
+        .gov-ui-theme .widget.social .link li a:hover {
+            background: var(--gov-india-saffron);
+            border-color: var(--gov-india-saffron);
+            color: #102a43;
+        }
+
+        @media (max-width: 1199px) {
+            .gov-ui-theme nav.navbar .container {
+                min-height: 78px;
+            }
+
+            .gov-ui-theme nav.navbar .search-form {
+                max-width: 340px;
+            }
+
+            .gov-ui-theme .navbar .nav>li>a {
+                padding: 24px 10px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 991px) {
+            .gov-ui-theme nav.navbar .container {
+                min-height: 72px;
+                gap: 10px;
+            }
+
+            .gov-ui-theme nav.navbar .item-flex {
+                gap: 10px;
+            }
+
+            .gov-ui-theme nav.navbar .search-form {
+                flex: 1 1 auto;
+                max-width: 250px;
+            }
+
+            .gov-ui-theme .navbar-brand img.logo,
+            .gov-ui-theme .navbar .navbar-brand img {
+                max-height: 56px;
+            }
+
+            .gov-ui-theme nav.navbar .nav-item-box {
+                gap: 10px;
+            }
+
+            .gov-ui-theme nav.navbar .nav.navbar-nav {
+                display: block;
+            }
+
+            .gov-ui-theme nav.navbar .nav.navbar-nav>li {
+                display: block;
+                width: 100%;
+            }
+
+            .gov-ui-theme nav.navbar .nav.navbar-nav>li>a {
+                padding: 12px 18px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .gov-ui-theme nav.navbar .search-form {
+                display: none;
+            }
+
+            .gov-ui-theme nav.navbar .container {
+                min-height: 68px;
+            }
+
+            .gov-ui-theme .navbar-brand img.logo,
+            .gov-ui-theme .navbar .navbar-brand img {
+                max-height: 50px;
+            }
+        }
+
+        @media (min-width: 992px) {
+            .gov-ui-theme nav.navbar .nav-item-box {
+                display: flex;
+                align-items: center;
+            }
+
+            .gov-ui-theme nav.navbar .navbar-collapse.collapse {
+                display: block !important;
+                height: auto !important;
+                padding-bottom: 0;
+                overflow: visible !important;
+            }
+
+            .gov-ui-theme nav.navbar .nav.navbar-nav {
+                display: flex;
+                flex-direction: row !important;
+                align-items: center;
+                flex-wrap: nowrap;
+                gap: 2px;
+                margin: 0;
+                float: none !important;
+            }
+
+            .gov-ui-theme nav.navbar .nav.navbar-nav>li {
+                display: inline-block !important;
+                float: none !important;
+            }
+
+            .gov-ui-theme nav.navbar .nav.navbar-nav>li>a {
+                padding: 30px 12px;
+                display: inline-block;
+            }
+        }
+    </style>
 </head>
 
-<body>
+<body class="gov-ui-theme">
     <!-- Start Preloader
     ============================================= -->
     <div id="preloader">
@@ -122,7 +415,7 @@
 
     @include('frontend.layouts.header')
 
-    <div>
+    <div class="gov-main-wrapper">
         @yield('content')
     </div>
 

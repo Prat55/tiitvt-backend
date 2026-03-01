@@ -109,6 +109,14 @@ class Course extends Model
     }
 
     /**
+     * Get the course inquiries.
+     */
+    public function inquiries(): HasMany
+    {
+        return $this->hasMany(\App\Models\CourseInquiry::class);
+    }
+
+    /**
      * Scope to get only active courses.
      */
     public function scopeActive($query)

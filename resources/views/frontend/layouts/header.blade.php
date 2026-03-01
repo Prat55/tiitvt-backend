@@ -1,5 +1,8 @@
  <!-- Header -->
  <header>
+     @php
+         $headerLogo = $websiteSettings->getLogoUrl() ?: asset('default/tiitvt_logo.svg');
+     @endphp
      <form id="logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
          @csrf
      </form>
@@ -15,15 +18,9 @@
                          <i class="fa fa-bars"></i>
                      </button>
                      <a class="navbar-brand" href="{{ route('frontend.index') }}">
-                         <img src="{{ asset('default/tiitvt_logo.svg') }}" class="logo" alt="Logo">
+                         <img src="{{ $headerLogo }}" class="logo" alt="Logo">
                      </a>
                  </div>
-                 <form class="search-form" action="#">
-                     <input type="text" placeholder="Search" class="form-control" name="text">
-                     <button type="submit">
-                         <i class="fa fa-search"></i>
-                     </button>
-                 </form>
              </div>
              <!-- End Header Navigation -->
 
@@ -31,7 +28,7 @@
                  <!-- Collect the nav links, forms, and other content for toggling -->
                  <div class="collapse navbar-collapse" id="navbar-menu">
 
-                     <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo">
+                     <img src="{{ $headerLogo }}" alt="Logo">
                      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-menu">
                          <i class="fa fa-times"></i>
                      </button>
@@ -39,7 +36,7 @@
                      <ul class="nav navbar-nav navbar-right" data-in="fadeInDown" data-out="fadeOutUp">
                          <li><a href="{{ route('frontend.index') }}">Home</a></li>
                          <li><a href="{{ route('frontend.about') }}">About</a></li>
-                         <li><a href="{{ route('frontend.index') }}#courses">Courses</a></li>
+                         <li><a href="{{ route('frontend.courses.index') }}">Courses</a></li>
                          <li><a href="{{ route('frontend.contact') }}">Contact</a></li>
                          @guest
                              <li><a href="{{ route('login') }}">Login</a></li>
@@ -82,7 +79,7 @@
                  <a href="#" class="close-side"><i class="fas fa-times"></i></a>
                  <div class="widget">
                      <div class="logo">
-                         <img src="{{ asset('default/tiitvt_logo.svg') }}" alt="Logo">
+                         <img src="{{ $headerLogo }}" alt="Logo">
                      </div>
                      <p>
                          With a strong vision to make technical and vocational training accessible to all, TIITVT not
@@ -113,19 +110,6 @@
                              </li>
                          </ul>
                      </div>
-                 </div>
-                 <div class="widget newsletter">
-                     <h4 class="title">Get Subscribed!</h4>
-                     <form action="#">
-                         <div class="input-group stylish-input-group">
-                             <input type="email" placeholder="Enter your e-mail" class="form-control" name="email">
-                             <span class="input-group-addon">
-                                 <button type="submit">
-                                     <i class="fa fa-long-arrow-right"></i>
-                                 </button>
-                             </span>
-                         </div>
-                     </form>
                  </div>
                  <div class="widget social">
                      <ul class="link">

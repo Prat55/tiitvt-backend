@@ -50,6 +50,10 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
                 Volt::route('/{course}/edit', 'backend.course.edit')->name('edit');
             });
 
+            Route::prefix('inquiry')->name('inquiry.')->group(function () {
+                Volt::route('/', 'backend.inquiry.index')->name('index');
+            });
+
             Route::prefix('question')->name('question.')->group(function () {
                 Volt::route('/', 'backend.question.index')->name('index');
                 Volt::route('/create', 'backend.question.create')->name('create');
@@ -68,6 +72,10 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
 
             Route::prefix('testimonial')->name('testimonial.')->group(function () {
                 Volt::route('/', 'backend.testimonial.index')->name('index');
+            });
+
+            Route::prefix('hero-slider')->name('hero-slider.')->group(function () {
+                Volt::route('/', 'backend.hero-slider.index')->name('index');
             });
 
             // Backup routes (admin only)

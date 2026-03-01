@@ -4,18 +4,37 @@ namespace App\Http\Controllers\frontend;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\{Category, ContactForm, Course, Testimonial, Blog};
+use App\Models\{Category, ContactForm, Course, Testimonial, Blog, HeroSlider};
 
 class PageController extends Controller
 {
     public function index()
     {
-        $categories = Category::active()->latest()->take(10)->get();
-        $courses = Course::active()->latest()->take(10)->get();
+        $heroSliders = HeroSlider::active()->orderBy('sort_order')->latest()->get();
+        $categories = Category::active()->withCount('courses')->orderByDesc('courses_count')->take(10)->get();
+        $courses = Course::active()->withCount('students')->orderByDesc('students_count')->take(10)->get();
         $testimonials = Testimonial::active()->latest()->take(10)->get();
         $blogs = Blog::active()->latest()->take(10)->get();
 
-        return view('frontend.index', compact('categories', 'courses', 'testimonials', 'blogs'));
+        return view('frontend.index', compact('heroSliders', 'categories', 'courses', 'testimonials', 'blogs'));
+    }
+
+    public function coursesIndex(Request $request)
+    {
+        $query = Course::active()->with('categories')->withCount('students');
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', "%{$request->search}%");
+        }
+
+        if ($request->filled('category')) {
+            $query->whereHas('categories', fn($q) => $q->where('categories.id', $request->category));
+        }
+
+        $courses    = $query->orderByDesc('students_count')->paginate(12);
+        $categories = Category::active()->withCount('courses')->orderByDesc('courses_count')->get();
+
+        return view('frontend.courses.index', compact('courses', 'categories'));
     }
 
     public function about()

@@ -2,47 +2,81 @@
 @section('title', 'Home')
 @section('content')
     <!-- Start Banner Area -->
-    <div class="banner-style-nine-area bg-cover"
-        style="background-image: url({{ asset('frontend/img/shape/banner-7.jpg') }});">
-        <div class="container">
-            <div class="banner-style-nine-items">
-                <div class="row align-items-center">
-                    <div class="col-lg-7 pr-60 pr-md-15 pr-xs-15">
-                        <div class="info">
-                            <h4>
-                                <img src="{{ asset('frontend/img/shape/91.png') }}" alt="Image Not Found">
-                                Discover 50+ World-Class Courses
-                            </h4>
-                            <h2>Learn <strong>Smarter</strong> Achieve knowledge</h2>
-                            <p>
-                                Expand your knowledge and open doors to exciting careers with our online education
-                                platform.
-                            </p>
-                            <a class="btn btn-md btn-gradient animation" href="###">
-                                Explore Course
-                            </a>
-                        </div>
-                    </div>
-                    <div class="col-lg-5">
-                        <div class="thumb">
-                            <img src="{{ asset('frontend/img/illustration/1.png') }}" alt="Image Not Found">
-                            <img src="{{ asset('frontend/img/shape/92.png') }}" alt="Image Not Found">
-                            <div class="card-style-seven">
-                                <h2>4.9</h2>
-                                <div class="content">
-                                    <div class="icon">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star-half-alt"></i>
+    <div class="banner-style-nine-area">
+        <div class="container-fluid p-0">
+            <div class="banner-style-nine-items hero-gov-slider swiper">
+                <div class="swiper-wrapper">
+                    @forelse ($heroSliders as $slider)
+                        <div class="swiper-slide">
+                            <div class="hero-slide-item" style="background-image: url('{{ asset($slider->image) }}');">
+                                <div class="slide-content-wrap">
+                                    <div class="container">
+                                        <div class="row">
+                                            <div class="col-lg-8 col-md-10">
+                                                <div class="info">
+                                                    @if ($slider->subtitle)
+                                                        <div class="badge-tag">
+                                                            <img src="{{ asset('frontend/img/shape/91.png') }}"
+                                                                alt="">
+                                                            {{ $slider->subtitle }}
+                                                        </div>
+                                                    @endif
+                                                    <h2>{{ $slider->title }}</h2>
+                                                    @if ($slider->description ?? null)
+                                                        <p>{{ $slider->description }}</p>
+                                                    @endif
+                                                    <div>
+                                                        @if ($slider->link)
+                                                            <a class="btn-gov" href="{{ $slider->link }}">
+                                                                Explore Courses <i class="fas fa-arrow-right"></i>
+                                                            </a>
+                                                        @endif
+                                                        <a class="btn-gov-outline" href="{{ route('frontend.about') }}">
+                                                            Learn More
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <h4>Instructor Rating</h4>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    @empty
+                        <div class="swiper-slide">
+                            <div class="hero-slide-item"
+                                style="background-image: url('{{ asset('frontend/img/shape/banner-7.jpg') }}');">
+                                <div class="slide-content-wrap">
+                                    <div class="container">
+                                        <div class="row">
+                                            <div class="col-lg-8 col-md-10">
+                                                <div class="info">
+                                                    <div class="badge-tag">
+                                                        <img src="{{ asset('frontend/img/shape/91.png') }}" alt="">
+                                                        Skill-Based Vocational Training
+                                                    </div>
+                                                    <h2>Learn <strong style="color:#FFB347;">Smarter</strong>, Achieve More
+                                                        with TIITVT</h2>
+                                                    <p>Empowering students with skill-based education and vocational
+                                                        training to build successful careers across India.</p>
+                                                    <div>
+                                                        <a class="btn-gov" href="#courses">
+                                                            Explore Courses <i class="fas fa-arrow-right"></i>
+                                                        </a>
+                                                        <a class="btn-gov-outline" href="{{ route('frontend.about') }}">
+                                                            Learn More
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforelse
                 </div>
+                <div class="hero-gov-pagination"></div>
             </div>
         </div>
     </div>
@@ -162,8 +196,20 @@
                                             <div class="swiper-slide">
                                                 <div class="course-style-one-item hover-less style-two">
                                                     <div class="thumb">
-                                                        <img src="{{ $course->image ? asset('storage/' . $course->image) : 'https://placehold.co/600x350' }}"
-                                                            alt="{{ $course->name }}">
+                                                        @if ($course->image)
+                                                            <img src="{{ Storage::url($course->image) }}"
+                                                                alt="{{ $course->name }}"
+                                                                style="width:100%; height:180px; object-fit:cover; display:block;">
+                                                        @else
+                                                            <div
+                                                                style="width:100%; height:180px; background:linear-gradient(135deg,#0b3d91,#1a5fba);
+                                                    display:flex; align-items:center; justify-content:center;">
+                                                                <i class="fas fa-graduation-cap"
+                                                                    style="font-size:48px; color:rgba(255,255,255,0.4);"></i>
+                                                            </div>
+                                                        @endif
+                                                        {{-- <img src="{{ $course->image ? asset('storage/' . $course->image) : 'https://placehold.co/600x350' }}"
+                                                            alt="{{ $course->name }}"> --}}
                                                     </div>
 
                                                     <div class="top-meta">
@@ -202,13 +248,9 @@
                                                     </div>
 
                                                     <div class="course-bottom-meta">
-                                                        <h2 class="price">
-                                                            <del>{{ $course->mrp }}</del>
-                                                            {{ $course->price }}
-                                                        </h2>
-
-                                                        <a href="">
-                                                            <i class="fas fa-shopping-cart"></i> Enroll Now
+                                                        <a href="#"
+                                                            onclick="event.preventDefault(); enquireFor({{ $course->id }}, '{{ addslashes($course->name) }}')">
+                                                            <i class="fas fa-paper-plane"></i> Enquire Now
                                                         </a>
                                                     </div>
                                                 </div>
@@ -417,31 +459,98 @@
         <!-- End Blog -->
     @endif
 
-    <!-- Start Newsletter -->
-    <div class="newsletter-area default-padding-bottom bg-gray-gradient-secondary">
+    {{-- Course Inquiry Section --}}
+    <div class="about-style-one-area default-padding" style="background:#f4f6fb;">
         <div class="container">
-            <div class="newsletter-style-one-items bg-theme text-center bg-cover"
-                style="background-image: url({{ asset('frontend/img/shape/banner-8.jpg') }});">
-                <div class="shape">
-                    <img src="{{ asset('frontend/img/illustration/9.png') }}" alt="Image Not Found">
-                    <img src="{{ asset('frontend/img/shape/48.png') }}" alt="Image Not Found">
+            <div class="row align-items-center">
+                {{-- Left: Image --}}
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <div class="thumb-style-two">
+                        <img class="wow fadeInUp" src="{{ asset('frontend/img/thumb/4.jpg') }}" alt="Course Inquiry"
+                            style="border-radius:8px; width:100%;">
+                        <div class="shape">
+                            <img src="{{ asset('frontend/img/shape/35.png') }}" alt="">
+                        </div>
+                    </div>
                 </div>
-                <div class="row">
-                    <div class="col-xl-8 offset-xl-2 col-lg-10 offset-lg-1">
-                        <h2 class="title split-text">Subscribe to our newsletter, We don't make any spam.</h2>
-                        <ul class="list-check">
-                            <li>Easy to Access</li>
-                            <li>No Credit card</li>
-                            <li>10M student onboard with us</li>
-                        </ul>
-                        <form action="#">
-                            <input type="email" placeholder="Your Email" class="form-control" name="email">
-                            <button type="submit">Subscribe</button>
-                        </form>
+                {{-- Right: Form --}}
+                <div class="col-lg-6 pl-80 pl-md-15 pl-xs-15">
+                    <div class="about-style-one-info">
+                        <h4 class="sub-title">Get in Touch</h4>
+                        <h2 class="title split-text" style="margin-bottom:8px;">Enquire About a Course</h2>
+                        <p style="color:#5a6a7a; margin-bottom:24px;">Fill in the form below and our team will get back to
+                            you with all the details about the course you are interested in.</p>
+                        @livewire('frontend.course-inquiry-modal', key('home-inquiry'))
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- End Newsletter -->
+
+    {{-- Inquiry Modal Shell (for carousel Enquire Now buttons) --}}
+    <div class="modal fade" id="inquiryModal" tabindex="-1" aria-labelledby="inquiryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-top: 4px solid #FF9933; border-radius: 8px;">
+                <div class="modal-header" style="background: #f4f6fb; border-bottom: 1px solid #dce3ef;">
+                    <div>
+                        <h5 class="modal-title mb-0" id="inquiryModalLabel" style="color: #0b3d91; font-weight: 700;">
+                            <i class="fas fa-paper-plane me-2" style="color: #FF9933;"></i> Enquire Now
+                        </h5>
+                        <small id="inquiryModalCourseName" style="color:#5a6a7a;"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    @livewire('frontend.course-inquiry-modal', key('modal-inquiry'))
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('livewire:init', function() {
+            window.enquireFor = function(courseId, courseName) {
+                document.getElementById('inquiryModalCourseName').textContent = courseName;
+                // Set course on the modal's dedicated Livewire instance
+                var components = Livewire.getByName('frontend.course-inquiry-modal');
+                // The modal instance is keyed 'modal-inquiry' — pick the correct one
+                components.forEach(function(c) {
+                    if (c.el.closest('#inquiryModal')) {
+                        c.setCourse(courseId, courseName);
+                    }
+                });
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('inquiryModal')).show();
+            };
+        });
+    </script>
+
+@endsection
+
+@section('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const heroSlider = document.querySelector('.hero-gov-slider');
+
+            if (!heroSlider || typeof Swiper === 'undefined') {
+                return;
+            }
+
+            const heroSlidesCount = heroSlider.querySelectorAll('.swiper-slide').length;
+
+            new Swiper('.hero-gov-slider', {
+                loop: heroSlidesCount > 1,
+                slidesPerView: 1,
+                spaceBetween: 0,
+                speed: 700,
+                autoplay: heroSlidesCount > 1 ? {
+                    delay: 4000,
+                    disableOnInteraction: false,
+                } : false,
+                pagination: {
+                    el: '.hero-gov-pagination',
+                    clickable: true,
+                },
+            });
+        });
+    </script>
 @endsection

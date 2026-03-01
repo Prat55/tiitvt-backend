@@ -11,6 +11,7 @@ Route::name('frontend.')->group(function () {
     Route::post('/contact', [PageController::class, 'contact_submit'])->name('contact_submit');
     Route::get('/blog', [PageController::class, 'blogIndex'])->name('blog.index');
     Route::get('/blog/{slug}', [PageController::class, 'blogShow'])->name('blog.show');
+    Route::get('/courses', [PageController::class, 'coursesIndex'])->name('courses.index');
 
     // Exam routes
     Route::prefix('exam')->name('exam.')->group(function () {
