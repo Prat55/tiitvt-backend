@@ -118,6 +118,10 @@
                     <x-menu-item title="Backup Files" icon="o-arrow-down-tray"
                         link="{{ route('admin.backup.index') }}" />
                 @endrole
+
+                <div class="divider divider-start my-1"><small>Main Website</small></div>
+                <x-menu-item title="Visit Website" icon="o-globe-alt" link="{{ route('frontend.index') }}" external
+                    class="text-primary" />
             </x-menu>
         </x-slot:sidebar>
 

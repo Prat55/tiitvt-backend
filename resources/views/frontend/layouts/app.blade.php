@@ -371,29 +371,33 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
-                    <ul class="item-flex justify-content-end">
-                        <li>
-                            <a href="tel:{{ $websiteSettings->getSettings()?->primary_phone ?? '' }}">
-                                <img src="{{ asset('frontend/img/icon/2.png') }}" alt="Icon">
-                                Phone: {{ $websiteSettings->getSettings()?->primary_phone ?? 'Not Available' }}
-                            </a>
-                        </li>
-                        <li>
-                            <a href="mailto:{{ $websiteSettings->getSettings()?->primary_email ?? '' }}">
-                                <img src="{{ asset('frontend/img/icon/3.png') }}" alt="Icon">
-                                Email: {{ $websiteSettings->getSettings()?->primary_email ?? 'Not Available' }}
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('student.certificate.verify') }}">
-                                Verify Certificate
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('frontend.exam.login') }}">
-                                Exam Login
-                            </a>
-                        </li>
+                    <ul class="item-flex justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <li>
+                                <a href="tel:{{ $websiteSettings->getSettings()?->primary_phone ?? '' }}">
+                                    <img src="{{ asset('frontend/img/icon/2.png') }}" alt="Icon">
+                                    Phone: {{ $websiteSettings->getSettings()?->primary_phone ?? 'Not Available' }}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="mailto:{{ $websiteSettings->getSettings()?->primary_email ?? '' }}">
+                                    <img src="{{ asset('frontend/img/icon/3.png') }}" alt="Icon">
+                                    Email: {{ $websiteSettings->getSettings()?->primary_email ?? 'Not Available' }}
+                                </a>
+                            </li>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <li>
+                                <a href="{{ route('student.certificate.verify') }}">
+                                    Verify Certificate
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('frontend.exam.login') }}">
+                                    Exam Login
+                                </a>
+                            </li>
+                        </div>
                     </ul>
                 </div>
             </div>
