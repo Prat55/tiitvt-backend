@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use App\Jobs\SendBirthdayWishesJob;
 use App\Models\WebsiteSetting;
 
 // Payment reminders - daily at 9:00 AM (enrollment-date-based)
@@ -29,5 +28,6 @@ Artisan::command('schedule:daily-backup', function () {
 })->purpose('Schedule daily database backup')->dailyAt('05:30');
 
 // Birthday wishes - daily at 8:30 AM
-Schedule::job(new SendBirthdayWishesJob())
-    ->dailyAt('08:30');
+Schedule::command('students:send-birthday-wishes')
+    ->dailyAt('08:30')
+    ->appendOutputTo(storage_path('logs/birthday-wishes.log'));

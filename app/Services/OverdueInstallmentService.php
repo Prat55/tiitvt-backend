@@ -74,7 +74,7 @@ class OverdueInstallmentService
             $totalPaid = ($student->down_payment ?? 0) +
                 $student->installments->where('status', InstallmentStatusEnum::Paid)->sum('paid_amount');
             $remainingBalance = max(0, $student->course_fees - $totalPaid);
-            $daysSinceEnrollment = Carbon::parse($student->enrollment_date)->diffInDays(Carbon::now());
+            $daysSinceEnrollment = (int) Carbon::parse($student->enrollment_date)->diffInDays(Carbon::now());
 
             $data = [
                 'student' => $student,

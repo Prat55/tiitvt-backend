@@ -4,7 +4,10 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use App\Mail\DatabaseBackupMail;
+use App\Models\WebsiteSetting;
 use Carbon\Carbon;
 
 class DatabaseBackupNative extends Command
@@ -130,6 +133,30 @@ class DatabaseBackupNative extends Command
 
             // Clean old backups (keep last configured days)
             $this->cleanOldBackups($backupPath);
+
+            // Zip the backup and email it to the configured backup address
+            try {
+                $zipFilename = pathinfo($filename, PATHINFO_FILENAME) . '.zip';
+                $zipPath = $backupPath . '/' . $zipFilename;
+
+                $zip = new \ZipArchive();
+                if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
+                    $zip->addFile($fullPath, basename($fullPath));
+                    $zip->close();
+
+                    $backupEmail = WebsiteSetting::first()?->backup_mail;
+                    if ($backupEmail && trim($backupEmail) !== '') {
+                        Mail::to($backupEmail)->send(new DatabaseBackupMail($zipPath, $zipFilename));
+                        $this->info("Backup emailed to {$backupEmail}");
+                    } else {
+                        $this->warn('No backup_mail configured in website settings. Skipping email.');
+                    }
+                } else {
+                    $this->error('Failed to create zip archive for backup email.');
+                }
+            } catch (\Exception $e) {
+                $this->error('Failed to email backup: ' . $e->getMessage());
+            }
         } catch (\Exception $e) {
             $this->error("Backup failed: " . $e->getMessage());
             return 1;
