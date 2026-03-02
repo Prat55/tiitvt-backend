@@ -45,30 +45,151 @@
                     @empty
                         <div class="swiper-slide">
                             <div class="hero-slide-item"
-                                style="background-image: url('{{ asset('frontend/img/shape/banner-7.jpg') }}');">
-                                <div class="slide-content-wrap">
-                                    <div class="container">
-                                        <div class="row">
-                                            <div class="col-lg-8 col-md-10">
-                                                <div class="info">
-                                                    <div class="badge-tag">
-                                                        <img src="{{ asset('frontend/img/shape/91.png') }}" alt="">
-                                                        Skill-Based Vocational Training
-                                                    </div>
-                                                    <h2>Learn <strong style="color:#FFB347;">Smarter</strong>, Achieve More
-                                                        with TIITVT</h2>
-                                                    <p>Empowering students with skill-based education and vocational
-                                                        training to build successful careers across India.</p>
-                                                    <div>
-                                                        <a class="btn-gov" href="#courses">
-                                                            Explore Courses <i class="fas fa-arrow-right"></i>
-                                                        </a>
-                                                        <a class="btn-gov-outline" href="{{ route('frontend.about') }}">
-                                                            Learn More
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                style="min-height: 100vh; background: linear-gradient(135deg, #0a2455 0%, #0b3d91 60%, #1a5fba 100%); position: relative; overflow: hidden;">
+
+                                {{-- Animated geometric background shapes --}}
+                                <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; z-index:0;">
+                                    <style>
+                                        @keyframes floatUp {
+                                            0% {
+                                                transform: translateY(0) rotate(0deg);
+                                                opacity: .18
+                                            }
+
+                                            50% {
+                                                opacity: .32
+                                            }
+
+                                            100% {
+                                                transform: translateY(-110vh) rotate(360deg);
+                                                opacity: 0
+                                            }
+                                        }
+
+                                        @keyframes floatDrift {
+                                            0% {
+                                                transform: translate(0, 0) rotate(0deg);
+                                                opacity: .14
+                                            }
+
+                                            50% {
+                                                transform: translate(40px, -60px) rotate(180deg);
+                                                opacity: .28
+                                            }
+
+                                            100% {
+                                                transform: translate(-20px, -120px) rotate(360deg);
+                                                opacity: 0
+                                            }
+                                        }
+
+                                        @keyframes pulse {
+
+                                            0%,
+                                            100% {
+                                                transform: scale(1) rotate(0deg);
+                                                opacity: .12
+                                            }
+
+                                            50% {
+                                                transform: scale(1.3) rotate(30deg);
+                                                opacity: .22
+                                            }
+                                        }
+
+                                        .fb-geo {
+                                            position: absolute;
+                                            border-radius: 4px;
+                                        }
+
+                                        .fb-content-wrap {
+                                            max-width: 700px;
+                                            width: 100%;
+                                            margin: 0 auto;
+                                            text-align: center;
+                                            padding: 0 24px;
+                                        }
+
+                                        .fb-content-wrap h2 {
+                                            font-size: clamp(1.6rem, 5vw, 2.8rem);
+                                            margin-top: 16px;
+                                            line-height: 1.25;
+                                        }
+
+                                        .fb-content-wrap p {
+                                            font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+                                        }
+
+                                        @media (max-width: 576px) {
+                                            .fb-content-wrap {
+                                                padding: 0 16px;
+                                            }
+
+                                            .fb-btn-group {
+                                                flex-direction: column;
+                                                align-items: center;
+                                            }
+                                        }
+                                    </style>
+
+                                    {{-- Floating circles --}}
+                                    <span class="fb-geo"
+                                        style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,179,71,.45);left:8%;top:70%;animation:floatUp 9s ease-in infinite;"></span>
+                                    <span class="fb-geo"
+                                        style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);left:22%;top:80%;animation:floatUp 12s ease-in 2s infinite;"></span>
+                                    <span class="fb-geo"
+                                        style="width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.18);left:75%;top:60%;animation:floatUp 15s ease-in 1s infinite;"></span>
+                                    <span class="fb-geo"
+                                        style="width:55px;height:55px;border-radius:50%;border:2px solid rgba(255,179,71,.3);left:88%;top:75%;animation:floatUp 10s ease-in 4s infinite;"></span>
+
+                                    {{-- Floating squares / rotated --}}
+                                    <span class="fb-geo"
+                                        style="width:50px;height:50px;border:3px solid rgba(255,255,255,.2);transform:rotate(45deg);left:15%;top:55%;animation:floatDrift 11s ease-in-out infinite;"></span>
+                                    <span class="fb-geo"
+                                        style="width:30px;height:30px;background:rgba(255,179,71,.15);transform:rotate(45deg);left:60%;top:78%;animation:floatDrift 8s ease-in-out 3s infinite;"></span>
+                                    <span class="fb-geo"
+                                        style="width:70px;height:70px;border:2px solid rgba(255,179,71,.25);transform:rotate(45deg);left:45%;top:65%;animation:floatDrift 14s ease-in-out 1s infinite;"></span>
+
+                                    {{-- Pulsing hexagon-like shapes (clip-path) --}}
+                                    <span
+                                        style="position:absolute;width:90px;height:90px;background:rgba(255,255,255,.07);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);left:35%;top:12%;animation:pulse 6s ease-in-out infinite;"></span>
+                                    <span
+                                        style="position:absolute;width:60px;height:60px;background:rgba(255,179,71,.12);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);left:70%;top:8%;animation:pulse 8s ease-in-out 2s infinite;"></span>
+
+                                    {{-- Triangles --}}
+                                    <span
+                                        style="position:absolute;width:0;height:0;border-left:35px solid transparent;border-right:35px solid transparent;border-bottom:60px solid rgba(255,255,255,.1);left:55%;top:75%;animation:floatUp 13s ease-in 5s infinite;"></span>
+                                    <span
+                                        style="position:absolute;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-bottom:35px solid rgba(255,179,71,.2);left:30%;top:82%;animation:floatUp 10s ease-in 0s infinite;"></span>
+
+                                    {{-- Static large faint ring for depth --}}
+                                    <span
+                                        style="position:absolute;width:400px;height:400px;border-radius:50%;border:1px solid rgba(255,255,255,.06);right:-100px;top:-80px;animation:pulse 10s ease-in-out infinite;"></span>
+                                    <span
+                                        style="position:absolute;width:250px;height:250px;border-radius:50%;border:1px solid rgba(255,179,71,.08);left:-60px;bottom:-60px;animation:pulse 12s ease-in-out 3s infinite;"></span>
+                                </div>
+
+                                <div class="slide-content-wrap"
+                                    style="position:relative; z-index:2; display:flex; align-items:center; justify-content:center; min-height:100vh; background:transparent !important;">
+                                    <div class="fb-content-wrap">
+                                        <div class="badge-tag" style="display:inline-flex; align-items:center; gap:8px;">
+                                            <img src="{{ asset('frontend/img/shape/91.png') }}" alt="">
+                                            Skill-Based Vocational Training
+                                        </div>
+                                        <h2 class="text-white">Learn <strong style="color:#FFB347;">Smarter</strong>,
+                                            Achieve More with {{ config('app.name') }}</h2>
+                                        <span class="text-white">Empowering students with skill-based education and
+                                            vocational training to build successful careers across India.</span>
+                                        <div class="fb-btn-group"
+                                            style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:16px;">
+                                            <a class="btn-gov" href="#courses"
+                                                style="display:inline-flex; align-items:center; gap:8px; padding:12px 28px; background:#FFB347; color:#fff; font-weight:600; border-radius:4px; text-decoration:none; transition:opacity .2s;">
+                                                Explore Courses <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                            <a class="btn-gov-outline" href="{{ route('frontend.about') }}"
+                                                style="display:inline-flex; align-items:center; gap:8px; padding:12px 28px; background:transparent; color:#fff; font-weight:600; border:2px solid rgba(255,255,255,.7); border-radius:4px; text-decoration:none; transition:opacity .2s;">
+                                                Learn More
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
