@@ -337,24 +337,12 @@
             <div class="animation-preloader">
                 <div class="spinner"></div>
                 <div class="txt-loading">
-                    <span data-text-preloader="T" class="letters-loading">
-                        T
-                    </span>
-                    <span data-text-preloader="I" class="letters-loading">
-                        I
-                    </span>
-                    <span data-text-preloader="I" class="letters-loading">
-                        I
-                    </span>
-                    <span data-text-preloader="T" class="letters-loading">
-                        T
-                    </span>
-                    <span data-text-preloader="V" class="letters-loading">
-                        V
-                    </span>
-                    <span data-text-preloader="T" class="letters-loading">
-                        T
-                    </span>
+                    @php $preloaderText = strtoupper($websiteSettings->getSettings()?->meta_author ?? 'TIITVT'); @endphp
+                    @foreach (str_split($preloaderText) as $char)
+                        <span data-text-preloader="{{ $char }}" class="letters-loading">
+                            {{ $char }}
+                        </span>
+                    @endforeach
                 </div>
             </div>
             <div class="loader">
