@@ -104,7 +104,8 @@
                                 @foreach ($categories as $category)
                                     <div class="swiper-slide">
                                         <div class="category-style-two-item wow fadeInUp">
-                                            <a href="{{ route('frontend.courses.index') }}?category={{ $category->id }}">
+                                            <a
+                                                href="{{ route('frontend.courses.index') }}?category={{ $category->slug }}">
                                                 <div class="info">
                                                     <h4>{{ $category->name }} <strong>interface </strong></h4>
                                                     <span>{{ $category->courses->count() }} Course(s)</span>

@@ -57,13 +57,7 @@
                 </div>
             </div>
             <!-- Pagination -->
-            <div class="row">
-                <div class="col-md-12 pagi-area text-center">
-                    <nav aria-label="navigation">
-                        {{ $blogs->links() }}
-                    </nav>
-                </div>
-            </div>
+            {{ $blogs->withQueryString()->links('vendor.pagination.frontend') }}
             <!-- End Pagination -->
         </div>
     </div>

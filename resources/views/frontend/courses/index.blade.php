@@ -36,7 +36,7 @@
                     <select name="category" class="form-select">
                         <option value="">All Categories</option>
                         @foreach ($categories as $cat)
-                            <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
+                            <option value="{{ $cat->slug }}" {{ request('category') == $cat->slug ? 'selected' : '' }}>
                                 {{ $cat->name }}
                             </option>
                         @endforeach
@@ -64,9 +64,9 @@
     <div class="course-style-two-area default-padding">
         <div class="container">
             {{-- Results count --}}
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="mb-4">
                 <p style="color:#5a6a7a; margin:0;">
-                    Showing <strong>{{ $courses->total() }}</strong> course{{ $courses->total() != 1 ? 's' : '' }}
+                    Found <strong>{{ $courses->total() }}</strong> course{{ $courses->total() != 1 ? 's' : '' }}
                     @if (request('search'))
                         for <strong>"{{ request('search') }}"</strong>
                     @endif
@@ -177,9 +177,7 @@
                 </div>
 
                 {{-- Pagination --}}
-                <div>
-                    {{ $courses->withQueryString()->links('pagination::bootstrap-5') }}
-                </div>
+                {{ $courses->withQueryString()->links('vendor.pagination.frontend') }}
             @endif
         </div>
     </div>

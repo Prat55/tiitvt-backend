@@ -28,7 +28,7 @@ class PageController extends Controller
         }
 
         if ($request->filled('category')) {
-            $query->whereHas('categories', fn($q) => $q->where('categories.id', $request->category));
+            $query->whereHas('categories', fn($q) => $q->where('categories.slug', $request->category));
         }
 
         $courses    = $query->orderByDesc('students_count')->paginate(12);
