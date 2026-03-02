@@ -10,6 +10,13 @@ new #[Layout('components.layouts.app')] #[Title('Course Inquiries')] class exten
 
     public string $search = '';
     public string $status = '';
+    public array $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
+    public array $headers = [];
+
+    public function boot(): void
+    {
+        $this->headers = [['key' => 'id', 'label' => '#', 'class' => 'w-12'], ['key' => 'name', 'label' => 'Name', 'class' => 'w-40'], ['key' => 'email', 'label' => 'Email', 'class' => 'w-48'], ['key' => 'phone', 'label' => 'Phone', 'class' => 'w-36'], ['key' => 'course', 'label' => 'Course', 'class' => 'w-36', 'sortable' => false], ['key' => 'status', 'label' => 'Status', 'class' => 'w-28'], ['key' => 'created_at', 'label' => 'Date', 'class' => 'w-40']];
+    }
 
     public function updating(): void
     {
@@ -36,7 +43,7 @@ new #[Layout('components.layouts.app')] #[Title('Course Inquiries')] class exten
                     }),
                 )
                 ->when($this->status, fn($q) => $q->where('status', $this->status))
-                ->latest()
+                ->orderBy($this->sortBy['column'], $this->sortBy['direction'])
                 ->paginate(20),
         ];
     }
@@ -54,10 +61,10 @@ new #[Layout('components.layouts.app')] #[Title('Course Inquiries')] class exten
             </div>
         </div>
 
-        <div class="flex gap-3 flex-wrap">
+        <div class="flex gap-3 flex-wrap md:flex-nowrap">
             <x-input placeholder="Search name, email, course..." icon="o-magnifying-glass"
                 wire:model.live.debounce="search" class="w-56" />
-            <select wire:model.live="status" class="select select-bordered select-sm">
+            <select wire:model.live="status" class="select select-bordered">
                 <option value="">All Statuses</option>
                 <option value="new">New</option>
                 <option value="contacted">Contacted</option>
@@ -68,89 +75,65 @@ new #[Layout('components.layouts.app')] #[Title('Course Inquiries')] class exten
     </div>
     <hr class="mb-5">
 
-    <div class="overflow-x-auto">
-        <table class="table table-zebra w-full">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Course</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($inquiries as $inquiry)
-                    <tr>
-                        <td>{{ $inquiry->id }}</td>
-                        <td class="font-medium">{{ $inquiry->name }}</td>
-                        <td>
-                            <a href="mailto:{{ $inquiry->email }}" class="link link-primary text-sm">
-                                {{ $inquiry->email }}
-                            </a>
-                        </td>
-                        <td>
-                            <a href="tel:{{ $inquiry->phone }}" class="text-sm">{{ $inquiry->phone }}</a>
-                        </td>
-                        <td>
-                            <span class="badge badge-primary badge-sm">
-                                {{ $inquiry->course?->name ?? '—' }}
-                            </span>
-                        </td>
-                        <td>
-                            @php
-                                $colors = [
-                                    'new' => 'badge-warning',
-                                    'contacted' => 'badge-info',
-                                    'enrolled' => 'badge-success',
-                                    'closed' => 'badge-ghost',
-                                ];
-                            @endphp
-                            <span class="badge {{ $colors[$inquiry->status] ?? 'badge-ghost' }} badge-sm capitalize">
-                                {{ $inquiry->status }}
-                            </span>
-                        </td>
-                        <td class="text-xs text-gray-500">
-                            {{ $inquiry->created_at->format('d M Y, h:i A') }}
-                        </td>
-                        <td>
-                            <div class="dropdown dropdown-end">
-                                <label tabindex="0" class="btn btn-xs btn-ghost">
-                                    <x-icon name="o-ellipsis-vertical" class="w-4 h-4" />
-                                </label>
-                                <ul tabindex="0"
-                                    class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-40 z-50">
-                                    @foreach (['new', 'contacted', 'enrolled', 'closed'] as $s)
-                                        @if ($s !== $inquiry->status)
-                                            <li>
-                                                <button
-                                                    wire:click="updateStatus({{ $inquiry->id }}, '{{ $s }}')"
-                                                    class="capitalize text-sm">
-                                                    Mark as {{ $s }}
-                                                </button>
-                                            </li>
-                                        @endif
-                                    @endforeach
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="text-center py-8 text-gray-400">
-                            <x-icon name="o-inbox" class="w-10 h-10 mx-auto mb-2" />
-                            No inquiries found.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+    <x-table :headers="$headers" :rows="$inquiries" with-pagination :sort-by="$sortBy">
+        @scope('cell_email', $inquiry)
+            <a href="mailto:{{ $inquiry->email }}" class="link link-primary text-sm">
+                {{ $inquiry->email }}
+            </a>
+        @endscope
 
-    <div class="mt-4">
-        {{ $inquiries->links() }}
-    </div>
+        @scope('cell_phone', $inquiry)
+            <a href="tel:{{ $inquiry->phone }}" class="text-sm">{{ $inquiry->phone }}</a>
+        @endscope
+
+        @scope('cell_course', $inquiry)
+            <span class="badge badge-primary badge-sm">
+                {{ $inquiry->course?->name ?? '—' }}
+            </span>
+        @endscope
+
+        @scope('cell_status', $inquiry)
+            @php
+                $colors = [
+                    'new' => 'badge-warning',
+                    'contacted' => 'badge-info',
+                    'enrolled' => 'badge-success',
+                    'closed' => 'badge-ghost',
+                ];
+            @endphp
+            <span class="badge {{ $colors[$inquiry->status] ?? 'badge-ghost' }} badge-sm capitalize">
+                {{ $inquiry->status }}
+            </span>
+        @endscope
+
+        @scope('cell_created_at', $inquiry)
+            <span class="text-xs text-gray-500">
+                {{ $inquiry->created_at->format('d M Y, h:i A') }}
+            </span>
+        @endscope
+
+        @scope('actions', $inquiry)
+            <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-xs btn-ghost">
+                    <x-icon name="o-ellipsis-vertical" class="w-4 h-4" />
+                </label>
+                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-40 z-50">
+                    @foreach (['new', 'contacted', 'enrolled', 'closed'] as $s)
+                        @if ($s !== $inquiry->status)
+                            <li>
+                                <button wire:click="updateStatus({{ $inquiry->id }}, '{{ $s }}')"
+                                    class="capitalize text-sm">
+                                    Mark as {{ $s }}
+                                </button>
+                            </li>
+                        @endif
+                    @endforeach
+                </ul>
+            </div>
+        @endscope
+
+        <x-slot:empty>
+            <x-empty icon="o-inbox" message="No inquiries found." />
+        </x-slot>
+    </x-table>
 </div>

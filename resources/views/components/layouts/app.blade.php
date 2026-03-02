@@ -110,6 +110,7 @@
                         link="{{ route('admin.website-setting.index') }}" />
                     <x-menu-item title="Testimonials" icon="o-star" link="{{ route('admin.testimonial.index') }}" />
                     <x-menu-item title="Hero Sliders" icon="o-photo" link="{{ route('admin.hero-slider.index') }}" />
+                    <x-menu-item title="Inquiries" icon="o-envelope" link="{{ route('admin.inquiry.index') }}" />
                 @endrole
 
                 {{-- Backup Section (to be implemented) --}}
