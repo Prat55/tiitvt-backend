@@ -34,36 +34,13 @@ class StudentApiController extends Controller
         $student = $this->resolveStudent($request);
 
         $courses = $student->courses()
-            ->select('courses.id', 'courses.name', 'courses.slug', 'courses.duration', 'courses.price', 'courses.lectures')
+            ->select('courses.id', 'courses.name', 'courses.slug', 'courses.duration', 'courses.price')
             ->with(['categories' => function ($query) {
                 $query->select('categories.id', 'categories.name', 'categories.slug', 'categories.lectures', 'categories.materials');
             }])
             ->withPivot(['course_taken', 'batch_time', 'enrollment_date'])
             ->get()
             ->map(function ($course) {
-                $lectures = collect($course->lectures ?? [])
-                    ->map(function ($lecture, int $index) {
-                        if (!is_array($lecture)) {
-                            return null;
-                        }
-
-                        $title = trim((string) ($lecture['title'] ?? ''));
-                        $url = trim((string) ($lecture['url'] ?? ''));
-
-                        if ($title === '' || $url === '') {
-                            return null;
-                        }
-
-                        return [
-                            'order' => $index + 1,
-                            'title' => $title,
-                            'url' => $url,
-                            'open_url' => $url,
-                        ];
-                    })
-                    ->filter()
-                    ->values();
-
                 // Map categories with their lectures and materials
                 $categories = $course->categories->map(function ($category) {
                     $catLectures = collect($category->lectures ?? [])
@@ -121,7 +98,6 @@ class StudentApiController extends Controller
                     'name' => $course->name,
                     'slug' => $course->slug,
                     'batch_time' => $course->pivot->batch_time,
-                    'lectures' => $lectures,
                     'categories' => $categories,
                 ];
             })

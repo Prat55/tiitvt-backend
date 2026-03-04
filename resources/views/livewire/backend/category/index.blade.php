@@ -224,10 +224,13 @@ new class extends Component {
         @endscope
         @scope('actions', $category)
             <div class="flex gap-1">
-                <x-button icon="o-pencil" class="btn-primary btn-outline" wire:click="openEditModal({{ $category->id }})"
-                    title="Edit" />
-                <x-button icon="o-trash" class="btn-error btn-outline" wire:click="deleteCategory({{ $category->id }})"
-                    title="Delete" wire:confirm="Are you sure you want to delete this category?" />
+                <x-button icon="o-pencil" class="btn-primary btn-outline btn-sm"
+                    wire:click="openEditModal({{ $category->id }})" title="Edit" />
+                <x-button icon="o-eye" class="btn-outline btn-sm"
+                    link="{{ route('admin.category.show', $category->id) }}" title="Show" />
+                <x-button icon="o-trash" class="btn-error btn-outline btn-sm"
+                    wire:click="deleteCategory({{ $category->id }})" title="Delete"
+                    wire:confirm="Are you sure you want to delete this category?" />
             </div>
         @endscope
         <x-slot:empty>
