@@ -39,7 +39,7 @@ new class extends Component {
         return [
             'name' => 'required|string|max:255|unique:courses,name',
             'slug' => 'nullable|string|max:255|unique:courses,slug',
-            'description' => 'nullable|string|max:1000',
+            'description' => 'nullable|string',
             'meta_description' => 'nullable|string|max:150',
             'duration' => 'nullable|string|max:100',
             'mrp' => 'nullable|numeric|min:0',
@@ -87,11 +87,19 @@ new class extends Component {
                 'is_active' => $this->is_active,
                 'rating' => $this->rating ?? 4,
                 'auto_certificate' => $this->auto_certificate,
-                'passing_percentage' => $this->auto_certificate ? $this->passing_percentage ?? 80 : null,
+                'passing_percentage' => $this->auto_certificate ? $this->passing_percentage ?? 80 : 80,
             ];
 
             if ($this->course_image) {
-                $data['image'] = $this->course_image->store('courses/images', 'public');
+                try {
+                    $data['image'] = $this->course_image->store('courses/images', 'public');
+                } catch (\Exception $uploadError) {
+                    \Log::error('Image upload failed', [
+                        'error' => $uploadError->getMessage(),
+                    ]);
+                    $this->error('Failed to upload course image. ' . $uploadError->getMessage(), position: 'toast-bottom');
+                    return;
+                }
             }
 
             $course = Course::create($data);
@@ -101,10 +109,20 @@ new class extends Component {
                 $course->categories()->sync($this->category_ids);
             }
 
+            // Reset file uploads
+            $this->course_image = null;
+
             $this->success('Course created successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.course.index'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation exceptions are handled automatically by Livewire
+            throw $e;
         } catch (\Exception $e) {
-            $this->error('Failed to create course. Please try again.', position: 'toast-bottom');
+            \Log::error('Course creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->error('Failed to create course: ' . $e->getMessage(), position: 'toast-bottom');
         }
     }
 
@@ -201,7 +219,7 @@ new class extends Component {
 
                 <x-input label="Course Name" wire:model="name" placeholder="Enter course name" icon="o-book-open" />
 
-                <x-input label="Slug" wire:model="slug" placeholder="Auto-generated from name" icon="o-link" />
+                <x-input label="Slug" wire:model="slug" hint="Auto-generated from name" icon="o-link" readonly />
 
                 <x-textarea label="Meta Description" wire:model="meta_description"
                     placeholder="Enter meta description for SEO" icon="o-tag" maxlength="150"

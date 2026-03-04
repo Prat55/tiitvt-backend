@@ -34,7 +34,7 @@ class StudentApiController extends Controller
         $student = $this->resolveStudent($request);
 
         $courses = $student->courses()
-            ->select('courses.id', 'courses.name', 'courses.slug', 'courses.duration', 'courses.price')
+            ->select('courses.id', 'courses.name', 'courses.slug', 'courses.duration', 'courses.price', 'courses.image', 'courses.meta_description', 'courses.description')
             ->with(['categories' => function ($query) {
                 $query->select('categories.id', 'categories.name', 'categories.slug', 'categories.lectures', 'categories.materials');
             }])
@@ -60,7 +60,6 @@ class StudentApiController extends Controller
                                 'order' => $index + 1,
                                 'title' => $title,
                                 'url' => $url,
-                                'open_url' => $url,
                             ];
                         })
                         ->filter()
@@ -97,6 +96,9 @@ class StudentApiController extends Controller
                     'id' => $course->id,
                     'name' => $course->name,
                     'slug' => $course->slug,
+                    'image_url' => $course->image ? asset('storage/' . $course->image) : null,
+                    'meta_description' => $course->meta_description,
+                    'description' => $course->description,
                     'batch_time' => $course->pivot->batch_time,
                     'categories' => $categories,
                 ];

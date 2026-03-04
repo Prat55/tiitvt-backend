@@ -64,7 +64,7 @@ new class extends Component {
         return [
             'name' => 'required|string|max:255|unique:courses,name,' . $this->course->id,
             'slug' => 'nullable|string|max:255|unique:courses,slug,' . $this->course->id,
-            'description' => 'nullable|string|max:1000',
+            'description' => 'nullable|string',
             'meta_description' => 'nullable|string|max:150',
             'duration' => 'nullable|string|max:100',
             'mrp' => 'nullable|numeric|min:0',
@@ -112,15 +112,24 @@ new class extends Component {
                 'is_active' => $this->is_active,
                 'rating' => $this->rating ?? 4,
                 'auto_certificate' => $this->auto_certificate,
-                'passing_percentage' => $this->auto_certificate ? $this->passing_percentage ?? 80 : null,
+                'passing_percentage' => $this->auto_certificate ? $this->passing_percentage ?? 80 : 80,
             ];
 
             if ($this->course_image) {
-                // Delete old image if exists
-                if ($this->course->image) {
-                    Storage::disk('public')->delete($this->course->image);
+                try {
+                    // Delete old image if exists
+                    if ($this->course->image) {
+                        Storage::disk('public')->delete($this->course->image);
+                    }
+                    $data['image'] = $this->course_image->store('courses/images', 'public');
+                } catch (\Exception $uploadError) {
+                    \Log::error('Image upload failed', [
+                        'course_id' => $this->course->id,
+                        'error' => $uploadError->getMessage(),
+                    ]);
+                    $this->error('Failed to upload course image. ' . $uploadError->getMessage(), position: 'toast-bottom');
+                    return;
                 }
-                $data['image'] = $this->course_image->store('courses/images', 'public');
             }
 
             $this->course->update($data);
@@ -128,10 +137,21 @@ new class extends Component {
             // Sync categories
             $this->course->categories()->sync($this->category_ids);
 
+            // Reset file uploads
+            $this->course_image = null;
+
             $this->success('Course updated successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.course.show', $this->course->id));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation exceptions are handled automatically by Livewire
+            throw $e;
         } catch (\Exception $e) {
-            $this->error('Failed to update course. Please try again.', position: 'toast-bottom');
+            \Log::error('Course update failed', [
+                'course_id' => $this->course->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->error('Failed to update course: ' . $e->getMessage(), position: 'toast-bottom');
         }
     }
 
@@ -225,12 +245,14 @@ new class extends Component {
 
                 <x-input label="Course Name" wire:model="name" placeholder="Enter course name" icon="o-book-open" />
 
-                <x-input label="Duration" wire:model="duration" placeholder="e.g., 3 months, 6 weeks" icon="o-clock"
-                    hint="Course duration in human-readable format" />
+                <x-input label="Slug" wire:model="slug" hint="Auto-generated from name" icon="o-link" readonly />
 
                 <x-textarea label="Meta Description" wire:model="meta_description"
                     placeholder="Enter meta description for SEO" icon="o-tag" maxlength="150"
                     hint="Maximum 150 characters for SEO purposes" class="md:col-span-2" />
+
+                <x-input label="Duration" wire:model="duration" placeholder="e.g., 3 months, 6 weeks" icon="o-clock"
+                    hint="Course duration in human-readable format" />
 
                 <div>
                     <x-file label="Course Image" wire:model="course_image" accept="image/*"
@@ -309,8 +331,9 @@ new class extends Component {
 
                         @if ($auto_certificate)
                             <div class="flex-1">
-                                <x-input label="Passing Percentage (%)" type="number" wire:model="passing_percentage"
-                                    min="1" max="100" icon="o-academic-cap"
+                                <x-input label="Passing Percentage (%)" type="number"
+                                    wire:model="passing_percentage" min="1" max="100"
+                                    icon="o-academic-cap"
                                     hint="Predefined passing marks for auto-certificate creation" />
                             </div>
                         @endif
