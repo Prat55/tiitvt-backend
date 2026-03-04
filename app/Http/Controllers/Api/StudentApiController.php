@@ -35,6 +35,9 @@ class StudentApiController extends Controller
 
         $courses = $student->courses()
             ->select('courses.id', 'courses.name', 'courses.slug', 'courses.duration', 'courses.price', 'courses.lectures')
+            ->with(['categories' => function ($query) {
+                $query->select('categories.id', 'categories.name', 'categories.slug', 'categories.lectures', 'categories.materials');
+            }])
             ->withPivot(['course_taken', 'batch_time', 'enrollment_date'])
             ->get()
             ->map(function ($course) {
@@ -61,12 +64,65 @@ class StudentApiController extends Controller
                     ->filter()
                     ->values();
 
+                // Map categories with their lectures and materials
+                $categories = $course->categories->map(function ($category) {
+                    $catLectures = collect($category->lectures ?? [])
+                        ->map(function ($lecture, int $index) {
+                            if (!is_array($lecture)) {
+                                return null;
+                            }
+
+                            $title = trim((string) ($lecture['title'] ?? ''));
+                            $url = trim((string) ($lecture['url'] ?? ''));
+
+                            if ($title === '' || $url === '') {
+                                return null;
+                            }
+
+                            return [
+                                'order' => $index + 1,
+                                'title' => $title,
+                                'url' => $url,
+                                'open_url' => $url,
+                            ];
+                        })
+                        ->filter()
+                        ->values();
+
+                    $materials = collect($category->materials ?? [])
+                        ->map(function ($material) {
+                            if (!is_array($material)) {
+                                return null;
+                            }
+
+                            return [
+                                'name' => trim((string) ($material['name'] ?? '')),
+                                'description' => trim((string) ($material['description'] ?? '')),
+                                'path' => trim((string) ($material['path'] ?? '')),
+                                'file_name' => trim((string) ($material['file_name'] ?? '')),
+                                'file_size' => (int) ($material['file_size'] ?? 0),
+                                'mime_type' => trim((string) ($material['mime_type'] ?? '')),
+                            ];
+                        })
+                        ->filter(fn($material) => $material && !empty($material['path']))
+                        ->values();
+
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                        'lectures' => $catLectures,
+                        'materials' => $materials,
+                    ];
+                })->values();
+
                 return [
                     'id' => $course->id,
                     'name' => $course->name,
                     'slug' => $course->slug,
                     'batch_time' => $course->pivot->batch_time,
                     'lectures' => $lectures,
+                    'categories' => $categories,
                 ];
             })
             ->values();

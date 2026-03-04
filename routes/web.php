@@ -41,6 +41,7 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
 
             Route::prefix('category')->name('category.')->group(function () {
                 Volt::route('/', 'backend.category.index')->name('index');
+                Volt::route('/{category}/show', 'backend.category.show')->name('show');
             });
 
             Route::prefix('course')->name('course.')->group(function () {

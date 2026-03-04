@@ -16,11 +16,15 @@ class Category extends Model
         'slug',
         'image',
         'description',
+        'lectures',
+        'materials',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'lectures' => 'array',
+        'materials' => 'array',
     ];
 
     protected static function booted()
