@@ -429,28 +429,48 @@ new class extends Component {
                                     <div class="flex items-start justify-between gap-3">
                                         <div>
                                             <div class="text-xs text-gray-500">Lecture {{ $index + 1 }}</div>
+
                                             <h4 class="font-semibold text-gray-800 dark:text-gray-200">
                                                 {{ $lecture['title'] }}
                                             </h4>
 
-                                            @if (!empty($lecture['description']))
-                                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                    {{ $lecture['description'] }}
-                                                </p>
-                                            @endif
+                                            <x-card class="my-3">
+                                                @if (Str::contains($lecture['url'], '<iframe'))
+                                                    <div class="mt-2 w-full aspect-video">
+                                                        {!! $lecture['url'] !!}
+                                                    </div>
+                                                @elseif (Str::startsWith($lecture['url'], ['http://', 'https://']))
+                                                    <a href="{{ $lecture['url'] }}" target="_blank"
+                                                        class="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
+                                                        <x-button icon="o-link" class="btn-xs btn-ghost"
+                                                            tooltip="Open lecture link" />
+                                                        {{ $lecture['url'] }}
+                                                    </a>
+                                                @endif
+                                            </x-card>
 
-                                            @if (Str::contains($lecture['url'], '<iframe'))
-                                                <div class="mt-2 w-full aspect-video">
-                                                    {!! $lecture['url'] !!}
-                                                </div>
-                                            @elseif (Str::startsWith($lecture['url'], ['http://', 'https://']))
-                                                <a href="{{ $lecture['url'] }}" target="_blank"
-                                                    class="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
-                                                    <x-button icon="o-link" class="btn-xs btn-ghost"
-                                                        tooltip="Open lecture link" />
-                                                    {{ $lecture['url'] }}
-                                                </a>
-                                            @endif
+                                            <x-card class="mt-2">
+                                                @if (!empty($lecture['description']))
+                                                    @php $desc = $lecture['description']; @endphp
+                                                    @if (strlen($desc) > 500)
+                                                        <div x-data="{ expanded: false }">
+                                                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                                <span
+                                                                    x-show="!expanded">{{ Str::limit($desc, 500) }}</span>
+                                                                <span x-show="expanded"
+                                                                    x-cloak>{{ $desc }}</span>
+                                                            </p>
+                                                            <button @click="expanded = !expanded"
+                                                                class="text-xs text-primary hover:underline mt-1 focus:outline-none"
+                                                                x-text="expanded ? 'Show Less' : 'Read More'"></button>
+                                                        </div>
+                                                    @else
+                                                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                            {{ $desc }}
+                                                        </p>
+                                                    @endif
+                                                @endif
+                                            </x-card>
                                         </div>
 
                                         <div class="flex gap-1 shrink-0">

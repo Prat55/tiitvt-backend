@@ -60,6 +60,7 @@ class StudentApiController extends Controller
                                 'order' => $index + 1,
                                 'title' => $title,
                                 'url' => $url,
+                                'description' => $lecture['description'] ?? '',
                             ];
                         })
                         ->filter()
