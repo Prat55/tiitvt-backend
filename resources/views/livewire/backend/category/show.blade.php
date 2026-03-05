@@ -19,6 +19,7 @@ new class extends Component {
     public ?int $editingLectureIndex = null;
     public string $lectureTitle = '';
     public string $lectureUrl = '';
+    public string $lectureDescription = '';
 
     public array $materials = [];
     public bool $showMaterialModal = false;
@@ -56,6 +57,7 @@ new class extends Component {
         $this->editingLectureIndex = $index;
         $this->lectureTitle = (string) ($lecture['title'] ?? '');
         $this->lectureUrl = (string) ($lecture['url'] ?? '');
+        $this->lectureDescription = (string) ($lecture['description'] ?? '');
         $this->showLectureModal = true;
     }
 
@@ -64,11 +66,13 @@ new class extends Component {
         $this->validate([
             'lectureTitle' => 'required|string|max:255',
             'lectureUrl' => 'required',
+            'lectureDescription' => 'nullable|string|max:5000',
         ]);
 
         $lectureData = [
             'title' => trim($this->lectureTitle),
             'url' => trim($this->lectureUrl),
+            'description' => trim($this->lectureDescription),
         ];
 
         $lectures = $this->lectures;
@@ -164,6 +168,7 @@ new class extends Component {
                 return [
                     'title' => trim((string) ($lecture['title'] ?? '')),
                     'url' => trim((string) ($lecture['url'] ?? '')),
+                    'description' => trim((string) ($lecture['description'] ?? '')),
                 ];
             })
             ->filter(fn($lecture) => is_array($lecture) && $lecture['title'] !== '' && $lecture['url'] !== '')
@@ -177,7 +182,8 @@ new class extends Component {
         $this->editingLectureIndex = null;
         $this->lectureTitle = '';
         $this->lectureUrl = '';
-        $this->resetValidation(['lectureTitle', 'lectureUrl']);
+        $this->lectureDescription = '';
+        $this->resetValidation(['lectureTitle', 'lectureUrl', 'lectureDescription']);
     }
 
     // Material Methods
@@ -426,6 +432,12 @@ new class extends Component {
                                             <h4 class="font-semibold text-gray-800 dark:text-gray-200">
                                                 {{ $lecture['title'] }}
                                             </h4>
+
+                                            @if (!empty($lecture['description']))
+                                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                    {{ $lecture['description'] }}
+                                                </p>
+                                            @endif
 
                                             @if (Str::contains($lecture['url'], '<iframe'))
                                                 <div class="mt-2 w-full aspect-video">
@@ -682,8 +694,12 @@ new class extends Component {
                 <x-input label="Lecture Title" wire:model.defer="lectureTitle"
                     placeholder="Enter lecture title (e.g. Introduction)" />
 
-                <x-input label="Lecture URL" wire:model.defer="lectureUrl"
-                    placeholder="https://www.youtube.com/watch?v=..." hint="YouTube, Vimeo, or any valid URL" />
+                <x-textarea label="Lecture URL / Embed Code" wire:model.defer="lectureUrl"
+                    placeholder="https://www.youtube.com/watch?v=...&#10;or paste an <iframe ...> embed code here"
+                    rows="3" hint="Paste a URL or an iframe embed code" />
+
+                <x-textarea label="Description (Optional)" wire:model.defer="lectureDescription"
+                    placeholder="Add a description for this lecture..." rows="4" hint="Max 5000 characters" />
             </div>
 
             <x-slot:actions>
