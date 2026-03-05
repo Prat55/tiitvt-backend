@@ -63,7 +63,7 @@ new class extends Component {
     {
         $this->validate([
             'lectureTitle' => 'required|string|max:255',
-            'lectureUrl' => 'required|url|max:1000',
+            'lectureUrl' => 'required',
         ]);
 
         $lectureData = [
@@ -364,7 +364,7 @@ new class extends Component {
             <!-- Category Image -->
             @if ($category->image)
                 <x-card shadow>
-                    <img src="{{ Storage::url($category->image) }}" alt="{{ $category->name }}"
+                    <img src="{{ asset('storage/' . $category->image) }}" alt="{{ $category->name }}"
                         class="w-full h-64 object-cover rounded-lg">
                 </x-card>
             @endif
