@@ -426,10 +426,19 @@ new class extends Component {
                                             <h4 class="font-semibold text-gray-800 dark:text-gray-200">
                                                 {{ $lecture['title'] }}
                                             </h4>
-                                            <a href="{{ $lecture['url'] }}" target="_blank" rel="noopener noreferrer"
-                                                class="text-sm text-primary break-all hover:underline">
-                                                {{ $lecture['url'] }}
-                                            </a>
+
+                                            @if (Str::contains($lecture['url'], '<iframe'))
+                                                <div class="mt-2 w-full aspect-video">
+                                                    {!! $lecture['url'] !!}
+                                                </div>
+                                            @elseif (Str::startsWith($lecture['url'], ['http://', 'https://']))
+                                                <a href="{{ $lecture['url'] }}" target="_blank"
+                                                    class="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
+                                                    <x-button icon="o-link" class="btn-xs btn-ghost"
+                                                        tooltip="Open lecture link" />
+                                                    {{ $lecture['url'] }}
+                                                </a>
+                                            @endif
                                         </div>
 
                                         <div class="flex gap-1 shrink-0">
