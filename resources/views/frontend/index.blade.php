@@ -45,7 +45,7 @@
                     @empty
                         <div class="swiper-slide">
                             <div class="hero-slide-item"
-                                style="min-height: 100vh; background: linear-gradient(135deg, #0a2455 0%, #0b3d91 60%, #1a5fba 100%); position: relative; overflow: hidden;">
+                                style="background: linear-gradient(135deg, #0a2455 0%, #0b3d91 60%, #1a5fba 100%); position: relative; overflow: hidden;">
 
                                 {{-- Animated geometric background shapes --}}
                                 <div aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; z-index:0;">
@@ -120,6 +120,12 @@
                                             font-size: clamp(0.95rem, 2.5vw, 1.1rem);
                                         }
 
+                                        @media (max-width: 991px) {
+                                            .hero-gov-slider .slide-content-wrap {
+                                                padding: 16px 0;
+                                            }
+                                        }
+
                                         @media (max-width: 576px) {
                                             .fb-content-wrap {
                                                 padding: 0 16px;
@@ -170,7 +176,7 @@
                                 </div>
 
                                 <div class="slide-content-wrap"
-                                    style="position:relative; z-index:2; display:flex; align-items:center; justify-content:center; min-height:100vh; background:transparent !important;">
+                                    style="position:relative; z-index:2; display:flex; align-items:center; justify-content:center; min-height:100%; background:transparent !important;">
                                     <div class="fb-content-wrap">
                                         <div class="badge-tag" style="display:inline-flex; align-items:center; gap:8px;">
                                             <img src="{{ asset('frontend/img/shape/91.png') }}" alt="">

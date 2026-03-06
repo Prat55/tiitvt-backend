@@ -18721,7 +18721,18 @@ nav.navbar.validnavs .navbar-toggle {
     background: #FF9933;
 }
 
+@media (max-width: 991px) {
+    .banner-style-nine-area {
+        padding-top: 0 !important;
+    }
+}
+
 @media (max-width: 767px) {
+
+    .banner-style-nine-area {
+        padding-top: 0 !important;
+    }
+
     .hero-gov-slider .hero-slide-item {
         min-height: 380px;
     }
