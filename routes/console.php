@@ -31,3 +31,8 @@ Artisan::command('schedule:daily-backup', function () {
 Schedule::command('students:send-birthday-wishes')
     ->dailyAt('08:30')
     ->appendOutputTo(storage_path('logs/birthday-wishes.log'));
+
+// Cleanup orphaned uploads - hourly
+Schedule::command('uploads:cleanup')
+    ->hourly()
+    ->appendOutputTo(storage_path('logs/uploads-cleanup.log'));

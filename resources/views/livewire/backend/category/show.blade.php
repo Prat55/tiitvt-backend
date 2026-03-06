@@ -6,6 +6,7 @@ use Livewire\Volt\Component;
 use Livewire\Attributes\{Layout, Title};
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 new class extends Component {
     use Toast, WithFileUploads;
@@ -19,6 +20,7 @@ new class extends Component {
     public ?int $editingLectureIndex = null;
     public string $lectureTitle = '';
     public $lectureVideo = null;
+    public string $lectureTempPath = '';
     public string $lectureDescription = '';
 
     public array $materials = [];
@@ -67,29 +69,49 @@ new class extends Component {
         ]);
 
         if (!$this->editLectureMode) {
-            $this->validate([
-                'lectureVideo' => 'required|file|max:512000|mimetypes:video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/x-flv,video/webm',
-            ]);
-        } elseif ($this->lectureVideo) {
-            $this->validate([
-                'lectureVideo' => 'file|max:512000|mimetypes:video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/x-flv,video/webm',
-            ]);
+            $this->validate(
+                [
+                    'lectureTempPath' => 'required|string|min:5',
+                ],
+                [
+                    'lectureTempPath.required' => 'Validation Failed: The server hasn\'t received the file path yet. Please wait for "Server confirmed" and try again.',
+                    'lectureTempPath.min' => 'Validation Failed: The path (' . $this->lectureTempPath . ') is too short. Please re-upload.',
+                ],
+            );
         }
 
         $lecturePath = null;
-        if ($this->lectureVideo && is_object($this->lectureVideo)) {
+        if ($this->lectureTempPath) {
+            // Move from tmp to final destination
+            $sourcePath = $this->lectureTempPath;
+            $extension = pathinfo($sourcePath, PATHINFO_EXTENSION);
+            $filename = Str::slug($this->lectureTitle ?: 'lecture') . '.' . $extension;
+            $categorySlug = Str::slug($this->category->name ?: 'category');
+
+            $finalPath = "lectures/{$categorySlug}/{$filename}";
+
+            // Ensure directory exists
+            Storage::disk('public')->makeDirectory("lectures/{$categorySlug}");
+
             // Delete old video if editing
             if ($this->editLectureMode && !empty($this->lectures[$this->editingLectureIndex]['path'])) {
                 Storage::disk('public')->delete($this->lectures[$this->editingLectureIndex]['path']);
             }
 
-            $lecturePath = $this->lectureVideo->store('category-lectures', 'public');
+            if (Storage::disk('public')->exists($sourcePath)) {
+                Storage::disk('public')->move($sourcePath, $finalPath);
+                $lecturePath = $finalPath;
+            } else {
+                $this->error('The uploaded video file could not be found on the server. Please try uploading again.', position: 'toast-bottom');
+                return;
+            }
         } elseif ($this->editLectureMode && isset($this->lectures[$this->editingLectureIndex]['path'])) {
             $lecturePath = $this->lectures[$this->editingLectureIndex]['path'];
         }
 
         $lectureData = [
             'title' => trim($this->lectureTitle),
+            'url' => $this->editLectureMode ? $this->lectures[$this->editingLectureIndex]['url'] ?? '' : '',
             'path' => $lecturePath,
             'description' => trim($this->lectureDescription),
         ];
@@ -106,6 +128,11 @@ new class extends Component {
         $this->resetLectureForm();
         $this->showLectureModal = false;
         $this->success('Lecture saved successfully!', position: 'toast-bottom');
+    }
+
+    public function updatedLectureTempPath($value)
+    {
+        \Log::info('Lecture Temp Path Updated: ' . $value);
     }
 
     public function deleteLecture(int $index): void
@@ -193,11 +220,12 @@ new class extends Component {
 
                 return [
                     'title' => trim((string) ($lecture['title'] ?? '')),
+                    'url' => trim((string) ($lecture['url'] ?? '')),
                     'path' => trim((string) ($lecture['path'] ?? '')),
                     'description' => trim((string) ($lecture['description'] ?? '')),
                 ];
             })
-            ->filter(fn($lecture) => is_array($lecture) && $lecture['title'] !== '' && $lecture['path'] !== '')
+            ->filter(fn($lecture) => is_array($lecture) && $lecture['title'] !== '' && ($lecture['url'] !== '' || $lecture['path'] !== ''))
             ->values()
             ->all();
     }
@@ -208,8 +236,9 @@ new class extends Component {
         $this->editingLectureIndex = null;
         $this->lectureTitle = '';
         $this->lectureVideo = null;
+        $this->lectureTempPath = '';
         $this->lectureDescription = '';
-        $this->resetValidation(['lectureTitle', 'lectureVideo', 'lectureDescription']);
+        $this->resetValidation(['lectureTitle', 'lectureVideo', 'lectureTempPath', 'lectureDescription']);
     }
 
     // Material Methods
@@ -471,15 +500,24 @@ new class extends Component {
                                                             Your browser does not support the video tag.
                                                         </video>
                                                     </div>
-                                                @else
-                                                    <div class="p-4 text-center text-gray-400">
-                                                        No video file attached
+                                                @elseif (!empty($lecture['url']) && Str::contains($lecture['url'], '<iframe'))
+                                                    <div class="mt-2 w-full aspect-video">
+                                                        {!! $lecture['url'] !!}
                                                     </div>
+                                                @elseif (!empty($lecture['url']) && Str::startsWith($lecture['url'], ['http://', 'https://']))
+                                                    <a href="{{ $lecture['url'] }}" target="_blank"
+                                                        class="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
+                                                        <x-button icon="o-link" class="btn-xs btn-ghost"
+                                                            tooltip="Open lecture link" />
+                                                        {{ $lecture['url'] }}
+                                                    </a>
+                                                @else
+                                                    <x-empty icon="o-video" message="No video uploaded" />
                                                 @endif
                                             </x-card>
 
-                                            <x-card class="mt-2">
-                                                @if (!empty($lecture['description']))
+                                            @if (!empty($lecture['description']))
+                                                <x-card class="mt-2">
                                                     @php $desc = $lecture['description']; @endphp
                                                     @if (strlen($desc) > 500)
                                                         <div x-data="{ expanded: false }">
@@ -498,8 +536,8 @@ new class extends Component {
                                                             {{ $desc }}
                                                         </p>
                                                     @endif
-                                                @endif
-                                            </x-card>
+                                                </x-card>
+                                            @endif
                                         </div>
 
                                         <div class="flex gap-1 shrink-0">
@@ -738,28 +776,95 @@ new class extends Component {
 
     <x-modal wire:model="showLectureModal" title="{{ $editLectureMode ? 'Edit Lecture' : 'Add Lecture' }}"
         class="backdrop-blur" separator>
-        <x-form wire:submit.prevent="saveLecture">
+        <x-form wire:submit.prevent="saveLecture" x-data="chunkedUploader()">
             <div class="space-y-4">
+                <x-errors title="Please fix the errors below" />
+
                 <x-input label="Lecture Title" wire:model.defer="lectureTitle"
                     placeholder="Enter lecture title (e.g. Introduction)" />
 
-                @if (!$editLectureMode)
-                    <div>
-                        <x-file label="Upload Video File" wire:model="lectureVideo"
-                            hint="MP4, WebM and other formats (Max: 500MB)" />
+                @if (!$editLectureMode || empty($lectures[$editingLectureIndex]['path']))
+                    <div class="space-y-2">
+                        <label class="label text-sm font-semibold">Upload Video File</label>
+                        <input type="file" @change="startUpload($event)"
+                            class="file-input file-input-bordered file-input-primary w-full" accept="video/*" />
+
+                        <div x-show="uploading" class="mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span x-text="status"></span>
+                                <span x-text="progress + '%'"></span>
+                            </div>
+                            <progress class="progress progress-primary w-full" :value="progress"
+                                max="100"></progress>
+                        </div>
+
+                        <div x-show="completed" class="mt-2 text-success text-sm flex flex-col gap-1">
+                            <div class="flex items-center gap-1">
+                                <x-icon name="o-check-circle" class="w-4 h-4" />
+                                Upload complete!
+                            </div>
+                            <div x-show="serverConfirmed" class="text-xs opacity-70">
+                                Server confirmed. You can now save the lecture.
+                            </div>
+                        </div>
+
+                        <input type="hidden" />
                     </div>
                 @else
-                    @if (!empty($lectures[$editingLectureIndex]['path']))
-                        <div class="p-4 bg-base-200 rounded-lg mb-4">
+                    <div class="p-4 bg-base-200 rounded-lg mb-4">
+                        <div class="flex items-center justify-between">
                             <p class="text-sm text-gray-600">Current Video: <span
-                                    class="font-semibold">{{ basename($lectures[$editingLectureIndex]['path']) }}</span>
+                                    class="font-semibold text-primary">{{ basename($lectures[$editingLectureIndex]['path']) }}</span>
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">Leave empty to keep current video</p>
+                            <x-button icon="o-pencil" class="btn-xs btn-ghost" label="Replace"
+                                @click="showUploader = true" x-show="!showUploader" />
                         </div>
-                    @endif
-                    <div>
-                        <x-file label="Upload New Video (Optional)" wire:model="lectureVideo"
-                            hint="Leave empty to keep current video" />
+                    </div>
+
+                    <div x-show="showUploader || false">
+                        <div class="divider">Replace Video</div>
+                        <div class="space-y-2">
+                            <input type="file" @change="startUpload($event)"
+                                class="file-input file-input-bordered file-input-primary w-full" accept="video/*" />
+
+                            <div x-show="uploading" class="mt-2">
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span x-text="status"></span>
+                                    <span x-text="progress + '%'"></span>
+                                </div>
+                                <progress class="progress progress-primary w-full" :value="progress"
+                                    max="100"></progress>
+                            </div>
+
+                            <div x-show="completed" class="mt-2 text-success text-sm flex flex-col gap-1">
+                                <div class="flex items-center gap-1">
+                                    <x-icon name="o-check-circle" class="w-4 h-4" />
+                                    New video ready!
+                                </div>
+                                <div x-show="serverConfirmed" class="text-xs opacity-70">
+                                    Server confirmed. Ready to replace.
+                                </div>
+
+                                {{-- Debug info (Always visible) --}}
+                                <div
+                                    class="p-3 bg-black text-green-400 rounded-lg mt-4 font-mono text-[11px] border-2 border-primary">
+                                    <div class="font-bold border-b border-gray-700 mb-1 pb-1">DEBUG STATUS</div>
+                                    <div class="flex justify-between">
+                                        <span>Sync Path:</span>
+                                        <span class="text-white" x-text="$wire.lectureTempPath || 'NULL'"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Alpine:</span>
+                                        <span class="text-white" x-text="lectureTempPath || 'NULL'"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Confirmed:</span>
+                                        <span :class="serverConfirmed ? 'text-green-500' : 'text-red-500'"
+                                            x-text="serverConfirmed ? 'YES' : 'NO'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 @endif
 
@@ -770,7 +875,7 @@ new class extends Component {
             <x-slot:actions>
                 <x-button label="Cancel" @click="$wire.showLectureModal = false" />
                 <x-button label="{{ $editLectureMode ? 'Update' : 'Add' }}" class="btn-primary" type="submit"
-                    spinner="saveLecture" />
+                    spinner="saveLecture" ::disabled="uploading" />
             </x-slot:actions>
         </x-form>
     </x-modal>
@@ -812,3 +917,107 @@ new class extends Component {
         </x-form>
     </x-modal>
 </div>
+
+@script
+    <script>
+        Alpine.data('chunkedUploader', () => ({
+            lectureTempPath: '',
+            uploading: false,
+            progress: 0,
+            status: '',
+            completed: false,
+            showUploader: false,
+            serverConfirmed: false,
+
+            async startUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                this.uploading = true;
+                this.completed = false;
+                this.progress = 0;
+                this.status = 'Initializing...';
+
+                try {
+                    // 1. Initialize
+                    const initRes = await fetch('/api/uploads/init', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: file.name,
+                            totalSize: file.size
+                        })
+                    });
+                    const {
+                        uploadId
+                    } = await initRes.json();
+
+                    // 2. Upload Chunks
+                    const chunkSize = 512 * 1024; // Reduce to 512KB for extremely strict servers
+                    const totalChunks = Math.ceil(file.size / chunkSize);
+
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(start + chunkSize, file.size);
+                        const chunk = file.slice(start, end);
+
+                        this.status = `Uploading ...`;
+
+                        const formData = new FormData();
+                        formData.append('chunk', chunk);
+                        formData.append('index', i);
+
+                        const chunkRes = await fetch(`/api/uploads/${uploadId}/chunk`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!chunkRes.ok) {
+                            if (chunkRes.status === 413) {
+                                throw new Error(
+                                    'Server rejected the data size. Trying to reduce chunk size further might be needed or increase client_max_body_size in Nginx.'
+                                );
+                            }
+                            throw new Error(
+                                `Upload failed at chunk ${i + 1} with status ${chunkRes.status}`);
+                        }
+
+                        this.progress = Math.round(((i + 1) / totalChunks) * 100);
+                    }
+
+                    // 3. Complete
+                    this.status = 'Merging chunks...';
+                    const completeRes = await fetch(`/api/uploads/${uploadId}/complete`, {
+                        method: 'POST'
+                    });
+                    const result = await completeRes.json();
+
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
+
+                    const path = result.path;
+                    this.status = 'Upload complete';
+                    this.completed = true;
+                    this.uploading = false;
+                    this.lectureTempPath = path;
+
+                    // Direct set in Livewire - REMOVED the 'true' (deferred) flag
+                    console.log('Sending path to Livewire:', path);
+                    await $wire.set('lectureTempPath', path);
+                    this.serverConfirmed = true;
+                    this.status = 'Ready to save';
+
+                    console.log('Server acknowledged path:', $wire.lectureTempPath);
+
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                    this.status = 'Upload failed. Please try again.';
+                    this.uploading = false;
+                }
+            }
+        }))
+    </script>
+@endscript

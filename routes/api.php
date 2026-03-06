@@ -48,4 +48,11 @@ Route::middleware('auth:sanctum')->prefix('documents')->name('api.documents.')->
 });
 
 Route::get('/videos/stream/{path}', [VideoStreamingController::class, 'stream'])
-    ->name('api.videos.stream');
+    ->name('api.videos.stream')
+    ->where('path', '.*');
+
+Route::prefix('uploads')->group(function () {
+    Route::post('/init', [\App\Http\Controllers\ChunkedUploadController::class, 'init']);
+    Route::post('/{uploadId}/chunk', [\App\Http\Controllers\ChunkedUploadController::class, 'uploadChunk']);
+    Route::post('/{uploadId}/complete', [\App\Http\Controllers\ChunkedUploadController::class, 'complete']);
+});

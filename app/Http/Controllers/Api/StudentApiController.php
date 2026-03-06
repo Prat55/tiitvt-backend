@@ -51,15 +51,21 @@ class StudentApiController extends Controller
 
                             $title = trim((string) ($lecture['title'] ?? ''));
                             $url = trim((string) ($lecture['url'] ?? ''));
+                            $path = trim((string) ($lecture['path'] ?? ''));
 
-                            if ($title === '' || $url === '') {
+                            if ($title === '' || ($url === '' && $path === '')) {
                                 return null;
+                            }
+
+                            $videoUrl = $url;
+                            if ($path !== '') {
+                                $videoUrl = route('api.videos.stream', ['path' => base64_encode($path)]);
                             }
 
                             return [
                                 'order' => $index + 1,
                                 'title' => $title,
-                                'url' => $url,
+                                'video_url' => $videoUrl,
                                 'description' => $lecture['description'] ?? '',
                             ];
                         })
@@ -72,10 +78,12 @@ class StudentApiController extends Controller
                                 return null;
                             }
 
+                            $path = trim((string) ($material['path'] ?? ''));
+
                             return [
                                 'name' => trim((string) ($material['name'] ?? '')),
                                 'description' => trim((string) ($material['description'] ?? '')),
-                                'path' => trim((string) ($material['path'] ?? '')),
+                                'path' => $path ? asset('storage/' . $path) : '',
                                 'file_name' => trim((string) ($material['file_name'] ?? '')),
                                 'file_size' => (int) ($material['file_size'] ?? 0),
                                 'mime_type' => trim((string) ($material['mime_type'] ?? '')),
