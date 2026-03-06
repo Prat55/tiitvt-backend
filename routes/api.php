@@ -4,9 +4,9 @@ use App\Http\Controllers\Api\AccessControlController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DocumentApiController;
 use App\Http\Controllers\Api\StudentApiController;
+use App\Http\Controllers\VideoStreamingController;
 use Illuminate\Support\Facades\Route;
 
-// Access control trigger endpoint (bypasses site access middleware)
 Route::post('/access-control/trigger', [AccessControlController::class, 'trigger'])
     ->middleware('throttle:api-auth')
     ->name('api.access-control.trigger');
@@ -22,7 +22,6 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
 });
 
 Route::prefix('student')->name('api.student.')->group(function () {
-    // Backward compatible student-only login
     Route::post('/login', [AuthApiController::class, 'studentLogin'])
         ->middleware('throttle:api-auth')
         ->name('login');
@@ -47,3 +46,6 @@ Route::middleware('auth:sanctum')->prefix('documents')->name('api.documents.')->
     Route::get('/certificates/auto/{course}/download', [DocumentApiController::class, 'autoCertificateDownload'])
         ->name('certificates.auto-download');
 });
+
+Route::get('/videos/stream/{path}', [VideoStreamingController::class, 'stream'])
+    ->name('api.videos.stream');

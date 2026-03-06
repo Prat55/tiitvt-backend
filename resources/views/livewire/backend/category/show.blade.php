@@ -18,7 +18,7 @@ new class extends Component {
     public bool $editLectureMode = false;
     public ?int $editingLectureIndex = null;
     public string $lectureTitle = '';
-    public string $lectureUrl = '';
+    public $lectureVideo = null;
     public string $lectureDescription = '';
 
     public array $materials = [];
@@ -56,22 +56,41 @@ new class extends Component {
         $this->editLectureMode = true;
         $this->editingLectureIndex = $index;
         $this->lectureTitle = (string) ($lecture['title'] ?? '');
-        $this->lectureUrl = (string) ($lecture['url'] ?? '');
         $this->lectureDescription = (string) ($lecture['description'] ?? '');
         $this->showLectureModal = true;
     }
-
     public function saveLecture(): void
     {
         $this->validate([
             'lectureTitle' => 'required|string|max:255',
-            'lectureUrl' => 'required',
             'lectureDescription' => 'nullable|string|max:5000',
         ]);
 
+        if (!$this->editLectureMode) {
+            $this->validate([
+                'lectureVideo' => 'required|file|max:512000|mimetypes:video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/x-flv,video/webm',
+            ]);
+        } elseif ($this->lectureVideo) {
+            $this->validate([
+                'lectureVideo' => 'file|max:512000|mimetypes:video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/x-flv,video/webm',
+            ]);
+        }
+
+        $lecturePath = null;
+        if ($this->lectureVideo && is_object($this->lectureVideo)) {
+            // Delete old video if editing
+            if ($this->editLectureMode && !empty($this->lectures[$this->editingLectureIndex]['path'])) {
+                Storage::disk('public')->delete($this->lectures[$this->editingLectureIndex]['path']);
+            }
+
+            $lecturePath = $this->lectureVideo->store('category-lectures', 'public');
+        } elseif ($this->editLectureMode && isset($this->lectures[$this->editingLectureIndex]['path'])) {
+            $lecturePath = $this->lectures[$this->editingLectureIndex]['path'];
+        }
+
         $lectureData = [
             'title' => trim($this->lectureTitle),
-            'url' => trim($this->lectureUrl),
+            'path' => $lecturePath,
             'description' => trim($this->lectureDescription),
         ];
 
@@ -97,6 +116,13 @@ new class extends Component {
         }
 
         $lectures = $this->lectures;
+        $lecture = $lectures[$index];
+
+        // Delete video file if exists
+        if (!empty($lecture['path'])) {
+            Storage::disk('public')->delete($lecture['path']);
+        }
+
         array_splice($lectures, $index, 1);
 
         $this->persistLectures($lectures);
@@ -167,11 +193,11 @@ new class extends Component {
 
                 return [
                     'title' => trim((string) ($lecture['title'] ?? '')),
-                    'url' => trim((string) ($lecture['url'] ?? '')),
+                    'path' => trim((string) ($lecture['path'] ?? '')),
                     'description' => trim((string) ($lecture['description'] ?? '')),
                 ];
             })
-            ->filter(fn($lecture) => is_array($lecture) && $lecture['title'] !== '' && $lecture['url'] !== '')
+            ->filter(fn($lecture) => is_array($lecture) && $lecture['title'] !== '' && $lecture['path'] !== '')
             ->values()
             ->all();
     }
@@ -181,9 +207,9 @@ new class extends Component {
         $this->editLectureMode = false;
         $this->editingLectureIndex = null;
         $this->lectureTitle = '';
-        $this->lectureUrl = '';
+        $this->lectureVideo = null;
         $this->lectureDescription = '';
-        $this->resetValidation(['lectureTitle', 'lectureUrl', 'lectureDescription']);
+        $this->resetValidation(['lectureTitle', 'lectureVideo', 'lectureDescription']);
     }
 
     // Material Methods
@@ -435,17 +461,20 @@ new class extends Component {
                                             </h4>
 
                                             <x-card class="my-3">
-                                                @if (Str::contains($lecture['url'], '<iframe'))
-                                                    <div class="mt-2 w-full aspect-video">
-                                                        {!! $lecture['url'] !!}
+                                                @if (!empty($lecture['path']))
+                                                    <div
+                                                        class="mt-2 w-full aspect-video bg-black rounded-lg overflow-hidden relative">
+                                                        <video class="w-full h-full" controls preload="metadata">
+                                                            <source
+                                                                src="{{ route('api.videos.stream', ['path' => base64_encode($lecture['path'])]) }}"
+                                                                type="video/mp4">
+                                                            Your browser does not support the video tag.
+                                                        </video>
                                                     </div>
-                                                @elseif (Str::startsWith($lecture['url'], ['http://', 'https://']))
-                                                    <a href="{{ $lecture['url'] }}" target="_blank"
-                                                        class="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
-                                                        <x-button icon="o-link" class="btn-xs btn-ghost"
-                                                            tooltip="Open lecture link" />
-                                                        {{ $lecture['url'] }}
-                                                    </a>
+                                                @else
+                                                    <div class="p-4 text-center text-gray-400">
+                                                        No video file attached
+                                                    </div>
                                                 @endif
                                             </x-card>
 
@@ -714,9 +743,25 @@ new class extends Component {
                 <x-input label="Lecture Title" wire:model.defer="lectureTitle"
                     placeholder="Enter lecture title (e.g. Introduction)" />
 
-                <x-textarea label="Lecture URL / Embed Code" wire:model.defer="lectureUrl"
-                    placeholder="https://www.youtube.com/watch?v=...&#10;or paste an <iframe ...> embed code here"
-                    rows="3" hint="Paste a URL or an iframe embed code" />
+                @if (!$editLectureMode)
+                    <div>
+                        <x-file label="Upload Video File" wire:model="lectureVideo"
+                            hint="MP4, WebM and other formats (Max: 500MB)" />
+                    </div>
+                @else
+                    @if (!empty($lectures[$editingLectureIndex]['path']))
+                        <div class="p-4 bg-base-200 rounded-lg mb-4">
+                            <p class="text-sm text-gray-600">Current Video: <span
+                                    class="font-semibold">{{ basename($lectures[$editingLectureIndex]['path']) }}</span>
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">Leave empty to keep current video</p>
+                        </div>
+                    @endif
+                    <div>
+                        <x-file label="Upload New Video (Optional)" wire:model="lectureVideo"
+                            hint="Leave empty to keep current video" />
+                    </div>
+                @endif
 
                 <x-textarea label="Description (Optional)" wire:model.defer="lectureDescription"
                     placeholder="Add a description for this lecture..." rows="4" hint="Max 5000 characters" />
