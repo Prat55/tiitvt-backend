@@ -955,40 +955,52 @@ new class extends Component {
                     } = await initRes.json();
 
                     // 2. Upload Chunks
-                    const chunkSize = 512 * 1024; // Reduce to 512KB for extremely strict servers
+                    const chunkSize = 10 * 1024 * 1024; // 10MB
                     const totalChunks = Math.ceil(file.size / chunkSize);
+                    const concurrency = 3;
+                    let currentChunk = 0;
+                    let completedChunks = 0;
+                    this.status = 'Processing...';
 
-                    for (let i = 0; i < totalChunks; i++) {
-                        const start = i * chunkSize;
-                        const end = Math.min(start + chunkSize, file.size);
-                        const chunk = file.slice(start, end);
+                    const uploadWorker = async () => {
+                        while (currentChunk < totalChunks) {
+                            const i = currentChunk++;
+                            const start = i * chunkSize;
+                            const end = Math.min(start + chunkSize, file.size);
+                            const chunk = file.slice(start, end);
 
-                        this.status = `Uploading ...`;
+                            const formData = new FormData();
+                            formData.append('chunk', chunk);
+                            formData.append('index', i);
 
-                        const formData = new FormData();
-                        formData.append('chunk', chunk);
-                        formData.append('index', i);
+                            const chunkRes = await fetch(`/api/uploads/${uploadId}/chunk`, {
+                                method: 'POST',
+                                body: formData
+                            });
 
-                        const chunkRes = await fetch(`/api/uploads/${uploadId}/chunk`, {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        if (!chunkRes.ok) {
-                            if (chunkRes.status === 413) {
+                            if (!chunkRes.ok) {
+                                if (chunkRes.status === 413) {
+                                    throw new Error(
+                                        'Server rejected the data size. Please increase client_max_body_size in Nginx to at least 10MB.'
+                                    );
+                                }
                                 throw new Error(
-                                    'Server rejected the data size. Trying to reduce chunk size further might be needed or increase client_max_body_size in Nginx.'
-                                );
+                                    `Upload failed with status ${chunkRes.status}`);
                             }
-                            throw new Error(
-                                `Upload failed at chunk ${i + 1} with status ${chunkRes.status}`);
-                        }
 
-                        this.progress = Math.round(((i + 1) / totalChunks) * 100);
-                    }
+                            completedChunks++;
+                            this.progress = Math.round((completedChunks / totalChunks) * 100);
+                        }
+                    };
+
+                    const workers = Array(Math.min(concurrency, totalChunks))
+                        .fill(null)
+                        .map(() => uploadWorker());
+
+                    await Promise.all(workers);
 
                     // 3. Complete
-                    this.status = 'Merging chunks...';
+                    this.status = 'Processing...';
                     const completeRes = await fetch(`/api/uploads/${uploadId}/complete`, {
                         method: 'POST'
                     });
