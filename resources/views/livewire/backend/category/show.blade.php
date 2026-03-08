@@ -794,6 +794,9 @@ new class extends Component {
                                 <span x-text="status"></span>
                                 <span x-text="progress + '%'"></span>
                             </div>
+                            <div class="text-[11px] text-gray-500 mb-1">
+                                Speed: <span x-text="uploadSpeed"></span>
+                            </div>
                             <progress class="progress progress-primary w-full" :value="progress"
                                 max="100"></progress>
                         </div>
@@ -831,6 +834,9 @@ new class extends Component {
                                 <div class="flex justify-between text-xs mb-1">
                                     <span x-text="status"></span>
                                     <span x-text="progress + '%'"></span>
+                                </div>
+                                <div class="text-[11px] text-gray-500 mb-1">
+                                    Speed: <span x-text="uploadSpeed"></span>
                                 </div>
                                 <progress class="progress progress-primary w-full" :value="progress"
                                     max="100"></progress>
@@ -928,6 +934,7 @@ new class extends Component {
             completed: false,
             showUploader: false,
             serverConfirmed: false,
+            uploadSpeed: '0 KB/s',
 
             async startUpload(event) {
                 const file = event.target.files[0];
@@ -937,6 +944,7 @@ new class extends Component {
                 this.completed = false;
                 this.progress = 0;
                 this.status = 'Initializing...';
+                this.uploadSpeed = '0 KB/s';
 
                 try {
                     // 1. Initialize
@@ -960,7 +968,21 @@ new class extends Component {
                     const concurrency = 3;
                     let currentChunk = 0;
                     let completedChunks = 0;
+                    let uploadedBytes = 0;
+                    const uploadStartedAt = performance.now();
                     this.status = 'Processing...';
+
+                    const formatSpeed = (bytesPerSecond) => {
+                        if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) {
+                            return '0 KB/s';
+                        }
+
+                        if (bytesPerSecond >= 1024 * 1024) {
+                            return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+                        }
+
+                        return `${Math.max(1, Math.round(bytesPerSecond / 1024))} KB/s`;
+                    };
 
                     const uploadWorker = async () => {
                         while (currentChunk < totalChunks) {
@@ -989,6 +1011,9 @@ new class extends Component {
                             }
 
                             completedChunks++;
+                            uploadedBytes += chunk.size;
+                            const elapsedSeconds = (performance.now() - uploadStartedAt) / 1000;
+                            this.uploadSpeed = formatSpeed(uploadedBytes / Math.max(elapsedSeconds, 0.001));
                             this.progress = Math.round((completedChunks / totalChunks) * 100);
                         }
                     };
@@ -1015,6 +1040,7 @@ new class extends Component {
                     this.completed = true;
                     this.uploading = false;
                     this.lectureTempPath = path;
+                    this.uploadSpeed = '0 KB/s';
 
                     // Direct set in Livewire - REMOVED the 'true' (deferred) flag
                     console.log('Sending path to Livewire:', path);
@@ -1028,6 +1054,7 @@ new class extends Component {
                     console.error('Upload failed:', error);
                     this.status = 'Upload failed. Please try again.';
                     this.uploading = false;
+                    this.uploadSpeed = '0 KB/s';
                 }
             }
         }))
