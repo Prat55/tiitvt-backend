@@ -38,6 +38,21 @@
                          <li><a href="{{ route('frontend.about') }}">About</a></li>
                          <li><a href="{{ route('frontend.courses.index') }}">Courses</a></li>
                          <li><a href="{{ route('frontend.contact') }}">Contact</a></li>
+                         <li class="dropdown d-lg-none">
+                             <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Download Apps</a>
+                             <ul class="dropdown-menu">
+                                 <li>
+                                     <a href="{{ asset('app-releases/android/it-centre_v1.0.0(1).apk') }}" download>
+                                         IT - Centre
+                                     </a>
+                                 </li>
+                                 <li>
+                                     <a href="{{ asset('app-releases/android/tiitvt_v1.0.0(1).apk') }}" download>
+                                         Tiitvt
+                                     </a>
+                                 </li>
+                             </ul>
+                         </li>
                          @guest
                              <li><a href="{{ route('login') }}">Login</a></li>
                              <li><a href="{{ route('login') }}">Center Login</a></li>

@@ -322,6 +322,10 @@
                 float: none !important;
             }
 
+            .gov-ui-theme nav.navbar .nav.navbar-nav>li.d-lg-none {
+                display: none !important;
+            }
+
             .gov-ui-theme nav.navbar .nav.navbar-nav>li>a {
                 padding: 30px 12px;
                 display: inline-block;
