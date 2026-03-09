@@ -396,7 +396,7 @@
                                 <ul class="dropdown-menu">
                                     <li style="margin-left: 0px !important">
                                         <a href="{{ asset('app-releases/android/it-centre_v1.0.0(1).apk') }}" download>
-                                            It - Centre
+                                            IT - Centre
                                         </a>
                                     </li>
                                     <li style="margin-left: 0px !important">
