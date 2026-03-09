@@ -32,6 +32,7 @@
     <link href="{{ asset('frontend/css/unit-test.css') }}" rel="stylesheet">
     <link href="{{ asset('frontend/css/style.css') }}" rel="stylesheet">
     <link href="{{ asset('frontend/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('frontend/css/custom-dropdown.css') }}" rel="stylesheet">
     <!-- ========== End Stylesheet ========== -->
     @stack('cdn')
 
@@ -387,6 +388,24 @@
                             </li>
                         </div>
                         <div class="d-flex align-items-center">
+                            <li class="dropdown">
+                                <a href="#">
+                                    Download Apps
+                                </a>
+
+                                <ul class="dropdown-menu">
+                                    <li style="margin-left: 0px !important">
+                                        <a href="{{ asset('app-releases/android/it-centre_v1.0.0(1).apk') }}" download>
+                                            It - Centre
+                                        </a>
+                                    </li>
+                                    <li style="margin-left: 0px !important">
+                                        <a href="{{ asset('app-releases/android/tiitvt_v1.0.0(1).apk') }}" download>
+                                            Tiitvt
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
                             <li>
                                 <a href="{{ route('student.certificate.verify') }}">
                                     Verify Certificate

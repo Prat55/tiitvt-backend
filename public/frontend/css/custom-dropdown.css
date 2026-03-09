@@ -1,0 +1,83 @@
+/* Custom Dropdown for Top Bar */
+.top-bar-area .item-flex .dropdown {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.top-bar-area .item-flex .dropdown>a {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    color: #ffffff !important;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.top-bar-area .item-flex .dropdown:hover>a {
+    color: var(--gov-india-saffron) !important;
+}
+
+.top-bar-area .item-flex .dropdown-menu {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 160px;
+    padding: 5px 0;
+    margin: 0;
+    font-size: 14px;
+    text-align: left;
+    list-style: none;
+    background-color: var(--gov-india-navy);
+    background-clip: padding-box;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.top-bar-area .item-flex .dropdown:hover .dropdown-menu {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.top-bar-area .item-flex .dropdown-menu li {
+    display: block;
+    width: 100%;
+}
+
+.top-bar-area .item-flex .dropdown-menu li a {
+    display: block;
+    padding: 8px 20px;
+    clear: both;
+    font-weight: 400;
+    line-height: 1.42857143;
+    color: #ffffff !important;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.top-bar-area .item-flex .dropdown-menu li a:hover {
+    background-color: var(--gov-india-saffron);
+    color: #102a43 !important;
+}
+
+.top-bar-area .item-flex .dropdown-menu li {
+    margin-left: 0 !important;
+}
+
+/* Ensure caret */
+.top-bar-area .dropdown>a:after {
+    content: "\f107";
+    font-family: "Font Awesome 5 Pro";
+    font-weight: 900;
+    margin-left: 8px;
+    font-size: 14px;
+}
