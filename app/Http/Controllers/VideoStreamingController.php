@@ -8,54 +8,103 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VideoStreamingController extends Controller
 {
-    /**
-     * Stream a video file using range requests for bit-by-bit delivery.
-     */
-    public function stream(string $path)
+    private const CHUNK_SIZE = 256 * 1024; // 256KB — better for streaming
+
+    public function stream(Request $request, string $path)
     {
-        $path = base64_decode($path);
+        // Disable PHP output buffering immediately
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        $path = ltrim(str_replace('..', '', base64_decode($path)), '/');
 
         if (!Storage::disk('public')->exists($path)) {
             abort(404, 'Video not found.');
         }
 
         $fullPath = Storage::disk('public')->path($path);
-        $size = filesize($fullPath);
+        $mimeType = Storage::disk('public')->mimeType($path) ?: 'video/mp4';
+        $fileSize = filesize($fullPath);
+
+        [$start, $end, $statusCode] = $this->parseRange($request, $fileSize);
+        $length = $end - $start + 1;
+
+        $headers = $this->buildHeaders($mimeType, $fileSize, $start, $end, $length);
+
+        return new StreamedResponse(
+            function () use ($fullPath, $start, $length) {
+                $this->streamChunks($fullPath, $start, $length);
+            },
+            $statusCode,
+            $headers
+        );
+    }
+
+    private function parseRange(Request $request, int $fileSize): array
+    {
         $start = 0;
-        $end = $size - 1;
+        $end   = $fileSize - 1;
+        $statusCode = 200;
 
-        $headers = [
-            'Content-Type' => Storage::disk('public')->mimeType($path) ?: 'video/mp4',
-            'Accept-Ranges' => 'bytes',
-        ];
+        if ($request->hasHeader('Range')) {
+            preg_match('/bytes=(\d+)-(\d*)/', $request->header('Range'), $matches);
 
-        if (request()->headers->has('Range')) {
-            $range = request()->header('Range');
-            if (preg_match('/bytes=(\d+)-(\d+)?/', $range, $matches)) {
-                $start = intval($matches[1]);
-                $end = isset($matches[2]) ? intval($matches[2]) : $size - 1;
+            $start = (int) $matches[1];
+            $end   = !empty($matches[2]) ? (int) $matches[2] : min($start + (2 * 1024 * 1024), $fileSize - 1);
+            $end   = min($end, $fileSize - 1);
+            $statusCode = 206;
+
+            if ($start > $end || $start >= $fileSize) {
+                abort(416, 'Requested Range Not Satisfiable');
             }
-
-            $headers['Content-Range'] = 'bytes ' . $start . '-' . $end . '/' . $size;
-            $status = 206;
-        } else {
-            $status = 200;
         }
 
-        $headers['Content-Length'] = $end - $start + 1;
+        return [$start, $end, $statusCode];
+    }
 
-        return response()->stream(function () use ($fullPath, $start, $end) {
-            $file = fopen($fullPath, 'rb');
-            fseek($file, $start);
-            $buffer = 8192;
-            while (!feof($file) && ($pos = ftell($file)) <= $end) {
-                if ($pos + $buffer > $end) {
-                    $buffer = $end - $pos + 1;
-                }
-                echo fread($file, $buffer);
-                flush();
+    private function buildHeaders(
+        string $mimeType,
+        int $fileSize,
+        int $start,
+        int $end,
+        int $length
+    ): array {
+        return [
+            'Content-Type'           => $mimeType,
+            'Accept-Ranges'          => 'bytes',
+            'Content-Length'         => $length,
+            'Content-Range'          => "bytes {$start}-{$end}/{$fileSize}",
+            'Content-Disposition'    => 'inline',
+            'Cache-Control'          => 'public, max-age=3600',
+            'Connection'             => 'keep-alive', // 👈 key fix
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Accel-Buffering'      => 'no', // 👈 disables Nginx buffering
+        ];
+    }
+
+    private function streamChunks(string $fullPath, int $start, int $length): void
+    {
+        $handle = fopen($fullPath, 'rb');
+        fseek($handle, $start);
+
+        $remaining = $length;
+
+        while (!feof($handle) && $remaining > 0 && !connection_aborted()) {
+            $toRead = min(self::CHUNK_SIZE, $remaining);
+            $data   = fread($handle, $toRead);
+
+            echo $data;
+
+            // Flush both PHP and system buffers
+            if (ob_get_level() > 0) {
+                ob_flush();
             }
-            fclose($file);
-        }, $status, $headers);
+            flush();
+
+            $remaining -= strlen($data);
+        }
+
+        fclose($handle);
     }
 }

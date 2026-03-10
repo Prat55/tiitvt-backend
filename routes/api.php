@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->prefix('documents')->name('api.documents.')->
 
 Route::get('/videos/stream/{path}', [VideoStreamingController::class, 'stream'])
     ->name('api.videos.stream')
+    ->middleware(['auth:sanctum'])
     ->where('path', '.*');
 
 Route::prefix('uploads')->group(function () {
