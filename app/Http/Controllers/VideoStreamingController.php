@@ -4,24 +4,20 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VideoStreamingController extends Controller
 {
-    private const CHUNK_SIZE = 256 * 1024; // 256KB — better for streaming
-
     public function stream(Request $request, string $path)
     {
-        // 1. Suppress errors and clearing output buffer
-        @ini_set('display_errors', '0');
-        if (ob_get_level() > 0) {
+        // 1. CLEAR ALL OUTPUT BUFFERS - Definitive binary safety
+        while (ob_get_level() > 0) {
             ob_end_clean();
         }
 
-        // 2. Prevent session locking while streaming
-        if (session_id()) {
-            session_write_close();
-        }
+        // 2. DISABLE COMPRESSION & ERRORS - Definitive binary safety
+        @ini_set('zlib.output_compression', 'Off');
+        @ini_set('display_errors', '0');
+        @error_reporting(0);
 
         $path = ltrim(str_replace('..', '', base64_decode($path)), '/');
 
@@ -30,102 +26,60 @@ class VideoStreamingController extends Controller
         }
 
         $fullPath = Storage::disk('public')->path($path);
-        $mimeType = Storage::disk('public')->mimeType($path) ?: 'video/mp4';
         $fileSize = filesize($fullPath);
+        $mimeType = 'video/mp4';
 
-        [$start, $end, $statusCode] = $this->parseRange($request, $fileSize);
-        $length = $end - $start + 1;
-
-        $headers = $this->buildHeaders($mimeType, $fileSize, $start, $end, $length);
-
-        return new StreamedResponse(
-            function () use ($fullPath, $start, $length) {
-                $this->streamChunks($fullPath, $start, $length);
-            },
-            $statusCode,
-            $headers
-        );
-    }
-
-    private function parseRange(Request $request, int $fileSize): array
-    {
+        // 3. RANGE HANDLING
         $start = 0;
-        $end   = $fileSize - 1;
+        $end = $fileSize - 1;
         $statusCode = 200;
+        $statusMessage = "OK";
 
         $range = $request->header('Range');
         if ($range && preg_match('/bytes=(\d+)-(\d*)/', $range, $matches)) {
-            $start = (int) $matches[1];
-
+            $start = (int)$matches[1];
             if (!empty($matches[2])) {
-                $end = (int) $matches[2];
-            } else {
-                // Default chunk size if end is not specified (e.g. 2MB)
-                $end = min($start + (2 * 1024 * 1024), $fileSize - 1);
+                $end = (int)$matches[2];
             }
-
             $end = min($end, $fileSize - 1);
             $statusCode = 206;
-
-            if ($start > $end || $start >= $fileSize) {
-                abort(416, 'Requested Range Not Satisfiable');
-            }
+            $statusMessage = "Partial Content";
         }
 
-        return [$start, $end, $statusCode];
-    }
+        $length = $end - $start + 1;
 
-    private function buildHeaders(
-        string $mimeType,
-        int $fileSize,
-        int $start,
-        int $end,
-        int $length
-    ): array {
-        return [
-            'Content-Type'           => $mimeType,
-            'Accept-Ranges'          => 'bytes',
-            'Content-Length'         => $length,
-            'Content-Range'          => "bytes {$start}-{$end}/{$fileSize}",
-            'Content-Disposition'    => 'inline',
-            'Pragma'                 => 'public',
-            'Cache-Control'          => 'public, max-age=3600',
-            'X-Content-Type-Options' => 'nosniff',
-            'X-Accel-Buffering'      => 'no', // disables Nginx buffering
-        ];
-    }
-
-    private function streamChunks(string $fullPath, int $start, int $length): void
-    {
-        $handle = fopen($fullPath, 'rb');
-        if (!$handle) {
-            return;
+        // 4. PREVENT SESSION LOCKING
+        if (session_id()) {
+            session_write_close();
         }
 
-        fseek($handle, $start);
+        // 5. NAKED HEADERS (Bypass Laravel Response Logic)
+        header("HTTP/1.1 $statusCode $statusMessage");
+        header("Content-Type: $mimeType");
+        header("Content-Length: $length");
+        header("Content-Range: bytes $start-$end/$fileSize");
+        header("Accept-Ranges: bytes");
+        header("Content-Encoding: identity");
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Expose-Headers: Content-Range, Content-Length, Accept-Ranges");
+        header("X-Content-Type-Options: nosniff");
+        header("X-Accel-Buffering: no");
+        header("Cache-Control: public, max-age=3600");
+        header("Pragma: public");
 
-        $remaining = $length;
+        // 6. DIRECT STREAMING
+        $fp = fopen($fullPath, 'rb');
+        fseek($fp, $start);
 
-        try {
-            while ($remaining > 0 && !feof($handle) && !connection_aborted()) {
-                $toRead = min(self::CHUNK_SIZE, $remaining);
-                $data   = fread($handle, $toRead);
-
-                if ($data === false || $data === '') {
-                    break;
-                }
-
-                echo $data;
-
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
-
-                $remaining -= strlen($data);
-            }
-        } finally {
-            fclose($handle);
+        $bufferSize = 256 * 1024; // 256KB
+        while ($length > 0 && !feof($fp)) {
+            $read = min($length, $bufferSize);
+            echo fread($fp, $read);
+            flush();
+            $length -= $read;
         }
+
+        fclose($fp);
+        exit; // Terminate immediately to prevent ANY framework post-processing
     }
 }

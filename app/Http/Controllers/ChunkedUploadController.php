@@ -68,7 +68,8 @@ class ChunkedUploadController extends Controller
         }
 
         $meta = json_decode(Storage::disk('public')->get($metaPath), true);
-        $tempFilePath = storage_path('app/public/lectures/tmp/' . $meta['temp_name']);
+        $tempRelativePath = 'lectures/tmp/' . $meta['temp_name'];
+        $tempFilePath = Storage::disk('public')->path($tempRelativePath);
 
         $chunkDir = 'lectures/tmp/' . $uploadId . '_chunks';
         $chunks = Storage::disk('public')->files($chunkDir);
@@ -78,7 +79,6 @@ class ChunkedUploadController extends Controller
             return (int)basename($a) <=> (int)basename($b);
         });
 
-        $tempFilePath = storage_path('app/public/lectures/tmp/' . $meta['temp_name']);
         $out = fopen($tempFilePath, 'wb');
 
         foreach ($chunks as $chunkRelativePath) {
