@@ -9,16 +9,6 @@ class VideoStreamingController extends Controller
 {
     public function stream(Request $request, string $path)
     {
-        // 1. CLEAR ALL OUTPUT BUFFERS - Definitive binary safety
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-
-        // 2. DISABLE COMPRESSION & ERRORS - Definitive binary safety
-        @ini_set('zlib.output_compression', 'Off');
-        @ini_set('display_errors', '0');
-        @error_reporting(0);
-
         $path = ltrim(str_replace('..', '', base64_decode($path)), '/');
 
         if (!Storage::disk('public')->exists($path)) {
@@ -48,12 +38,7 @@ class VideoStreamingController extends Controller
 
         $length = $end - $start + 1;
 
-        // 4. PREVENT SESSION LOCKING
-        if (session_id()) {
-            session_write_close();
-        }
-
-        // 5. NAKED HEADERS (Bypass Laravel Response Logic)
+        // 4. NAKED HEADERS (Bypass Laravel Response Logic)
         header("HTTP/1.1 $statusCode $statusMessage");
         header("Content-Type: $mimeType");
         header("Content-Length: $length");
