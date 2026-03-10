@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DocumentApiController;
 use App\Http\Controllers\Api\StudentApiController;
 use App\Http\Controllers\VideoStreamingController;
+use App\Http\Middleware\VideoStreamingMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/access-control/trigger', [AccessControlController::class, 'trigger'])
@@ -49,7 +50,7 @@ Route::middleware('auth:sanctum')->prefix('documents')->name('api.documents.')->
 
 Route::get('/videos/stream/{path}', [VideoStreamingController::class, 'stream'])
     ->name('api.videos.stream')
-    ->middleware([\App\Http\Middleware\VideoStreamingMiddleware::class])
+    ->middleware([VideoStreamingMiddleware::class, 'auth:sanctum'])
     ->where('path', '.*');
 
 Route::prefix('uploads')->group(function () {
