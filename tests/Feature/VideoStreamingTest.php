@@ -5,9 +5,19 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use App\Models\User;
+use Laravel\Sanctum\Sanctum;
 
 class VideoStreamingTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Sanctum::actingAs(User::factory()->create());
+    }
+
     public function test_streaming_returns_partial_content_for_range_request()
     {
         Storage::fake('public');

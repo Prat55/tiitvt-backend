@@ -12,9 +12,15 @@ class VideoStreamingController extends Controller
 
     public function stream(Request $request, string $path)
     {
-        // Disable PHP output buffering immediately
-        if (ob_get_level()) {
+        // 1. Suppress errors and clearing output buffer
+        @ini_set('display_errors', '0');
+        if (ob_get_level() > 0) {
             ob_end_clean();
+        }
+
+        // 2. Prevent session locking while streaming
+        if (session_id()) {
+            session_write_close();
         }
 
         $path = ltrim(str_replace('..', '', base64_decode($path)), '/');
@@ -47,12 +53,18 @@ class VideoStreamingController extends Controller
         $end   = $fileSize - 1;
         $statusCode = 200;
 
-        if ($request->hasHeader('Range')) {
-            preg_match('/bytes=(\d+)-(\d*)/', $request->header('Range'), $matches);
-
+        $range = $request->header('Range');
+        if ($range && preg_match('/bytes=(\d+)-(\d*)/', $range, $matches)) {
             $start = (int) $matches[1];
-            $end   = !empty($matches[2]) ? (int) $matches[2] : min($start + (2 * 1024 * 1024), $fileSize - 1);
-            $end   = min($end, $fileSize - 1);
+
+            if (!empty($matches[2])) {
+                $end = (int) $matches[2];
+            } else {
+                // Default chunk size if end is not specified (e.g. 2MB)
+                $end = min($start + (2 * 1024 * 1024), $fileSize - 1);
+            }
+
+            $end = min($end, $fileSize - 1);
             $statusCode = 206;
 
             if ($start > $end || $start >= $fileSize) {
@@ -76,35 +88,44 @@ class VideoStreamingController extends Controller
             'Content-Length'         => $length,
             'Content-Range'          => "bytes {$start}-{$end}/{$fileSize}",
             'Content-Disposition'    => 'inline',
+            'Pragma'                 => 'public',
             'Cache-Control'          => 'public, max-age=3600',
-            'Connection'             => 'keep-alive', // 👈 key fix
             'X-Content-Type-Options' => 'nosniff',
-            'X-Accel-Buffering'      => 'no', // 👈 disables Nginx buffering
+            'X-Accel-Buffering'      => 'no', // disables Nginx buffering
         ];
     }
 
     private function streamChunks(string $fullPath, int $start, int $length): void
     {
         $handle = fopen($fullPath, 'rb');
+        if (!$handle) {
+            return;
+        }
+
         fseek($handle, $start);
 
         $remaining = $length;
 
-        while (!feof($handle) && $remaining > 0 && !connection_aborted()) {
-            $toRead = min(self::CHUNK_SIZE, $remaining);
-            $data   = fread($handle, $toRead);
+        try {
+            while ($remaining > 0 && !feof($handle) && !connection_aborted()) {
+                $toRead = min(self::CHUNK_SIZE, $remaining);
+                $data   = fread($handle, $toRead);
 
-            echo $data;
+                if ($data === false || $data === '') {
+                    break;
+                }
 
-            // Flush both PHP and system buffers
-            if (ob_get_level() > 0) {
-                ob_flush();
+                echo $data;
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+
+                $remaining -= strlen($data);
             }
-            flush();
-
-            $remaining -= strlen($data);
+        } finally {
+            fclose($handle);
         }
-
-        fclose($handle);
     }
 }
