@@ -9,6 +9,7 @@ use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class StudentApiController extends Controller
 {
@@ -62,11 +63,26 @@ class StudentApiController extends Controller
                                 $videoUrl = route('api.videos.stream', ['path' => base64_encode($path)]);
                             }
 
+                            $startByte = 0;
+                            $endByte = 0;
+                            $fileSizeValue = 0;
+
+                            if ($path !== '' && Storage::disk('public')->exists($path)) {
+                                $fileSizeValue = Storage::disk('public')->size($path);
+                                // Set end_byte to 10% of the video size for initial playback
+                                $endByte = (int) floor($fileSizeValue * 0.1);
+                                // Ensure end_byte doesn't exceed actual file size
+                                $endByte = min($endByte, max(0, $fileSizeValue - 1));
+                            }
+
                             return [
                                 'order' => $index + 1,
                                 'title' => $title,
                                 'video_url' => $videoUrl,
                                 'description' => $lecture['description'] ?? '',
+                                'start_byte' => $startByte,
+                                'end_byte' => $endByte,
+                                'file_size' => $fileSizeValue,
                             ];
                         })
                         ->filter()
