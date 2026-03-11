@@ -97,6 +97,14 @@ class Student extends Model
     }
 
     /**
+     * Get lecture progress entries for the student.
+     */
+    public function lectureProgress(): HasMany
+    {
+        return $this->hasMany(StudentLectureProgress::class);
+    }
+
+    /**
      * Get the exam students for the student.
      */
     public function examStudents(): HasMany

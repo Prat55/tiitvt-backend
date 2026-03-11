@@ -6,13 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamResult;
 use App\Models\Installment;
 use App\Models\Student;
+use App\Models\StudentLectureProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class StudentApiController extends Controller
 {
+    private const DEFAULT_INITIAL_RANGE_BYTES = 20971520;
+    private const DEFAULT_MEDIA_BUFFER_BYTES = 5242880;
+
+    private array $videoRangeHintsCache = [];
+
     public function profile(Request $request): JsonResponse
     {
         $student = $this->resolveStudent($request);
@@ -43,9 +50,9 @@ class StudentApiController extends Controller
             ->get()
             ->map(function ($course) {
                 // Map categories with their lectures and materials
-                $categories = $course->categories->map(function ($category) {
+                $categories = $course->categories->map(function ($category) use ($course) {
                     $catLectures = collect($category->lectures ?? [])
-                        ->map(function ($lecture, int $index) {
+                        ->map(function ($lecture, int $index) use ($course, $category) {
                             if (!is_array($lecture)) {
                                 return null;
                             }
@@ -63,26 +70,23 @@ class StudentApiController extends Controller
                                 $videoUrl = route('api.videos.stream', ['path' => base64_encode($path)]);
                             }
 
-                            $startByte = 0;
-                            $endByte = 0;
-                            $fileSizeValue = 0;
-
-                            if ($path !== '' && Storage::disk('public')->exists($path)) {
-                                $fileSizeValue = Storage::disk('public')->size($path);
-                                // Set end_byte to 10% of the video size for initial playback
-                                $endByte = (int) floor($fileSizeValue * 0.1);
-                                // Ensure end_byte doesn't exceed actual file size
-                                $endByte = min($endByte, max(0, $fileSizeValue - 1));
-                            }
+                            $rangeHints = $this->buildVideoRangeHints($path);
+                            $lectureKey = $this->makeLectureKey($course->id, $category->id, $title, $path, $url, $index);
 
                             return [
                                 'order' => $index + 1,
+                                'lecture_key' => $lectureKey,
                                 'title' => $title,
                                 'video_url' => $videoUrl,
                                 'description' => $lecture['description'] ?? '',
-                                'start_byte' => $startByte,
-                                'end_byte' => $endByte,
-                                'file_size' => $fileSizeValue,
+                                'start_byte' => $rangeHints['start_byte'],
+                                'end_byte' => $rangeHints['end_byte'],
+                                'file_size' => $rangeHints['file_size'],
+                                'moov_atom_offset' => $rangeHints['moov_atom_offset'],
+                                'media_data_atom_offset' => $rangeHints['media_data_atom_offset'],
+                                'media_start_byte' => $rangeHints['media_start_byte'],
+                                'suggested_initial_end_byte' => $rangeHints['suggested_initial_end_byte'],
+                                'suggested_initial_range' => $rangeHints['suggested_initial_range'],
                             ];
                         })
                         ->filter()
@@ -132,6 +136,87 @@ class StudentApiController extends Controller
 
         return response()->json([
             'data' => $courses,
+        ]);
+    }
+
+    public function lectureProgress(Request $request): JsonResponse
+    {
+        $student = $this->resolveStudent($request);
+
+        $progress = StudentLectureProgress::query()
+            ->where('student_id', $student->id)
+            ->orderByDesc('last_watched_at')
+            ->orderByDesc('updated_at')
+            ->get()
+            ->map(fn(StudentLectureProgress $entry) => $this->formatLectureProgress($entry))
+            ->values();
+
+        return response()->json([
+            'data' => $progress,
+        ]);
+    }
+
+    public function upsertLectureProgress(Request $request, string $lectureKey): JsonResponse
+    {
+        $student = $this->resolveStudent($request);
+
+        $validated = Validator::make($request->all(), [
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'lecture_title' => ['nullable', 'string', 'max:255'],
+            'duration_seconds' => ['nullable', 'numeric', 'min:0'],
+            'position_seconds' => ['nullable', 'numeric', 'min:0'],
+            'watched_seconds' => ['nullable', 'numeric', 'min:0'],
+            'is_completed' => ['nullable', 'boolean'],
+        ])->validate();
+
+        $progress = StudentLectureProgress::firstOrNew([
+            'student_id' => $student->id,
+            'lecture_key' => $lectureKey,
+        ]);
+
+        if (array_key_exists('course_id', $validated)) {
+            $progress->course_id = $validated['course_id'];
+        }
+
+        if (array_key_exists('category_id', $validated)) {
+            $progress->category_id = $validated['category_id'];
+        }
+
+        if (array_key_exists('lecture_title', $validated)) {
+            $progress->lecture_title = $validated['lecture_title'];
+        }
+
+        if (array_key_exists('duration_seconds', $validated)) {
+            $progress->duration_seconds = round((float) $validated['duration_seconds'], 3);
+        }
+
+        if (array_key_exists('position_seconds', $validated)) {
+            $progress->position_seconds = round((float) $validated['position_seconds'], 3);
+        }
+
+        if (array_key_exists('watched_seconds', $validated)) {
+            $incomingWatchedSeconds = round((float) $validated['watched_seconds'], 3);
+            $progress->watched_seconds = max((float) ($progress->watched_seconds ?? 0), $incomingWatchedSeconds);
+        }
+
+        $completionFromPayload = (bool) ($validated['is_completed'] ?? false);
+        $completionFromPlayback = $this->shouldMarkLectureCompleted(
+            array_key_exists('position_seconds', $validated) ? (float) $validated['position_seconds'] : (float) ($progress->position_seconds ?? 0),
+            array_key_exists('duration_seconds', $validated) ? (float) $validated['duration_seconds'] : (float) ($progress->duration_seconds ?? 0)
+        );
+
+        $progress->is_completed = (bool) ($progress->is_completed || $completionFromPayload || $completionFromPlayback);
+
+        if ($progress->is_completed && $progress->completed_at === null) {
+            $progress->completed_at = now();
+        }
+
+        $progress->last_watched_at = now();
+        $progress->save();
+
+        return response()->json([
+            'data' => $this->formatLectureProgress($progress->fresh()),
         ]);
     }
 
@@ -306,5 +391,197 @@ class StudentApiController extends Controller
         $actor->loadMissing(['center:id,name,address,state,country', 'courses:id,name']);
 
         return $actor;
+    }
+
+    private function formatLectureProgress(StudentLectureProgress $entry): array
+    {
+        return [
+            'lecture_key' => $entry->lecture_key,
+            'course_id' => $entry->course_id,
+            'category_id' => $entry->category_id,
+            'lecture_title' => $entry->lecture_title,
+            'duration_seconds' => $entry->duration_seconds !== null ? (float) $entry->duration_seconds : null,
+            'position_seconds' => $entry->position_seconds !== null ? (float) $entry->position_seconds : null,
+            'watched_seconds' => $entry->watched_seconds !== null ? (float) $entry->watched_seconds : null,
+            'is_completed' => (bool) $entry->is_completed,
+            'completed_at' => optional($entry->completed_at)?->toIso8601String(),
+            'last_watched_at' => optional($entry->last_watched_at)?->toIso8601String(),
+            'updated_at' => optional($entry->updated_at)?->toIso8601String(),
+        ];
+    }
+
+    private function shouldMarkLectureCompleted(float $positionSeconds, float $durationSeconds): bool
+    {
+        if ($durationSeconds <= 0) {
+            return false;
+        }
+
+        return ($positionSeconds / $durationSeconds) >= 0.9;
+    }
+
+    private function makeLectureKey(
+        int|string|null $courseId,
+        int|string|null $categoryId,
+        string $title,
+        string $path,
+        string $url,
+        int $index
+    ): string {
+        $source = $path !== ''
+            ? "path:{$path}"
+            : ($url !== '' ? "url:{$url}" : "title:{$title}|order:{$index}");
+
+        return sprintf(
+            '%s-%s-%s',
+            $courseId ?? 'x',
+            $categoryId ?? 'x',
+            sha1($source)
+        );
+    }
+
+    private function buildVideoRangeHints(string $path): array
+    {
+        if ($path === '') {
+            return $this->emptyVideoRangeHints();
+        }
+
+        if (isset($this->videoRangeHintsCache[$path])) {
+            return $this->videoRangeHintsCache[$path];
+        }
+
+        $disk = Storage::disk('public');
+        if (!$disk->exists($path)) {
+            return $this->videoRangeHintsCache[$path] = $this->emptyVideoRangeHints();
+        }
+
+        $fullPath = $disk->path($path);
+        $fileSize = (int) $disk->size($path);
+        $atoms = $this->parseTopLevelAtoms($fullPath);
+
+        $moovAtomOffset = $atoms['moov']['offset'] ?? null;
+        $mediaDataAtomOffset = $atoms['mdat']['offset'] ?? null;
+        $mediaStartByte = isset($atoms['mdat'])
+            ? $atoms['mdat']['offset'] + $atoms['mdat']['header_size']
+            : null;
+
+        $suggestedInitialEndByte = $this->determineSuggestedInitialEndByte($fileSize, $mediaStartByte);
+
+        return $this->videoRangeHintsCache[$path] = [
+            'start_byte' => $fileSize > 0 ? 0 : null,
+            'end_byte' => $suggestedInitialEndByte,
+            'file_size' => $fileSize,
+            'moov_atom_offset' => $moovAtomOffset,
+            'media_data_atom_offset' => $mediaDataAtomOffset,
+            'media_start_byte' => $mediaStartByte,
+            'suggested_initial_end_byte' => $suggestedInitialEndByte,
+            'suggested_initial_range' => $suggestedInitialEndByte === null
+                ? null
+                : "bytes=0-{$suggestedInitialEndByte}",
+        ];
+    }
+
+    private function emptyVideoRangeHints(): array
+    {
+        return [
+            'start_byte' => null,
+            'end_byte' => null,
+            'file_size' => 0,
+            'moov_atom_offset' => null,
+            'media_data_atom_offset' => null,
+            'media_start_byte' => null,
+            'suggested_initial_end_byte' => null,
+            'suggested_initial_range' => null,
+        ];
+    }
+
+    private function determineSuggestedInitialEndByte(int $fileSize, ?int $mediaStartByte): ?int
+    {
+        if ($fileSize <= 0) {
+            return null;
+        }
+
+        $defaultEndByte = min($fileSize - 1, self::DEFAULT_INITIAL_RANGE_BYTES - 1);
+        if ($mediaStartByte === null) {
+            return $defaultEndByte;
+        }
+
+        $mediaBufferedEndByte = min(
+            $fileSize - 1,
+            $mediaStartByte + self::DEFAULT_MEDIA_BUFFER_BYTES - 1
+        );
+
+        return max($defaultEndByte, $mediaBufferedEndByte);
+    }
+
+    private function parseTopLevelAtoms(string $fullPath): array
+    {
+        $stream = @fopen($fullPath, 'rb');
+        if ($stream === false) {
+            return [];
+        }
+
+        $fileSize = filesize($fullPath);
+        if ($fileSize === false || $fileSize < 8) {
+            fclose($stream);
+            return [];
+        }
+
+        $atoms = [];
+        $offset = 0;
+        $maxAtomsToScan = 128;
+
+        try {
+            while ($offset + 8 <= $fileSize && count($atoms) < 2 && $maxAtomsToScan-- > 0) {
+                if (fseek($stream, $offset) !== 0) {
+                    break;
+                }
+
+                $header = fread($stream, 8);
+                if ($header === false || strlen($header) !== 8) {
+                    break;
+                }
+
+                $size = unpack('N', substr($header, 0, 4))[1];
+                $type = substr($header, 4, 4);
+                $headerSize = 8;
+
+                if ($size === 1) {
+                    $extendedSizeBytes = fread($stream, 8);
+                    if ($extendedSizeBytes === false || strlen($extendedSizeBytes) !== 8) {
+                        break;
+                    }
+
+                    $size = $this->unpackUInt64($extendedSizeBytes);
+                    $headerSize = 16;
+                } elseif ($size === 0) {
+                    $size = $fileSize - $offset;
+                }
+
+                if ($size < $headerSize || $offset + $size > $fileSize) {
+                    break;
+                }
+
+                if ($type === 'moov' || $type === 'mdat') {
+                    $atoms[$type] = [
+                        'offset' => $offset,
+                        'header_size' => $headerSize,
+                        'size' => $size,
+                    ];
+                }
+
+                $offset += $size;
+            }
+        } finally {
+            fclose($stream);
+        }
+
+        return $atoms;
+    }
+
+    private function unpackUInt64(string $bytes): int
+    {
+        $parts = unpack('Nhigh/Nlow', $bytes);
+
+        return ((int) $parts['high'] << 32) | (int) $parts['low'];
     }
 }

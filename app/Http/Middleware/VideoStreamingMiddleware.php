@@ -15,17 +15,7 @@ class VideoStreamingMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. CLEAR ALL OUTPUT BUFFERS - Definitive binary safety
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-
-        // 2. DISABLE COMPRESSION & ERRORS - Definitive binary safety
-        @ini_set('zlib.output_compression', 'Off');
-        @ini_set('display_errors', '0');
-        @error_reporting(0);
-
-        // 3. PREVENT SESSION LOCKING
+        // Release the session lock before streaming a long-lived response.
         if (session_id()) {
             session_write_close();
         }

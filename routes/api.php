@@ -31,6 +31,9 @@ Route::prefix('student')->name('api.student.')->group(function () {
         Route::post('/logout', [AuthApiController::class, 'logout'])->name('logout');
         Route::get('/profile', [StudentApiController::class, 'profile'])->name('profile');
         Route::get('/courses', [StudentApiController::class, 'courses'])->name('courses.index');
+        Route::get('/lecture-progress', [StudentApiController::class, 'lectureProgress'])->name('lecture-progress.index');
+        Route::put('/lecture-progress/{lectureKey}', [StudentApiController::class, 'upsertLectureProgress'])
+            ->name('lecture-progress.upsert');
         Route::get('/results', [StudentApiController::class, 'results'])->name('results.index');
         Route::get('/payment-logs', [StudentApiController::class, 'paymentLogs'])->name('payment-logs.index');
         Route::get('/certificates', [StudentApiController::class, 'certificates'])->name('certificates.index');
