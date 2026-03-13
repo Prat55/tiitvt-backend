@@ -91,9 +91,43 @@ class ChunkedUploadController extends Controller
         fclose($out);
         Storage::disk('public')->deleteDirectory($chunkDir); // Remove chunk directory
 
+        // Normalize MP4 on upload: re-encode to H.264/AAC with faststart so duration
+        // and structure are correct for streaming and seeking.
+        $extension = strtolower(pathinfo($tempRelativePath, PATHINFO_EXTENSION));
+        if ($extension === 'mp4') {
+            $this->normalizeMp4ForStreaming($tempFilePath);
+        }
+
         return response()->json([
             'path' => 'lectures/tmp/' . $meta['temp_name'],
             'filename' => $meta['original_name']
         ]);
+    }
+
+    /**
+     * Re-encode MP4 to H.264/AAC with faststart for reliable HTTP streaming and duration metadata.
+     */
+    private function normalizeMp4ForStreaming(string $filePath): void
+    {
+        $ffmpeg = config('app.ffmpeg_path', 'ffmpeg');
+
+        // Output temp file next to original, keep .mp4 extension
+        $normalizedPath = preg_replace('/\.mp4$/i', '.normalized.mp4', $filePath) ?: ($filePath . '.normalized.mp4');
+
+        // Veryfast preset to keep upload-time CPU reasonable; adjust CRF if needed.
+        $command = sprintf(
+            '%s -y -i %s -movflags +faststart -c:v libx264 -preset veryfast -crf 23 -c:a aac -b:a 128k %s 2>/dev/null',
+            escapeshellcmd($ffmpeg),
+            escapeshellarg($filePath),
+            escapeshellarg($normalizedPath)
+        );
+
+        exec($command, $output, $exitCode);
+
+        if ($exitCode === 0 && file_exists($normalizedPath) && filesize($normalizedPath) > 0) {
+            rename($normalizedPath, $filePath);
+        } elseif (file_exists($normalizedPath)) {
+            @unlink($normalizedPath);
+        }
     }
 }
