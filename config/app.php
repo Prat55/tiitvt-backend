@@ -141,4 +141,6 @@ return [
         'days' => env('DB_BACKUP_DAYS', 7),
     ],
 
+    'ffmpeg_path' => env('FFMPEG_PATH', 'ffmpeg'),
+
 ];
