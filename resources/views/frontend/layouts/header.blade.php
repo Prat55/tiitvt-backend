@@ -42,13 +42,13 @@
                              <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Download Apps</a>
                              <ul class="dropdown-menu">
                                  <li>
-                                     <a href="{{ $it_centre_apk ? asset($it_centre_apk->apk_path) : '#' }}"
+                                     <a href="{{ $it_centre_apk ? asset('storage/' . $it_centre_apk->apk_path) : '#' }}"
                                          @if ($it_centre_apk) download @endif>
                                          IT - Centre
                                      </a>
                                  </li>
                                  <li>
-                                     <a href="{{ $tiitvt_apk ? asset($tiitvt_apk->apk_path) : '#' }}"
+                                     <a href="{{ $tiitvt_apk ? asset('storage/' . $tiitvt_apk->apk_path) : '#' }}"
                                          @if ($tiitvt_apk) download @endif>
                                          Tiitvt
                                      </a>

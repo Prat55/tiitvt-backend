@@ -403,13 +403,13 @@
 
                                 <ul class="dropdown-menu">
                                     <li style="margin-left: 0px !important">
-                                        <a href="{{ $it_centre_apk ? asset($it_centre_apk->apk_path) : '#' }}"
+                                        <a href="{{ $it_centre_apk ? asset('storage/' . $it_centre_apk->apk_path) : '#' }}"
                                             @if ($it_centre_apk) download @endif>
                                             IT - Centre
                                         </a>
                                     </li>
                                     <li style="margin-left: 0px !important">
-                                        <a href="{{ $tiitvt_apk ? asset($tiitvt_apk->apk_path) : '#' }}"
+                                        <a href="{{ $tiitvt_apk ? asset('storage/' . $tiitvt_apk->apk_path) : '#' }}"
                                             @if ($tiitvt_apk) download @endif>
                                             Tiitvt
                                         </a>
