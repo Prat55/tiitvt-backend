@@ -24,8 +24,8 @@ class AppUpdateApiController extends Controller
 
         if (!$latest) {
             return response()->json([
-                'message' => 'No updates found for this type.',
-            ], 404);
+                'message' => 'No updates found.',
+            ], 200);
         }
 
         return response()->json([
