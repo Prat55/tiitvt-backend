@@ -61,3 +61,5 @@ Route::prefix('uploads')->group(function () {
     Route::post('/{uploadId}/chunk', [\App\Http\Controllers\ChunkedUploadController::class, 'uploadChunk']);
     Route::post('/{uploadId}/complete', [\App\Http\Controllers\ChunkedUploadController::class, 'complete']);
 });
+
+Route::get('/app-updates', [\App\Http\Controllers\Api\AppUpdateApiController::class, 'latest'])->name('api.app-updates.latest');

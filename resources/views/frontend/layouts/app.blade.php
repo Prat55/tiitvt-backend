@@ -392,6 +392,10 @@
                             </li>
                         </div>
                         <div class="d-flex align-items-center">
+                            @php
+                                $it_centre_apk = \App\Models\AppUpdate::where('type', 'it-centre')->latest()->first();
+                                $tiitvt_apk = \App\Models\AppUpdate::where('type', 'tiitvt')->latest()->first();
+                            @endphp
                             <li class="dropdown">
                                 <a href="#">
                                     Download Apps
@@ -399,12 +403,14 @@
 
                                 <ul class="dropdown-menu">
                                     <li style="margin-left: 0px !important">
-                                        <a href="{{ asset('app-releases/android/it-centre_v1.0.0(1).apk') }}" download>
+                                        <a href="{{ $it_centre_apk ? asset($it_centre_apk->apk_path) : '#' }}"
+                                            @if ($it_centre_apk) download @endif>
                                             IT - Centre
                                         </a>
                                     </li>
                                     <li style="margin-left: 0px !important">
-                                        <a href="{{ asset('app-releases/android/tiitvt_v1.0.0(1).apk') }}" download>
+                                        <a href="{{ $tiitvt_apk ? asset($tiitvt_apk->apk_path) : '#' }}"
+                                            @if ($tiitvt_apk) download @endif>
                                             Tiitvt
                                         </a>
                                     </li>

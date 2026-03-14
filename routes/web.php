@@ -32,7 +32,7 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
         Route::group(['middleware' => ['role:admin']], function () {
 
 
-            Route::prefix('center')->name('center.')->group(function () {
+            Route::prefix('centers')->name('center.')->group(function () {
                 Volt::route('/', 'backend.center.index')->name('index');
                 Volt::route('/create', 'backend.center.create')->name('create');
                 Volt::route('/{uid}/edit', 'backend.center.edit')->name('edit');
@@ -44,7 +44,7 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
                 Volt::route('/{category}/show', 'backend.category.show')->name('show');
             });
 
-            Route::prefix('course')->name('course.')->group(function () {
+            Route::prefix('courses')->name('course.')->group(function () {
                 Volt::route('/', 'backend.course.index')->name('index');
                 Volt::route('/create', 'backend.course.create')->name('create');
                 Volt::route('/{course}/show', 'backend.course.show')->name('show');
@@ -55,27 +55,31 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
                 Volt::route('/', 'backend.inquiry.index')->name('index');
             });
 
-            Route::prefix('question')->name('question.')->group(function () {
+            Route::prefix('questions')->name('question.')->group(function () {
                 Volt::route('/', 'backend.question.index')->name('index');
                 Volt::route('/create', 'backend.question.create')->name('create');
                 Volt::route('/{question}/show', 'backend.question.show')->name('show');
                 Volt::route('/{question}/edit', 'backend.question.edit')->name('edit');
             });
 
-            Route::prefix('blog')->name('blog.')->group(function () {
+            Route::prefix('blogs')->name('blog.')->group(function () {
                 Volt::route('/', 'backend.blog.index')->name('index');
                 Volt::route('/{blog}/edit', 'backend.blog.edit')->name('edit');
             });
 
-            Route::prefix('website-setting')->name('website-setting.')->group(function () {
+            Route::prefix('website-settings')->name('website-setting.')->group(function () {
                 Volt::route('/', 'backend.website-setting.index')->name('index');
             });
 
-            Route::prefix('testimonial')->name('testimonial.')->group(function () {
+            Route::prefix('app-updates')->name('app-update.')->group(function () {
+                Volt::route('/', 'backend.app-update.index')->name('index');
+            });
+
+            Route::prefix('testimonials')->name('testimonial.')->group(function () {
                 Volt::route('/', 'backend.testimonial.index')->name('index');
             });
 
-            Route::prefix('hero-slider')->name('hero-slider.')->group(function () {
+            Route::prefix('hero-sliders')->name('hero-slider.')->group(function () {
                 Volt::route('/', 'backend.hero-slider.index')->name('index');
             });
 
@@ -96,7 +100,7 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
         });
 
         Route::group(['middleware' => ['role:admin|center']], function () {
-            Route::prefix('student')->name('student.')->group(function () {
+            Route::prefix('students')->name('student.')->group(function () {
                 Volt::route('/', 'backend.student.index')->name('index');
                 Volt::route('/create', 'backend.student.create')->name('create');
                 Volt::route('/{student}/show', 'backend.student.show')->name('show');
@@ -108,7 +112,7 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
                 Volt::route('/', 'backend.fees.index')->name('index');
             });
 
-            Route::prefix('exam')->name('exam.')->group(function () {
+            Route::prefix('exams')->name('exam.')->group(function () {
                 Volt::route('/', 'backend.exam.index')->name('index');
                 Volt::route('/create', 'backend.exam.create')->name('create');
                 Volt::route('/{exam}/show', 'backend.exam.show')->name('show');
@@ -122,7 +126,7 @@ Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
 
     // Certificate preview route (authenticated users only - admin or center)
     Route::group(['middleware' => ['role:admin|center']], function () {
-        Route::prefix('/app/certificate')->name('certificate.')->group(function () {
+        Route::prefix('/app/certificates')->name('certificate.')->group(function () {
             Route::get('/exam/preview/{regNo}/{courseId?}', [CertificateController::class, 'preview'])->name('exam.preview');
             Route::get('/exam/download/{regNo}/{courseId?}', [CertificateController::class, 'download'])->name('exam.download');
         });

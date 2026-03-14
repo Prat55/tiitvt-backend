@@ -17,6 +17,11 @@
     @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
     @yield('cdn')
 </head>
 
@@ -118,6 +123,8 @@
                     <div class="divider divider-start my-1"><small>Backup</small></div>
                     <x-menu-item title="Backup Files" icon="o-arrow-down-tray"
                         link="{{ route('admin.backup.index') }}" />
+                    <x-menu-item title="App Updates" icon="o-device-phone-mobile"
+                        link="{{ route('admin.app-update.index') }}" />
                 @endrole
 
                 <div class="divider divider-start my-1"><small>Main Website</small></div>
@@ -198,6 +205,7 @@
 
     {{--  TOAST area --}}
     <x-toast />
+    @stack('scripts')
 </body>
 
 </html>
