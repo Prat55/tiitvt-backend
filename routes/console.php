@@ -22,6 +22,11 @@ Schedule::command('exams:cancel-overdue')
     ->everyFifteenMinutes()
     ->appendOutputTo(storage_path('logs/exam-cancellation.log'));
 
+// Exam result recalculation - every minute to keep manual mark changes in sync
+Schedule::command('exam-results:sync')
+    ->everyMinute()
+    ->appendOutputTo(storage_path('logs/exam-result-sync.log'));
+
 // Daily database backup at 5:30 AM
 Artisan::command('schedule:daily-backup', function () {
     $this->call('backup:daily');

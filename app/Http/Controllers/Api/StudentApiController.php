@@ -7,6 +7,7 @@ use App\Models\ExamResult;
 use App\Models\Installment;
 use App\Models\Student;
 use App\Models\StudentLectureProgress;
+use App\Services\ExamResultSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -19,6 +20,8 @@ class StudentApiController extends Controller
     private const DEFAULT_MEDIA_BUFFER_BYTES = 5242880;
 
     private array $videoRangeHintsCache = [];
+
+    public function __construct(private readonly ExamResultSyncService $examResultSyncService) {}
 
     public function profile(Request $request): JsonResponse
     {
@@ -336,27 +339,10 @@ class StudentApiController extends Controller
                     $issuedOn = optional($student->enrollment_date)?->toDateString();
                     $isPassed = true;
                 } else {
-                    $categoryResults = $allCourseResults
-                        ->groupBy('category_id')
-                        ->map(function ($results) {
-                            return $results->first();
-                        })
-                        ->values();
-
-                    $totalPoints = 0;
-                    $pointsEarned = 0;
-
-                    foreach ($categoryResults as $result) {
-                        $totalPoints += $result->total_points ?: 100;
-                        $pointsEarned += $result->points_earned ?: $result->score ?: 0;
-                    }
-
-                    $overallPercentage = $totalPoints > 0 ? ($pointsEarned / $totalPoints) * 100 : 0;
-                    $percentage = round($overallPercentage, 2);
-                    $issuedOn = optional($allCourseResults->first()->submitted_at)?->toDateString();
-                    $isPassed = $isAuto
-                        ? $overallPercentage >= (float) ($course->passing_percentage ?: 80)
-                        : $overallPercentage >= 50;
+                    $summary = $this->examResultSyncService->summarizeCourseResults($allCourseResults);
+                    $percentage = $summary['overall_percentage'];
+                    $issuedOn = optional($summary['issued_on'])?->toDateString();
+                    $isPassed = $summary['is_passed'];
                 }
 
                 return [

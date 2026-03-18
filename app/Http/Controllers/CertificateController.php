@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ExternalCertificate;
 use App\Models\Student;
 use App\Models\ExamResult;
+use App\Services\ExamResultSyncService;
 use App\Services\StudentQRService;
 use App\Services\WebsiteSettingsService;
 use App\Services\CertificateOverlayService;
@@ -16,12 +17,14 @@ class CertificateController extends Controller
     protected StudentQRService $studentQRService;
     protected WebsiteSettingsService $websiteSettings;
     protected CertificateOverlayService $overlayService;
+    protected ExamResultSyncService $examResultSyncService;
 
-    public function __construct(StudentQRService $studentQRService, WebsiteSettingsService $websiteSettings, CertificateOverlayService $overlayService)
+    public function __construct(StudentQRService $studentQRService, WebsiteSettingsService $websiteSettings, CertificateOverlayService $overlayService, ExamResultSyncService $examResultSyncService)
     {
         $this->studentQRService = $studentQRService;
         $this->websiteSettings = $websiteSettings;
         $this->overlayService = $overlayService;
+        $this->examResultSyncService = $examResultSyncService;
     }
 
     /**
@@ -205,47 +208,22 @@ class CertificateController extends Controller
         // Generate QR code data URI
         $qrDataUri = $this->studentQRService->generateQRCodeDataUri($studentQR->qr_data);
 
-        // Calculate overall statistics
-        $totalMarks = 0;
-        $totalMarksObtained = 0;
-
-        foreach ($categoryResults as $result) {
-            $totalMarks += $result->total_points ?: 100;
-            $totalMarksObtained += $result->points_earned ?: $result->score ?: 0;
-        }
-
-        $overallPercentage = $totalMarks > 0 ? ($totalMarksObtained / $totalMarks) * 100 : 0;
-
-        // Create subjects array
-        $subjects = $categoryResults->map(function ($result) {
-            $maxMarks = $result->total_points && $result->total_points > 0 ? $result->total_points : 100;
-            $obtainedMarks = $result->points_earned ?? $result->score ?? 0;
-            $examCategory = $result->exam->examCategories()->where('category_id', $result->category_id)->first();
-            $passingPoints = $examCategory ? (int) $examCategory->passing_points : 0;
-            $resultStatus = $obtainedMarks >= $passingPoints ? 'PASS' : 'FAIL';
-
-            return [
-                'name' => $result->category->name ?? 'Subject',
-                'maximum' => (int) $maxMarks,
-                'obtained' => (int) round($obtainedMarks),
-                'result' => $resultStatus
-            ];
-        })->values()->toArray();
+        $summary = $this->examResultSyncService->summarizeCourseResults($categoryResults);
 
         // Create certificate data
         $certificate = (object) [
             'reg_no' => $student->tiitvt_reg_no,
             'student_name' => $student->first_name . ($student->fathers_name ? ' ' . $student->fathers_name : '') . ($student->surname ? ' ' . $student->surname : ''),
             'course_name' => $latestExamResult->exam->course->name,
-            'percentage' => round($overallPercentage, 2),
-            'grade' => $this->calculateGrade($overallPercentage),
+            'percentage' => $summary['overall_percentage'],
+            'grade' => $this->calculateGrade($summary['overall_percentage']),
             'issued_on' => $latestExamResult->submitted_at ?? now(),
             'center_name' => $student->center->name ?? $this->websiteSettings->getWebsiteName(),
             'data' => [
-                'subjects' => $subjects,
-                'total_marks' => $totalMarks,
-                'total_marks_obtained' => round($totalMarksObtained),
-                'total_result' => $overallPercentage >= 50 ? 'PASS' : 'FAIL'
+                'subjects' => $summary['subjects'],
+                'total_marks' => $summary['total_marks'],
+                'total_marks_obtained' => $summary['total_marks_obtained'],
+                'total_result' => $summary['overall_result']
             ]
         ];
 
