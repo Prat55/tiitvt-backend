@@ -6,7 +6,9 @@ use Livewire\Volt\Component;
 use Livewire\Attributes\{Layout, Title};
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use App\Jobs\OptimizeVideoJob;
 
 new class extends Component {
     use Toast, WithFileUploads;
@@ -81,6 +83,7 @@ new class extends Component {
         }
 
         $lecturePath = null;
+        $newLectureVideoUploaded = false;
         if ($this->lectureTempPath) {
             // Move from tmp to final destination
             $sourcePath = $this->lectureTempPath;
@@ -101,6 +104,7 @@ new class extends Component {
             if (Storage::disk('public')->exists($sourcePath)) {
                 Storage::disk('public')->move($sourcePath, $finalPath);
                 $lecturePath = $finalPath;
+                $newLectureVideoUploaded = true;
             } else {
                 $this->error('The uploaded video file could not be found on the server. Please try uploading again.', position: 'toast-bottom');
                 return;
@@ -125,9 +129,25 @@ new class extends Component {
         }
 
         $this->persistLectures($lectures);
+
+        // Run expensive optimization in queue instead of blocking UI or upload flow.
+        if ($newLectureVideoUploaded && is_string($lecturePath) && strtolower(pathinfo($lecturePath, PATHINFO_EXTENSION)) === 'mp4') {
+            OptimizeVideoJob::dispatch($lecturePath);
+        }
+
         $this->resetLectureForm();
         $this->showLectureModal = false;
         $this->success('Lecture saved successfully!', position: 'toast-bottom');
+    }
+
+    public function getLectureStreamUrl(?string $path): ?string
+    {
+        $path = trim((string) $path);
+        if ($path === '') {
+            return null;
+        }
+
+        return URL::temporarySignedRoute('admin.videos.stream', now()->addHours(6), ['path' => base64_encode($path)]);
     }
 
     public function updatedLectureTempPath($value)
@@ -491,14 +511,29 @@ new class extends Component {
 
                                             <x-card class="my-3">
                                                 @if (!empty($lecture['path']))
-                                                    <div
+                                                    @php $streamUrl = $this->getLectureStreamUrl($lecture['path'] ?? ''); @endphp
+                                                    <div x-data="{ loaded: false }"
                                                         class="mt-2 w-full aspect-video bg-black rounded-lg overflow-hidden relative">
-                                                        <video class="w-full h-full" controls preload="metadata">
-                                                            <source
-                                                                src="{{ route('api.videos.stream', ['path' => base64_encode($lecture['path'])]) }}"
-                                                                type="video/mp4">
-                                                            Your browser does not support the video tag.
-                                                        </video>
+                                                        <template x-if="!loaded">
+                                                            <div
+                                                                class="w-full h-full flex flex-col items-center justify-center gap-3 text-center p-5">
+                                                                <x-icon name="o-video-camera"
+                                                                    class="w-10 h-10 text-gray-400" />
+                                                                <p class="text-xs text-gray-300">Video is hidden until
+                                                                    you click Play.</p>
+                                                                <x-button label="Play" icon="o-play"
+                                                                    class="btn-primary btn-sm"
+                                                                    @click="loaded = true; $nextTick(() => { const video = $refs.player; if (video) { video.play().catch(() => {}); } });" />
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="loaded && '{{ $streamUrl ?? '' }}' !== ''">
+                                                            <video x-ref="player" class="w-full h-full" controls
+                                                                preload="none">
+                                                                <source src="{{ $streamUrl }}" type="video/mp4">
+                                                                Your browser does not support the video tag.
+                                                            </video>
+                                                        </template>
                                                     </div>
                                                 @elseif (!empty($lecture['url']) && Str::contains($lecture['url'], '<iframe'))
                                                     <div class="mt-2 w-full aspect-video">
@@ -569,7 +604,8 @@ new class extends Component {
 
                                                 <x-menu-item icon="o-trash" class="text-error"
                                                     wire:click="deleteLecture({{ $index }})"
-                                                    label="Delete Lecture" spinner="deleteLecture({{ $index }})"
+                                                    label="Delete Lecture"
+                                                    spinner="deleteLecture({{ $index }})"
                                                     wire:confirm="Are you sure you want to delete this lecture?" />
                                             </x-dropdown>
                                         </div>
@@ -1013,7 +1049,8 @@ new class extends Component {
                             completedChunks++;
                             uploadedBytes += chunk.size;
                             const elapsedSeconds = (performance.now() - uploadStartedAt) / 1000;
-                            this.uploadSpeed = formatSpeed(uploadedBytes / Math.max(elapsedSeconds, 0.001));
+                            this.uploadSpeed = formatSpeed(uploadedBytes / Math.max(elapsedSeconds,
+                                0.001));
                             this.progress = Math.round((completedChunks / totalChunks) * 100);
                         }
                     };

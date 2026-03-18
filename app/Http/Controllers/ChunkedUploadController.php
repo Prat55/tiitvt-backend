@@ -91,11 +91,10 @@ class ChunkedUploadController extends Controller
         fclose($out);
         Storage::disk('public')->deleteDirectory($chunkDir); // Remove chunk directory
 
-        // Normalize MP4 on upload: re-encode to H.264/AAC with faststart so duration
-        // and structure are correct for streaming and seeking.
+        // Keep upload completion fast: remux MP4 for faststart without full re-encode.
         $extension = strtolower(pathinfo($tempRelativePath, PATHINFO_EXTENSION));
         if ($extension === 'mp4') {
-            $this->normalizeMp4ForStreaming($tempFilePath);
+            $this->applyFaststartRemux($tempFilePath);
         }
 
         return response()->json([
@@ -105,18 +104,18 @@ class ChunkedUploadController extends Controller
     }
 
     /**
-     * Re-encode MP4 to H.264/AAC with faststart for reliable HTTP streaming and duration metadata.
+     * Remux MP4 so metadata is at the front for faster initial playback.
      */
-    private function normalizeMp4ForStreaming(string $filePath): void
+    private function applyFaststartRemux(string $filePath): void
     {
         $ffmpeg = config('app.ffmpeg_path', 'ffmpeg');
 
         // Output temp file next to original, keep .mp4 extension
-        $normalizedPath = preg_replace('/\.mp4$/i', '.normalized.mp4', $filePath) ?: ($filePath . '.normalized.mp4');
+        $normalizedPath = preg_replace('/\.mp4$/i', '.faststart.mp4', $filePath) ?: ($filePath . '.faststart.mp4');
 
-        // Veryfast preset to keep upload-time CPU reasonable; adjust CRF if needed.
+        // -c copy avoids expensive encode during the upload completion request.
         $command = sprintf(
-            '%s -y -i %s -movflags +faststart -c:v libx264 -preset veryfast -crf 23 -c:a aac -b:a 128k %s 2>/dev/null',
+            '%s -y -i %s -movflags +faststart -c copy %s 2>/dev/null',
             escapeshellcmd($ffmpeg),
             escapeshellarg($filePath),
             escapeshellarg($normalizedPath)

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\VideoStreamingController;
+use App\Http\Middleware\VideoStreamingMiddleware;
 use Illuminate\Support\Facades\DB;
 use Livewire\Volt\Volt;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +17,11 @@ Route::get('/favicon.ico', [App\Http\Controllers\FaviconController::class, 'favi
 
 Route::middleware(['admin.auth', 'verify.2fa'])->group(function () {
     Route::redirect('/admin', '/admin/dashboard');
+
+    Route::get('/app/videos/stream/{path}', [VideoStreamingController::class, 'streamForBackend'])
+        ->name('admin.videos.stream')
+        ->middleware([VideoStreamingMiddleware::class])
+        ->where('path', '.*');
 
     Route::prefix('app')->name('admin.')->group(function () {
         Route::group(['middleware' => ['role:admin|center']], function () {

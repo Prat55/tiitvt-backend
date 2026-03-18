@@ -10,6 +10,21 @@ class VideoStreamingController extends Controller
 {
     public function stream(Request $request, string $path)
     {
+        return $this->streamFile($request, $path);
+    }
+
+    public function streamForBackend(Request $request, string $path)
+    {
+        if (!$request->hasValidSignature()) {
+            abort(403, 'Invalid or expired video link.');
+        }
+
+        return $this->streamFile($request, $path);
+    }
+
+    private function streamFile(Request $request, string $path)
+    {
+
         $decodedPath = base64_decode($path, true);
         if ($decodedPath === false) {
             abort(404, 'Video not found.');
@@ -28,7 +43,7 @@ class VideoStreamingController extends Controller
 
         $fullPath = $disk->path($path);
         $fileSize = filesize($fullPath);
-        $mimeType = $disk->mimeType($path) ?: 'video/mp4';
+        $mimeType = mime_content_type($fullPath) ?: 'video/mp4';
 
         if ($fileSize === false) {
             abort(404, 'Video not found.');
@@ -42,7 +57,7 @@ class VideoStreamingController extends Controller
             'Access-Control-Expose-Headers' => 'Content-Range, Content-Length, Accept-Ranges',
             'X-Content-Type-Options' => 'nosniff',
             'X-Accel-Buffering' => 'no',
-            'Cache-Control' => 'public, max-age=3600',
+            'Cache-Control' => 'private, max-age=3600',
             'Pragma' => 'public',
         ];
 
