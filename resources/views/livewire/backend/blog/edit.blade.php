@@ -90,7 +90,13 @@ new class extends Component {
 
     public function save(): void
     {
-        $validated = $this->validate();
+        try {
+            $validated = $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
+            throw $e;
+        }
 
         $validated['slug'] = $this->slug ?: Str::slug($this->title);
 

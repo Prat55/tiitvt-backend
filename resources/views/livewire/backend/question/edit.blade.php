@@ -116,9 +116,9 @@ new class extends Component {
     // Update question
     public function update(): void
     {
-        $this->validate();
-
         try {
+            $this->validate();
+
             // Check for duplicate options
             if (count(array_unique($this->options)) !== count($this->options)) {
                 $this->error('All options must be unique.', position: 'toast-bottom');
@@ -161,6 +161,10 @@ new class extends Component {
 
             $this->success('Question updated successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.question.index'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
+            throw $e;
         } catch (\Exception $e) {
             $this->error('Failed to update question. Please try again.', position: 'toast-bottom');
         }

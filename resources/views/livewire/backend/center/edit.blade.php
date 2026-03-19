@@ -99,9 +99,9 @@ new class extends Component {
     // Update center
     public function update(): void
     {
-        $this->validate();
-
         try {
+            $this->validate();
+
             // Update user information
             $user = $this->center->user;
             $user->update([
@@ -151,6 +151,10 @@ new class extends Component {
 
             $this->success('Center updated successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.center.index'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
+            throw $e;
         } catch (\Exception $e) {
             $this->error('Failed to update center. Please try again.', position: 'toast-bottom');
         }

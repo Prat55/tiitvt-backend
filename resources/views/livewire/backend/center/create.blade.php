@@ -61,9 +61,9 @@ new class extends Component {
     // Save center
     public function save(): void
     {
-        $this->validate();
-
         try {
+            $this->validate();
+
             $user = User::where('email', $this->email)->first();
             $generatedPassword = null;
 
@@ -111,6 +111,10 @@ new class extends Component {
 
             $this->success('Center created successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.center.index'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
+            throw $e;
         } catch (\Exception $e) {
             $this->error('Failed to create center. Please try again.', position: 'toast-bottom');
         }

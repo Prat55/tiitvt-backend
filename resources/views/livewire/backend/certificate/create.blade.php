@@ -65,7 +65,13 @@ new class extends Component {
             $this->center_id = $centerId;
         }
 
-        $this->validate();
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
+            throw $e;
+        }
 
         $qrToken = Str::random(32);
         while (ExternalCertificate::where('qr_token', $qrToken)->exists()) {

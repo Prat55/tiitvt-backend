@@ -35,14 +35,14 @@ new class extends Component {
 
     public function updateExam(): void
     {
-        $this->validate([
-            'date' => 'required|date|after_or_equal:today',
-            'startTime' => 'required|date_format:H:i',
-            'endTime' => 'required|date_format:H:i|after:startTime',
-            'duration' => 'required|integer|min:15|max:300',
-        ]);
-
         try {
+            $this->validate([
+                'date' => 'required|date|after_or_equal:today',
+                'startTime' => 'required|date_format:H:i',
+                'endTime' => 'required|date_format:H:i|after:startTime',
+                'duration' => 'required|integer|min:15|max:300',
+            ]);
+
             $this->exam->update([
                 'date' => $this->date,
                 'start_time' => $this->date . ' ' . $this->startTime,
@@ -52,6 +52,10 @@ new class extends Component {
 
             $this->success('Exam updated successfully!');
             $this->redirect(route('admin.exam.show', $this->exam->id));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.');
+            throw $e;
         } catch (\Exception $e) {
             $this->error('Failed to update exam: ' . $e->getMessage());
         }

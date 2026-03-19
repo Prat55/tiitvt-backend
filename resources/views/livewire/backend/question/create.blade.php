@@ -51,9 +51,9 @@ new class extends Component {
     // Save question
     public function save(): void
     {
-        $this->validate();
-
         try {
+            $this->validate();
+
             // Check for duplicate options
             if (count(array_unique($this->options)) !== count($this->options)) {
                 $this->error('All options must be unique.', position: 'toast-bottom');
@@ -94,6 +94,10 @@ new class extends Component {
             \DB::commit();
 
             $this->success('Question created successfully!', position: 'toast-bottom', redirectTo: route('admin.question.index'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
+            throw $e;
         } catch (\Exception $e) {
             // Rollback the transaction on error
             \DB::rollBack();

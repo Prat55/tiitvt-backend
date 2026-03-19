@@ -98,9 +98,9 @@ new class extends Component {
     // Update course
     public function save(): void
     {
-        $this->validate();
-
         try {
+            $this->validate();
+
             $data = [
                 'name' => $this->name,
                 'slug' => $this->slug ?: Str::slug($this->name),
@@ -143,7 +143,8 @@ new class extends Component {
             $this->success('Course updated successfully!', position: 'toast-bottom');
             $this->redirect(route('admin.course.show', $this->course->id));
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Validation exceptions are handled automatically by Livewire
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
             throw $e;
         } catch (\Exception $e) {
             \Log::error('Course update failed', [

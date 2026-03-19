@@ -158,7 +158,13 @@ new class extends Component {
             }
         }
 
-        $this->validate();
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->error($firstError ?? 'Please fix the validation errors.', position: 'toast-bottom');
+            throw $e;
+        }
 
         $data = [
             'first_name' => $this->first_name,
