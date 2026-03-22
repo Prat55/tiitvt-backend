@@ -18,8 +18,7 @@ class AppUpdateApiController extends Controller
         ]);
 
         $latest = AppUpdate::where('type', $request->type)
-            ->where('published_at', '<=', now())
-            ->orderBy('version_code', 'desc')
+            ->latest()
             ->first();
 
         if (!$latest) {
