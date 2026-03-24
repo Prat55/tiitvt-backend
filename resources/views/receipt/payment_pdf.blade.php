@@ -163,6 +163,10 @@
                             <div class="center-name">{{ $center->name ?? ($websiteName ?? 'TIITVT') }}</div>
                             <div class="center-address">{{ $centerAddress }}</div>
                             <div><strong>Cash | Cheque Receipt</strong></div>
+                            @if (!empty($computerGenerated))
+                                <div style="margin-top:8px; color:#d9534f; font-weight:bold; font-size:15px;">COMPUTER
+                                    GENERATED INVOICE</div>
+                            @endif
                         </div>
                     </td>
                     <td class="copy-type">Student Copy</td>

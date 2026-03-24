@@ -19,7 +19,7 @@ class DocumentApiController extends Controller
     {
         $student = $this->resolveAccessibleStudent($request, $installment->student);
 
-        $pdf = Pdf::loadView('receipt.payment_pdf', $this->buildInstallmentReceiptData($student, $installment))
+        $pdf = Pdf::loadView('receipt.computer_invoice_pdf', $this->buildInstallmentReceiptData($student, $installment))
             ->setPaper('a4', 'portrait');
 
         return $pdf->download('receipt_installment_' . $installment->id . '.pdf');
@@ -33,7 +33,7 @@ class DocumentApiController extends Controller
             abort(404, 'Down payment receipt not found.');
         }
 
-        $pdf = Pdf::loadView('receipt.payment_pdf', $this->buildDownPaymentReceiptData($student))
+        $pdf = Pdf::loadView('receipt.computer_invoice_pdf', $this->buildDownPaymentReceiptData($student))
             ->setPaper('a4', 'portrait');
 
         return $pdf->download('receipt_down_payment_' . $student->id . '.pdf');
@@ -161,6 +161,7 @@ class DocumentApiController extends Controller
             'paymentDate' => $installment->paid_date ?? now(),
             'chequeNumber' => null,
             'withdrawnDate' => null,
+            'computerGenerated' => true, // Only for API-based installment
         ];
     }
 
