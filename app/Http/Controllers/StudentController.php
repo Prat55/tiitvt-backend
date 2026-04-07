@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\ExternalCertificate;
 use App\Models\Installment;
 use App\Models\Student;
+use App\Services\ReceiptNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class StudentController extends Controller
 {
+    public function __construct(private readonly ReceiptNumberService $receiptNumberService) {}
+
     /**
      * Display certificate result view by registration number
      */
@@ -117,8 +120,11 @@ class StudentController extends Controller
             $totalPaidAfter = $currentPaymentAmount + $totalPaidFromInstallments;
             $balanceAmount = max(0, $totalFees - $totalPaidAfter);
 
-            // Generate receipt number
-            $receiptNumber = 'RCP-DP-' . date('Y') . '-' . str_pad($student->id, 6, '0', STR_PAD_LEFT);
+            // Payment date (use enrollment date if available, otherwise use current date)
+            $paymentDate = $student->enrollment_date ?? now();
+
+            // Generate center-wise receipt number
+            $receiptNumber = $this->receiptNumberService->forDownPayment($student);
 
             // Format address
             $centerAddress = trim(implode(', ', array_filter([
@@ -142,9 +148,6 @@ class StudentController extends Controller
 
             // Get website name
             $websiteName = getWebsiteName();
-
-            // Payment date (use enrollment date if available, otherwise use current date)
-            $paymentDate = $student->enrollment_date ?? now();
 
             // Debug logging for down payment
             Log::debug('Receipt (down-payment):', [
@@ -221,8 +224,11 @@ class StudentController extends Controller
             $totalPaidAfter = $totalPreviousPaidWithDown + $currentPaymentAmount;
             $balanceAmount = max(0, $totalFees - $totalPaidAfter);
 
-            // Generate receipt number
-            $receiptNumber = 'RCP-' . date('Y') . '-' . str_pad($installment->id, 6, '0', STR_PAD_LEFT);
+            // Payment date
+            $paymentDate = $installment->paid_date ?? now();
+
+            // Generate center-wise receipt number
+            $receiptNumber = $this->receiptNumberService->forInstallment($installment);
 
             // Format address
             $centerAddress = trim(implode(', ', array_filter([
@@ -244,9 +250,6 @@ class StudentController extends Controller
 
             // Get website name
             $websiteName = getWebsiteName();
-
-            // Payment date
-            $paymentDate = $installment->paid_date ?? now();
             $chequeNumber = null;
             $withdrawnDate = null;
 

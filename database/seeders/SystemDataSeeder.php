@@ -115,9 +115,10 @@ class SystemDataSeeder extends Seeder
         ]);
         $student1User->assignRole(Role::where('name', 'student')->first());
 
+        $student1EnrollmentDate = now()->subMonths(2);
+
         $student1 = Student::create([
             'center_id' => $center1->id,
-            'course_id' => $phpCourse->id,
             'tiitvt_reg_no' => 'TIITVT/ATC/21/1',
             'first_name' => 'John',
             'fathers_name' => 'Doe',
@@ -132,7 +133,15 @@ class SystemDataSeeder extends Seeder
                 'country' => 'India'
             ],
             'course_fees' => 15000.00,
-            'enrollment_date' => now()->subMonths(2),
+            'enrollment_date' => $student1EnrollmentDate,
+        ]);
+
+        $student1->courses()->attach($phpCourse->id, [
+            'enrollment_date' => $student1EnrollmentDate,
+            'course_taken' => $phpCourse->name,
+            'batch_time' => 'Morning Batch',
+            'scheme_given' => null,
+            'incharge_name' => null,
         ]);
 
         $student2User = User::factory()->create([
@@ -142,9 +151,10 @@ class SystemDataSeeder extends Seeder
         ]);
         $student2User->assignRole(Role::where('name', 'student')->first());
 
+        $student2EnrollmentDate = now()->subMonth();
+
         $student2 = Student::create([
             'center_id' => $center2->id,
-            'course_id' => $laravelCourse->id,
             'tiitvt_reg_no' => 'TIITVT/ATC/22/2',
             'first_name' => 'Jane',
             'fathers_name' => 'Smith',
@@ -159,7 +169,15 @@ class SystemDataSeeder extends Seeder
                 'country' => 'India'
             ],
             'course_fees' => 20000.00,
-            'enrollment_date' => now()->subMonth(),
+            'enrollment_date' => $student2EnrollmentDate,
+        ]);
+
+        $student2->courses()->attach($laravelCourse->id, [
+            'enrollment_date' => $student2EnrollmentDate,
+            'course_taken' => $laravelCourse->name,
+            'batch_time' => 'Evening Batch',
+            'scheme_given' => null,
+            'incharge_name' => null,
         ]);
 
         // Create exams

@@ -48,7 +48,7 @@
     </x-nav>
 
     {{-- MAIN --}}
-    <x-main>
+    <x-main full-width>
         {{-- SIDEBAR --}}
         <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100">
             @php

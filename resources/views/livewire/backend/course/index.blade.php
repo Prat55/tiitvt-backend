@@ -79,7 +79,7 @@ new class extends Component {
                 <div>
                     <div class="font-medium">{{ $course->name }}</div>
                     @if ($course->description)
-                        <div class="text-xs text-gray-500 truncate max-w-xs">{{ Str::limit($course->description, 60) }}
+                        <div class="text-xs text-gray-500 truncate max-w-xs">{!! Str::limit($course->description, 60) !!}
                         </div>
                     @endif
                 </div>

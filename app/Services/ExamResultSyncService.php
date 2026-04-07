@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class ExamResultSyncService
 {
+    private const SUBJECT_ORDER_LATEST_FIRST = 'latest_first';
+    private const SUBJECT_ORDER_SUBMISSION_ASC = 'submission_asc';
+
     public function evaluateExamResult(ExamResult $examResult): array
     {
         $examResult->loadMissing(['exam.examCategories', 'category']);
@@ -43,7 +46,7 @@ class ExamResultSyncService
         ];
     }
 
-    public function summarizeCourseResults(EloquentCollection $results): array
+    public function summarizeCourseResults(EloquentCollection $results, string $subjectOrder = self::SUBJECT_ORDER_LATEST_FIRST): array
     {
         if ($results->isEmpty()) {
             return [
@@ -57,7 +60,7 @@ class ExamResultSyncService
             ];
         }
 
-        $sortedResults = $results->sortByDesc(function (ExamResult $result) {
+        $latestFirstResults = $results->sortByDesc(function (ExamResult $result) {
             return sprintf(
                 '%s-%020d-%020d',
                 optional($result->submitted_at)->timestamp ?? 0,
@@ -66,7 +69,7 @@ class ExamResultSyncService
             );
         })->values();
 
-        $categoryResults = $sortedResults
+        $categoryResults = $latestFirstResults
             ->groupBy(function (ExamResult $result) {
                 if ($result->category_id !== null) {
                     return 'category-' . $result->category_id;
@@ -78,6 +81,19 @@ class ExamResultSyncService
                 return $groupedResults->first();
             })
             ->values();
+
+        if ($subjectOrder === self::SUBJECT_ORDER_SUBMISSION_ASC) {
+            $categoryResults = $categoryResults
+                ->sortBy(function (ExamResult $result) {
+                    return sprintf(
+                        '%s-%020d-%020d',
+                        optional($result->submitted_at)->timestamp ?? 0,
+                        optional($result->created_at)->timestamp ?? 0,
+                        $result->id ?? 0,
+                    );
+                })
+                ->values();
+        }
 
         $subjects = $categoryResults->map(function (ExamResult $result) {
             $evaluation = $this->evaluateExamResult($result);
@@ -104,7 +120,7 @@ class ExamResultSyncService
             'overall_percentage' => $overallPercentage,
             'overall_result' => $isPassed ? 'PASS' : 'FAIL',
             'is_passed' => $isPassed,
-            'issued_on' => $sortedResults->first()?->submitted_at ?? $sortedResults->first()?->created_at,
+            'issued_on' => $latestFirstResults->first()?->submitted_at ?? $latestFirstResults->first()?->created_at,
         ];
     }
 

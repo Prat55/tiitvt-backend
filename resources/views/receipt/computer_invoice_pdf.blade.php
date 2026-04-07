@@ -215,7 +215,7 @@
         </div>
         <div class="footer">
             This is a computer generated invoice. No signature required.<br>
-            Fees once paid will not be refunded in any condition.
+            Cheque are subject to realisation. Fees once paid will not be refunded in any condition.
         </div>
     </div>
 </body>

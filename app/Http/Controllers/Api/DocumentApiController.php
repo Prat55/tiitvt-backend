@@ -10,11 +10,14 @@ use App\Models\Installment;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\ExamResult;
+use App\Services\ReceiptNumberService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class DocumentApiController extends Controller
 {
+    public function __construct(private readonly ReceiptNumberService $receiptNumberService) {}
+
     public function installmentReceipt(Request $request, Installment $installment)
     {
         $student = $this->resolveAccessibleStudent($request, $installment->student);
@@ -150,7 +153,7 @@ class DocumentApiController extends Controller
             'totalPreviousPaid' => $totalPreviousPaid,
             'totalPaidAfter' => $totalPaidAfter,
             'balanceAmount' => $balanceAmount,
-            'receiptNumber' => 'RCP-' . date('Y') . '-' . str_pad((string) $installment->id, 6, '0', STR_PAD_LEFT),
+            'receiptNumber' => $this->receiptNumberService->forInstallment($installment),
             'centerAddress' => $centerAddress,
             'paymentMethod' => 'cash',
             'paymentType' => 'full',
@@ -193,7 +196,7 @@ class DocumentApiController extends Controller
             'totalPreviousPaid' => $totalPreviousPaid,
             'totalPaidAfter' => $totalPaidAfter,
             'balanceAmount' => $balanceAmount,
-            'receiptNumber' => 'RCP-DP-' . date('Y') . '-' . str_pad((string) $student->id, 6, '0', STR_PAD_LEFT),
+            'receiptNumber' => $this->receiptNumberService->forDownPayment($student),
             'centerAddress' => $centerAddress,
             'paymentMethod' => 'cash',
             'paymentType' => 'down payment',

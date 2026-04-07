@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Storage;
 
 class CertificateController extends Controller
 {
+    private const CERTIFICATE_SUBJECT_ORDER = 'submission_asc';
+
     protected StudentQRService $studentQRService;
     protected WebsiteSettingsService $websiteSettings;
     protected CertificateOverlayService $overlayService;
@@ -208,7 +210,10 @@ class CertificateController extends Controller
         // Generate QR code data URI
         $qrDataUri = $this->studentQRService->generateQRCodeDataUri($studentQR->qr_data);
 
-        $summary = $this->examResultSyncService->summarizeCourseResults($categoryResults);
+        $summary = $this->examResultSyncService->summarizeCourseResults(
+            $categoryResults,
+            self::CERTIFICATE_SUBJECT_ORDER,
+        );
 
         // Create certificate data
         $certificate = (object) [
