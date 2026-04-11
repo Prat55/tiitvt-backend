@@ -364,15 +364,13 @@
                                                                 {{ config('app.name') }}
                                                             </a>
                                                         </div>
-                                                        <h4><a href="course-single.html">{{ $course->name }}</a></h4>
-                                                        <div class="course-meta">
+                                                        <h4><a
+                                                                href="{{ route('frontend.courses.index') }}">{{ $course->name }}</a>
+                                                        </h4>
+                                                        {{-- <div class="course-meta">
                                                             <ul>
-                                                                <li>
-                                                                    <i class="fas fa-user"></i>
-                                                                    {{ $course->students->count() }} Students
-                                                                </li>
                                                             </ul>
-                                                        </div>
+                                                        </div> --}}
                                                     </div>
 
                                                     <div class="course-bottom-meta">
