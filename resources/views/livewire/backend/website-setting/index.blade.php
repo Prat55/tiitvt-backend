@@ -37,6 +37,7 @@ new class extends Component {
     public $primary_phone;
     public $secondary_phone;
     public $address;
+    public $map_embed_url;
 
     // Social Media Settings
     public $facebook_url;
@@ -84,6 +85,7 @@ new class extends Component {
             $this->primary_phone = $this->settings->primary_phone;
             $this->secondary_phone = $this->settings->secondary_phone;
             $this->address = $this->settings->address;
+            $this->map_embed_url = $this->settings->map_embed_url;
             $this->facebook_url = $this->settings->facebook_url;
             $this->twitter_url = $this->settings->twitter_url;
             $this->instagram_url = $this->settings->instagram_url;
@@ -213,6 +215,7 @@ new class extends Component {
             'primary_phone' => 'required|string|max:20',
             'secondary_phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:1000',
+            'map_embed_url' => 'nullable|string',
         ]);
 
         $this->updateSettings([
@@ -221,6 +224,7 @@ new class extends Component {
             'primary_phone' => $this->primary_phone,
             'secondary_phone' => $this->secondary_phone,
             'address' => $this->address,
+            'map_embed_url' => $this->map_embed_url,
         ]);
 
         $this->showContactModal = false;
@@ -444,6 +448,10 @@ new class extends Component {
                     <span class="text-sm font-medium text-gray-500">Address</span>
                     <p class="text-sm truncate">{{ $address ?: 'Not set' }}</p>
                 </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Map Embed URL</span>
+                    <p class="text-sm truncate">{{ $map_embed_url ? 'Set' : 'Not set' }}</p>
+                </div>
             </div>
         </div>
 
@@ -581,6 +589,9 @@ new class extends Component {
                 <x-input label="Secondary Phone" wire:model.defer="secondary_phone"
                     placeholder="Enter secondary phone" />
                 <x-textarea label="Address" wire:model.defer="address" placeholder="Enter full address" />
+                <x-textarea label="Google Maps Embed URL" wire:model.defer="map_embed_url"
+                    placeholder="Paste the Google Maps embed src URL here"
+                    help="Copy the src URL from Google Maps > Share > Embed a map" />
             </div>
 
             <x-slot:actions>

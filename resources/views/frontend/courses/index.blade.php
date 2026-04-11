@@ -143,8 +143,6 @@
                                             <span><i class="fas fa-clock me-1"
                                                     style="color:#FF9933;"></i>{{ $course->duration }}</span>
                                         @endif
-                                        <span><i class="fas fa-users me-1"
-                                                style="color:#FF9933;"></i>{{ $course->students_count }} enrolled</span>
                                     </div>
 
                                     {{-- Rating --}}

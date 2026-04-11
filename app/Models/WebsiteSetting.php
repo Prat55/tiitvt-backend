@@ -21,6 +21,7 @@ class WebsiteSetting extends Model
         'primary_phone',
         'secondary_phone',
         'address',
+        'map_embed_url',
         'facebook_url',
         'twitter_url',
         'instagram_url',
