@@ -17,7 +17,7 @@ return new class extends Migration
 
             $table->string('name');
             $table->string('email');
-            $table->integer('phone')->nullable();
+            $table->string('phone')->nullable();
             $table->text('message');
             $table->string('status')->default('pending');
             $table->string('ip_address')->nullable();
